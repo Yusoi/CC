@@ -1,0 +1,414 @@
+% ---------------------------------------------------------------------------- %
+
+\section*{Parte 1 - Exercício 1}
+
+% \begin{figure}[ht]
+%   \centering
+%   \includegraphics[scale=2.0]{figures/parte1-ex1-topologia.png}
+%   \caption{Topologia CORE para o exercício 1 da parte 1.}
+%   \label{fig:parte1-ex1-topologia}
+% \end{figure}
+
+A topologia CORE construída no âmbito deste exercício, de acordo com as
+instruções dadas no enunciado do trabalho, é apresentada na
+Figura~\ref{fig:parte1-ex1-topologia}.
+
+\itemizedpar{Alínea a.}
+
+\begin{figure}[ht]
+  \centering
+\begin{Verbatim}[fontsize=\scriptsize]
+11:30:12.107926 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 1, length 40
+11:30:12.107990 IP 10.0.0.1 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.109219 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 2, length 40
+11:30:12.109258 IP 10.0.0.1 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.109392 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 3, length 40
+11:30:12.109413 IP 10.0.0.1 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.109946 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 4, length 40
+11:30:12.110003 IP 10.0.1.2 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.110125 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 5, length 40
+11:30:12.110156 IP 10.0.1.2 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.110250 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 6, length 40
+11:30:12.110281 IP 10.0.1.2 > 10.0.0.10: ICMP time exceeded in-transit, length 68
+11:30:12.110379 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 7, length 40
+11:30:12.110429 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 7, length 40
+11:30:12.112140 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 8, length 40
+11:30:12.112197 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 8, length 40
+11:30:12.112325 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 9, length 40
+11:30:12.112366 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 9, length 40
+11:30:12.112467 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 10, length 40
+11:30:12.112506 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 10, length 40
+11:30:12.112601 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 11, length 40
+11:30:12.112639 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 11, length 40
+11:30:12.112834 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 12, length 40
+11:30:12.112873 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 12, length 40
+11:30:12.113066 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 13, length 40
+11:30:12.113104 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 13, length 40
+11:30:12.113321 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 14, length 40
+11:30:12.113385 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 14, length 40
+11:30:12.113661 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 15, length 40
+11:30:12.113770 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 15, length 40
+11:30:12.114068 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 16, length 40
+11:30:12.114132 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 16, length 40
+11:30:12.126100 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 17, length 40
+11:30:12.126189 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 17, length 40
+11:30:12.126490 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 18, length 40
+11:30:12.126538 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 18, length 40
+11:30:12.127742 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 19, length 40
+11:30:12.127800 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 19, length 40
+11:30:12.131577 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 20, length 40
+11:30:12.131617 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 20, length 40
+11:30:12.131749 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 21, length 40
+11:30:12.131776 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 21, length 40
+11:30:12.131893 IP 10.0.0.10 > 10.0.2.10: ICMP echo request, id 88, seq 22, length 40
+11:30:12.131931 IP 10.0.2.10 > 10.0.0.10: ICMP echo reply, id 88, seq 22, length 40
+\end{Verbatim}
+  \caption{Output do programa \emph{tcpdump} no PC \emph{h1} para o exercício 1
+  da parte 1.}
+  \label{fig:parte1-ex1-tcpdump}
+\end{figure}
+
+Começou-se por se ativar o programa \emph{tcpdump} no PC \emph{h1}. Tendo em
+conta que o endereço IP do host \emph{s4} é 10.0.2.10 (cf.
+Figura~\ref{fig:parte1-ex1-topologia}), executou-se o seguinte comando também em
+\emph{h1}: \texttt{traceroute -I 10.0.2.10}. O tráfego ICMP gerado por este
+comando e captado pelo programa \emph{tcpdump} é incluído na
+Figura~\ref{fig:parte1-ex1-tcpdump}.
+
+\itemizedpar{Alínea b.}
+
+Observando o tráfego ICMP transcrito na Figura~\ref{fig:parte1-ex1-tcpdump},
+constata-se que o seu comportamento coincide com o comportamento esperado:
+
+\begin{itemize}
+
+  \item O host \emph{h1} (endereço IP 10.0.0.10) começa por enviar uma mensagem
+  \emph{ICMP echo request} com destino a \emph{s4} (endereço IP 10.0.2.10) e com
+  Time-To-Live (TTL) de 1. Ao receber esta mensagem, o router \emph{r2}
+  (endereço IP 10.0.0.1) decrementa o TTL. Uma vez que este atinge o valor zero,
+  o mesmo router envia uma mensagem \emph{ICMP time exceeded in-transit} com
+  destino a \emph{h1}. Todo este procedimento é executado mais duas vezes.
+
+  \item O host \emph{h1} envia depois uma outra mensagem \emph{ICMP echo
+  request}, igualmente destinada a \emph{s4} mas desta vez com TTL de 2. A
+  mensagem é recebida por \emph{r2} o qual decrementa o TTL por uma unidade e,
+  uma vez que este continua positivo, redireciona a mensagem para \emph{r3}
+  (endereço IP 10.0.1.2). Ao receber a mensagem, no entanto, o router \emph{r3}
+  atualiza o seu TTL para zero, enviando então uma mensagem \emph{ICMP time
+  exceeded in-transit} com destino a \emph{h1}, similarmente à fase anterior.
+  Este procedimento é também executado mais duas vezes.
+
+  \item O host \emph{h1} continua a enviar mensagens \emph{ICMP echo
+  request} destinadas a \emph{s4}, mas agora com TTL de 3. As mensagens são
+  redirecionadas através de \emph{r2} e \emph{r3} e são então recebidas por
+  \emph{s4}, o qual responde a \emph{h1} com mensagens \emph{ICMP echo reply}.
+
+\end{itemize}
+
+\itemizedpar{Alínea c.}
+
+O valor inicial mínimo do campo TTL das mensagens \emph{ICMP echo request}
+enviadas por \emph{h1} que lhes permita alcançar \emph{s4} é de 3, uma vez que a
+mensagem tem de dar 3 "saltos" (sendo redirecionada primeiro por \emph{r2} e
+depois por \emph{r3}) para atingir o host \emph{s4}. Este valor é consistente
+com o comportamento descrito na resposta à alínea anterior.
+
+\itemizedpar{Alínea d.}
+
+O valor médio do tempo de ida-e-volta entre \emph{h1} e \emph{s4} pode ser
+obtido a partir dos \emph{timestamps} incluídos na
+Figura~\ref{fig:parte1-ex1-tcpdump} da seguinte forma: para cada par de
+mensagens \emph{ICMP echo request} e \emph{ICMP echo reply} com \emph{sequence
+number} igual (valor apresentado na figura após a palavra \texttt{seq}),
+subtrai-se ao \emph{timestamp} da segunda o \emph{timestamp} da primeira. A
+média dos valores resultantes representa então o valor médio do tempo de
+ida-e-volta entre \emph{h1} e \emph{s4}.
+
+Aplicando este procedimento, determinou-se que esse valor é de 50.2438 \(\mu\)s.
+
+% ---------------------------------------------------------------------------- %
+
+\section*{Parte 1 - Exercício 2}
+
+\begin{figure}[ht]
+  \centering
+\begin{Verbatim}[fontsize=\scriptsize]
+No.  Time          Source         Destination    Protocol  Length  Info
+172  16.515015645  192.168.2.188  193.136.9.240  ICMP      74      Echo (ping) request
+
+id=0x1f85, seq=1/256, ttl=1 (no response found!)
+Frame 172: 74 bytes on wire (592 bits), 74 bytes captured (592 bits) on interface 0
+Ethernet II, Src: RealtekS_63:34:73 (00:e0:4c:63:34:73), Dst: Vmware_5e:69:ad (00:0c:29:5e:69:ad)
+Internet Protocol Version 4, Src: 192.168.2.188, Dst: 193.136.9.240
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 60
+    Identification: 0x66f7 (26359)
+    Flags: 0x0000
+        0... .... .... .... = Reserved bit: Not set
+        .0.. .... .... .... = Don't fragment: Not set
+        ..0. .... .... .... = More fragments: Not set
+        ...0 0000 0000 0000 = Fragment offset: 0
+    Time to live: 1
+        [Expert Info (Note/Sequence): "Time To Live" only 1]
+            ["Time To Live" only 1]
+            [Severity level: Note]
+            [Group: Sequence]
+    Protocol: ICMP (1)
+    Header checksum: 0xc3ed [validation disabled]
+    [Header checksum status: Unverified]
+    Source: 192.168.2.188
+    Destination: 193.136.9.240
+Internet Control Message Protocol
+\end{Verbatim}
+  \caption{Primeira mensagem ICMP capturada de tamanho \emph{default} para o
+  exercício 2 da parte 1.}
+  \label{fig:parte1-ex2-pacote}
+\end{figure}
+
+A captura, efetuada através da ferramenta \emph{Wireshark}, relativa à primeira
+mensagem ICMP de tamanho \emph{default} é apresentada na
+Figura~\ref{fig:parte1-ex2-pacote}.
+
+\itemizedpar{Alínea a.}
+
+O endereço IP da interface ativa do computador onde o comando \emph{traceroute
+-I router-di.uminho.pt} foi executado é 192.168.2.188, uma vez que esse valor
+consta do campo "Source" na Figura~\ref{fig:parte1-ex2-pacote} e a mensagem em
+causa é um \emph{ICMP echo request}.
+
+\itemizedpar{Alínea b.}
+
+O valor do campo do protocolo é "ICMP" (cf. Figura~\ref{fig:parte1-ex2-pacote}),
+identificando o \emph{Internet Control Message Protocol}, um protocolo de
+controlo ao nível da camada de Internet.
+
+\itemizedpar{Alínea c.}
+
+Observando a Figura~\ref{fig:parte1-ex2-pacote}, constata-se que o cabeçalho
+IPv4 tem 20 bytes (campo "Header Length"). Uma vez que o tamanho total do
+datagrama IP é de 60 bytes (campo "Total Length"), conclui-se que o
+\emph{payload} do datagrama tem 60 - 20 = 40 bytes.
+
+\itemizedpar{Alínea d.}
+
+O datagrama IP não foi fragmentado, uma vez que o bit "More fragments" do campo
+"Flags" está a zero e que o "Fragment offset" desse mesmo campo é também zero
+(cf. Figura~\ref{fig:parte1-ex2-pacote}), indicando respetivamente que este é o
+fragmento final da mensagem e que é também o primeiro.
+
+\itemizedpar{Alínea e.}
+
+Relativamente à sequência de mensagens ICMP enviadas pelo computador onde o
+comando \emph{traceroute -I router-di.uminho.pt} foi executado, os campos do
+cabeçalho IP que variam de pacote para pacote são os seguintes:
+"Identification", "Time to live" e "Header checksum".
+
+\itemizedpar{Alínea f.}
+
+O campo "Identification" toma valores sequenciais, i.e., é incrementado por uma
+unidade a cada mensagem enviada.
+
+O campo "Time to live" toma valores iguais ou maiores aos das mensagens
+\emph{ICMP ping request} anteriores, de forma consistente com o mecanismo
+descrito na resoluação da alínea \emph{b.} do exercício 1 da primeira parte.
+
+\itemizedpar{Alínea g.}
+
+O valor do campo TTL observado na máquina local é de 64 ou 254, dependo do
+router que enviou a mensagem \emph{ICMP time exceeded in-transit}. Durante o
+caminho de retorno o TTL é decrementado por cada salto intermédio.
+
+% ---------------------------------------------------------------------------- %
+
+\section*{Parte 1 - Exercício 3}
+
+\begin{figure}[p]
+  \centering
+\begin{Verbatim}[fontsize=\scriptsize]
+No.  Time          Source         Destination    Protocol  Length  Info
+339  31.299237348  192.168.2.188  193.136.9.240  IPv4      1514    Fragmented IP protocol
+
+(proto=ICMP 1, off=0, ID=68fd) [Reassembled in #341]
+Frame 339: 1514 bytes on wire (12112 bits), 1514 bytes captured (12112 bits) on interface 0
+Ethernet II, Src: RealtekS_63:34:73 (00:e0:4c:63:34:73), Dst: Vmware_5e:69:ad (00:0c:29:5e:69:ad)
+Internet Protocol Version 4, Src: 192.168.2.188, Dst: 193.136.9.240
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 1500
+    Identification: 0x68fd (26877)
+    Flags: 0x2000, More fragments
+        0... .... .... .... = Reserved bit: Not set
+        .0.. .... .... .... = Don't fragment: Not set
+        ..1. .... .... .... = More fragments: Set
+        ...0 0000 0000 0000 = Fragment offset: 0
+    Time to live: 1
+        [Expert Info (Note/Sequence): "Time To Live" only 1]
+            ["Time To Live" only 1]
+            [Severity level: Note]
+            [Group: Sequence]
+    Protocol: ICMP (1)
+    Header checksum: 0x9c47 [validation disabled]
+    [Header checksum status: Unverified]
+    Source: 192.168.2.188
+    Destination: 193.136.9.240
+    Reassembled IPv4 in frame: 341
+Data (1480 bytes)
+\end{Verbatim}
+  \caption{1º fragmento da primeira mensagem ICMP capturada de tamanho 3567 para
+  o exercício 3 da parte 1.}
+  \label{fig:parte1-ex3-pacote-frag1}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+\begin{Verbatim}[fontsize=\scriptsize]
+No.  Time          Source         Destination    Protocol  Length  Info
+340  31.299244398  192.168.2.188  193.136.9.240  IPv4      1514    Fragmented IP protocol
+
+(proto=ICMP 1, off=1480, ID=68fd) [Reassembled in #341]
+Frame 340: 1514 bytes on wire (12112 bits), 1514 bytes captured (12112 bits) on interface 0
+Ethernet II, Src: RealtekS_63:34:73 (00:e0:4c:63:34:73), Dst: Vmware_5e:69:ad (00:0c:29:5e:69:ad)
+Internet Protocol Version 4, Src: 192.168.2.188, Dst: 193.136.9.240
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 1500
+    Identification: 0x68fd (26877)
+    Flags: 0x20b9, More fragments
+        0... .... .... .... = Reserved bit: Not set
+        .0.. .... .... .... = Don't fragment: Not set
+        ..1. .... .... .... = More fragments: Set
+        ...0 0000 1011 1001 = Fragment offset: 185
+    Time to live: 1
+        [Expert Info (Note/Sequence): "Time To Live" only 1]
+            ["Time To Live" only 1]
+            [Severity level: Note]
+            [Group: Sequence]
+    Protocol: ICMP (1)
+    Header checksum: 0x9b8e [validation disabled]
+    [Header checksum status: Unverified]
+    Source: 192.168.2.188
+    Destination: 193.136.9.240
+    Reassembled IPv4 in frame: 341
+Data (1480 bytes)
+\end{Verbatim}
+  \caption{2º fragmento da primeira mensagem ICMP capturada de tamanho 3567 para
+  o exercício 3 da parte 1.}
+  \label{fig:parte1-ex3-pacote-frag2}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+\begin{Verbatim}[fontsize=\scriptsize]
+No.  Time          Source         Destination    Protocol  Length  Info
+341  31.299246678  192.168.2.188  193.136.9.240  ICMP      621     Echo (ping) request
+
+id=0x1f93, seq=1/256, ttl=1 (no response found!)
+Frame 341: 621 bytes on wire (4968 bits), 621 bytes captured (4968 bits) on interface 0
+Ethernet II, Src: RealtekS_63:34:73 (00:e0:4c:63:34:73), Dst: Vmware_5e:69:ad (00:0c:29:5e:69:ad)
+Internet Protocol Version 4, Src: 192.168.2.188, Dst: 193.136.9.240
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 607
+    Identification: 0x68fd (26877)
+    Flags: 0x0172
+        0... .... .... .... = Reserved bit: Not set
+        .0.. .... .... .... = Don't fragment: Not set
+        ..0. .... .... .... = More fragments: Not set
+        ...0 0001 0111 0010 = Fragment offset: 370
+    Time to live: 1
+        [Expert Info (Note/Sequence): "Time To Live" only 1]
+            ["Time To Live" only 1]
+            [Severity level: Note]
+            [Group: Sequence]
+    Protocol: ICMP (1)
+    Header checksum: 0xbe52 [validation disabled]
+    [Header checksum status: Unverified]
+    Source: 192.168.2.188
+    Destination: 193.136.9.240
+    [3 IPv4 Fragments (3547 bytes): #339(1480), #340(1480), #341(587)]
+Internet Control Message Protocol
+\end{Verbatim}
+  \caption{3º fragmento da primeira mensagem ICMP capturada de tamanho 3567 para
+  o exercício 3 da parte 1.}
+  \label{fig:parte1-ex3-pacote-frag3}
+\end{figure}
+
+Para este exercício foram considerados pacotes com tamanho de 3567 bytes, de
+acordo com o definido pelo enunciado e tendo em conta que o grupo do qual os
+autores deste documento fazem parte tem número 67.
+
+As capturas, efetuadas através da ferramenta \emph{Wireshark}, dos três
+fragmentos da primeira mensagem ICMP de tamanho 3567 são apresentadas nas
+Figuras~\ref{fig:parte1-ex3-pacote-frag1}, \ref{fig:parte1-ex3-pacote-frag2} e
+\ref{fig:parte1-ex3-pacote-frag3}.
+
+\itemizedpar{Alínea a.}
+
+O pacote foi fragmentado uma vez que o seu tamanho total de 3567 bytes (3547 do
+\emph{payload} + 20 do cabeçalho IPv4) é superior ao MTU de 1500 bytes.
+
+\itemizedpar{Alínea b.}
+
+O primeiro fragmento do datagrama IP segmentado é apresentado na
+Figura~\ref{fig:parte1-ex3-pacote-frag1}.
+
+Observando-se o campo "Flags", constata-se que o bit "More fragments" está
+ativo, indicando que o datagrama é um fragmento de um outro datagrama. Atentando
+ainda que o campo "Fragment offset" tem valor zero, conclui-se que o datagrama é
+o primeiro fragmento.
+
+Este datagrama IP tem tamanho de 1500 bytes (indicado pelo campo "Total
+length"): 20 bytes de cabeçalho e 1480 bytes de \emph{payload}.
+
+\itemizedpar{Alínea c.}
+
+O segundo fragmento do datagrama IP segmentado é apresentado na
+Figura~\ref{fig:parte1-ex3-pacote-frag2}.
+
+Uma vez que o campo "Fragment offset" do fragmento em questão é superior a zero,
+conclui-se que este \emph{não} é o primeiro fragmento. Tendo também em conta que
+a flag "More fragments" está ativa, determina-se que este \emph{não} é o último
+fragmento.
+
+\itemizedpar{Alínea d.}
+
+O terceiro e último fragmento do datagrama IP segmentado é apresentado na
+Figura~\ref{fig:parte1-ex3-pacote-frag3}. Este é o último fragmento uma vez que
+a flag "More fragments" \emph{não} está ativa.
+
+Foram então criados 3 fragmentos a partir do datagrama original:
+
+\begin{enumerate}
+  \item um fragmento para os bytes \([0, 1480)\) do payload (cf.
+  Figura~\ref{fig:parte1-ex3-pacote-frag1}),
+  \item um fragmento para os bytes \([1480, 2960)\) do payload (cf.
+  Figura~\ref{fig:parte1-ex3-pacote-frag2}) e
+  \item um fragmento para os bytes \([2960, 3547)\) do payload (cf.
+  Figura~\ref{fig:parte1-ex3-pacote-frag3}).
+\end{enumerate}
+
+\itemizedpar{Alínea e.}
+
+Naturalmente, o campo "Header checksum" é diferente de fragmento para fragmento.
+O campo "Total length" dos fragmentos também pode ser diferente (sendo de facto
+diferente nos fragmentos em causa).
+
+A flag "More fragments" está ativa em todos os fragmentos exceto no último. Os
+campos "Fragment offset" e "Total length" de cada fragmento permitem reconstruir
+o datagrama original, determinando-se através deles a subsequência de bytes do
+\emph{payload} que cada fragmento transporta.
+
+% ---------------------------------------------------------------------------- %
