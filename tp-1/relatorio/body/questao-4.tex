@@ -1,0 +1,11 @@
+% ---------------------------------------------------------------------------- %
+
+\questao{4}{As características das ligações de rede têm uma enorme influência nos níveis de Transporte e de Aplicação. Discuta, relacionando a resposta com as experiências realizadas, as influências das situações de perda ou duplicação de pacotes IP no desempenho global de Aplicações fiáveis (se possível, relacionando com alguns dos mecanismos de transporte envolvidos).}
+
+A possibilidade e a frequência de ocorrência de situações de perda ou duplicação de pacotes afeta negativamente a \emph{performance} de comunicação ao nível aplicacional. 
+
+Por um lado, a perda de pacotes (ou deteção de erros na transmissão) resulta na necessidade de retransmissão dos mesmo. Mesmo não se perdendo um pacote, existe ainda \emph{overhead} introduzido pela lógica de deteção de perda dos mesmos, a qual pode requerer até o envio de informação adicional, contribuindo para o aumento da utilização da rede e consumindo recursos.
+
+Por outro lado, a possibilidade de duplicação de pacotes requer a existência de lógica adicional de deteção desse fenómeno. Note-se que este pode ser consequência da possibilidade de perda de pacotes --- pacotes duplicados podem ser o resultado de uma tentativa de retransmissão de um pacote que o transmissor considerou perdido.
+
+% ---------------------------------------------------------------------------- %

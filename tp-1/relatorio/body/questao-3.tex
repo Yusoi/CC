@@ -1,0 +1,19 @@
+% ---------------------------------------------------------------------------- %
+
+\questao{3}{Com base nas experiências realizadas, distinga e compare sucintamente as quatro aplicações de transferência de ficheiros que usou nos seguintes pontos: (i) uso da camada de transporte; (ii) eficiência na transferência; (iii) complexidade; (iv) segurança.}
+
+Na realização do trabalho foram usadas várias versões do \emph{File Transfer Protocol} no âmbito de registar as diferenças entre estas. As versões usadas foram TFTP (\emph{Trivial File Transfer Protocol}), SFTP (\emph{Secure File Transfer Protocol}) e FTP (\emph{File Transfer Protocol}). Foi também usado o HTTP (\emph{HyperText Transfer Protocol}) que segue um protocolo necessariamente diferente dos anteriores.
+
+\begin{itemize}
+
+  \item \textbf{Uso da camada de transporte.} Foi verificado que, tal como o nome indica apenas TFTP, pela sua tag (\emph{Trivial}), usa UDP como o seu protocolo de transporte. Isto deve-se ao facto deste protocolo de transferência ser indicado para ficheiros ditos de triviais e cuja segurança extra dada pelo TCP não é necessária. FTP, SFTP e HTTP usam todos TCP como o seu protocolo de transporte.
+
+  \item \textbf{Eficiência na transferência.} Em termos de eficiência, o TFTP é o mais rápido de todos os protocolos de transferência devido ao seu uso de UDP em vez de TCP. TFTP também é, por defeito, indicado para a transferência de ficheiros mínimos cuja importância é insignificante. De seguida, temos FTP que pela sua simplicidade é mais rápido do que SFTP e HTTP. SFTP é mais rápido que HTTP, no entanto é o mais lento de todos os \emph{File Transfer Protocols} devido à segurança adicional presente na elaboração do seu protocolo, no entanto consegue ser mais rápido que HTTP porque este é mais adequado para a transferência de tamanhos elevados de diferentes dados ao mesmo tempo.
+
+  \item \textbf{Complexidade.} Em termos de complexidade, olhando só para o \emph{overhead} de transporte e não para outra complexidade inerente vinda da aplicação em si (maior \emph{overhead} significa, normalmente, maior complexidade devido à existência de controlos), concluímos que o mais complexo é SFTP por juntar as características de SSH ao FTP e, além disso, por usar TCP. Sendo os outros todos iguais em complexidade exceto TFTP, concluímos que este é o menos complexo sendo o seu \emph{overhead} o menor.
+
+  \item \textbf{Segurança.} Todos os protocolos de transferência apresentam uma discrepância em termos de segurança entre si. TFTP não apresenta nenhum controlo de erros ou outro tipo de segurança, indo ao extremo de usar UDP que é \emph{unreliable} e \emph{connectionless} o que torna qualquer erro impossível de corrigir ou detectar. Apresenta também uma total falha no controlo de acesso o que permitirá a exploração nefária por atores maliciosos. De seguida temos FTP e HTTP, que por si só usam autenticação básica e vulnerável. No entanto, existe controlo de erros e controlo de congestão e fluxo. SFTP utiliza SSH, um sistema de autenticação e transmissão confidencial extremamente seguro.
+
+\end{itemize}
+
+% ---------------------------------------------------------------------------- %

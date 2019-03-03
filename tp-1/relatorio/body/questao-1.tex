@@ -1,0 +1,50 @@
+% ---------------------------------------------------------------------------- %
+
+\questao{1}{Inclua no relatório uma tabela em que identifique, para cada comando executado, qual o protocolo de aplicação, o protocolo de transporte, porta de atendimento e \emph{overhead} de transporte.}
+
+A tabela em questão é apresentada de seguida. Note-se que o comando \texttt{ping} utiliza o protocolo ICMP, o qual opera na camada de rede. Como tal, nenhuma das colunas correspondentes na tabela se aplica. De forma similar, o comando \texttt{traceroute} não utiliza um protocolo de aplicação específico.
+
+\newcommand{\multilinecell}[1]{{
+  \bfseries
+  \renewcommand{\arraystretch}{1.0}
+  \rule{-2pt}{17pt}
+  \begin{tabular}{@{}c@{}}#1\end{tabular}
+  \rule[-12pt]{-2pt}{0pt}
+  }}
+
+\begin{table}[ht]
+  \centering
+  \setlength{\tabcolsep}{6.5pt}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{ | c | c | c | c | c | }
+
+    \hline
+
+    \textbf{Comando usado} &
+    \multilinecell{Protocolo de \\ aplicação} &
+    \multilinecell{Protocolo de \\ transporte} &
+    \multilinecell{Porta de \\ atendimento} &
+    \multilinecell{\emph{Overhead} de \\ transporte} \\ \hline
+
+    \texttt{ping} & --- & --- & --- & --- \\ \hline
+
+    \texttt{traceroute} & --- & UDP & 33440 -- 33455 & 8 bytes \\ \hline
+
+    \texttt{telnet} & DNS & TCP & 53 (Telnet) & 20 bytes \\ \hline
+
+    \texttt{ftp} & FTP & TCP & 21 (FTP) & 20 bytes \\ \hline
+
+    \texttt{tftp} & TFTP & UDP & 69 (TFTP) & 8 bytes \\ \hline
+
+    \texttt{browser/http} & HTTP & TCP & 80 (HTTP) & 20 bytes \\ \hline
+
+    \texttt{nslookup} & DNS & UDP & 53 (DNS) & 8 bytes \\ \hline
+
+    \texttt{ssh} & SSH & TCP & 22 (SSH) & 20 bytes \\ \hline
+    
+    \texttt{sftp} & SFTP & TCP & 22 (SSH) & 32 bytes \\ \hline
+
+  \end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------- %

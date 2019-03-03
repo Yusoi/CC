@@ -1,0 +1,61 @@
+% ---------------------------------------------------------------------------- %
+
+\documentclass{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuges]{babel}
+\usepackage[hidelinks]{hyperref}
+\usepackage{times}
+\usepackage{a4}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[font=normalsize,labelfont={bf,it},textfont=it]{caption}
+
+% ---------------------------------------------------------------------------- %
+
+\newcommand{\itemizedpar}[1]{\paragraph{\emph{\textbf{#1}}}}
+
+\newcommand{\questao}[2]{
+  \itemizedpar{Questão #1.}
+  \emph{#2}
+  \vspace*{0.6\baselineskip}
+  }
+
+\begin{document}
+
+\mainmatter
+
+\title{TP1: Protocolos da Camada de Transporte (Resolução)}
+
+\author{
+  {\bfseries Grupo PL59} \\
+  Alberto Campinho Faria \\
+  Bernardo Manuel Ribeiro Marques Soares Silva \\
+  Nuno Filipe Maranhão dos Reis
+  }
+
+\institute{
+  University of Minho, Department of  Informatics, 4710-057 Braga, Portugal \\
+  e-mail: \{a79077,a77230,a77310\}@alunos.uminho.pt
+  }
+
+\date{}
+
+\maketitle
+
+\input{body/introducao.tex}
+
+\section*{Questões e Respostas}
+\input{body/questao-1.tex}
+\input{body/questao-2.tex}
+\input{body/questao-3.tex}
+\input{body/questao-4.tex}
+
+\input{body/conclusao.tex}
+
+\end{document}
+
+% ---------------------------------------------------------------------------- %
