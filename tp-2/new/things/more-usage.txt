@@ -1,0 +1,13 @@
+
+$ fileshare <port> <export_dir>
+> get <remote_file> [as <local_file>] from <remotes...>
+> put <local_file> [as <remote_file>] to <remotes...>
+> concurrent
+  > get <remote_file> [as <local_file>] from <remotes...>
+  > put <local_file> [as <remote_file>] to <remotes...>
+  > run
+  > cancel
+> accept 192.*.*.*:*
+> stop
+> exit
+$
