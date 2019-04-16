@@ -1,0 +1,26 @@
+% ---------------------------------------------------------------------------- %
+
+\section{Criação de um domínio de nomes \texttt{CC.PT}}
+\label{sec:dominio}
+
+Pretende-se que crie um domínio CC.PT para a topologia de rede que estamos a usar nas aulas práticas (CC-Topo-
+2019.imn), de modo a que se possam usar os nomes em vez dos endereços IP. No final deve, por exemplo, poder fazer-se “ ping
+servidor1.cc.pt ” ou mesmo apenas “ ping Servidor1 ” ou “ ping Servidor1.cc.pt. ”em vez de “ ping 10.1.1.1 ”.
+
+Requisitos a cumprir:
+
+\begin{itemize}
+
+  \item Criação do domínio cc.pt co servidor primário em Servidor1 10.1.1.1 e secundário em Urano 10.2.2.3
+  
+  \item Criação do domínio reverso 1.1.10.in-addr.arpa com os mesmos servidores
+  
+  \item O servidor primário do domínio é o “Servidor1” com endereço 10.1.1.1, também designado por dns.cc.pt, tendo como secundário o “Urano” com endereço 10.2.2.3, com alias dns2.cc.pt. O administrador do domínio é o grupoXX@cc.pt (onde XX é o número do grupo).
+
+  \item O domínio tem também um servidor Web (www.cc.pt) e um servidor de e-mail principal (mail.cc.pt) em Servidor3. O servidor pop e imap é o Servidor2, que é também servidor secundário do e-mail para o domínio;
+
+  \item Sem prejuízo de outros registos que se possam considerar, devem estar registados também o Cliente1.cc.pt com alias GrupoXX.cc.pt onde XX é o número do grupo, e Alfa.cc.pt, Beta.cc.pt e Gama.cc.pt no domínio de nomes e no domínio reverso.
+  
+\end{itemize}
+
+% ---------------------------------------------------------------------------- %

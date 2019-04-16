@@ -1,0 +1,94 @@
+% ---------------------------------------------------------------------------- %
+
+\documentclass{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuges]{babel}
+\usepackage[hidelinks]{hyperref}
+\usepackage{times}
+\usepackage{a4}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{xspace}
+\usepackage{xpatch}
+\usepackage{minted}
+
+% ---------------------------------------------------------------------------- %
+% utilities
+
+\newcommand{\itemizedpar}[1]{\paragraph{\emph{\textbf{#1}}}}
+
+\newcommand{\questao}[2]{%
+  \itemizedpar{Questão #1)}%
+  \emph{#2}%
+  \vspace*{0.6\baselineskip}%
+  }
+
+\newcommand{\SYS}{\textsc{FileShare}\xspace}
+
+\makeatletter
+\AtBeginEnvironment{minted}{\dontdofcolorbox}
+\def\dontdofcolorbox{\renewcommand\fcolorbox[4][]{##4}}
+\xpatchcmd{\inputminted}{\minted@fvset}{\minted@fvset\dontdofcolorbox}{}{}
+\makeatother
+
+\setminted{
+  autogobble,
+  breaklines,
+  fontsize=\small,
+  frame=leftline,
+  framesep=8pt,
+  xleftmargin=11pt
+  }
+
+\let\oldurl\url
+\renewcommand{\url}[1]{{\color{Blue}\oldurl{#1}}}
+
+% ---------------------------------------------------------------------------- %
+% comments
+
+\newcommand{\mynote}[3]{
+   \fbox{\bfseries\sffamily\scriptsize#1}
+   {\scriptsize$\blacktriangleright$\textsf{\emph{\color{#2}{#3}}}$\blacktriangleleft$}}
+
+\newcommand{\alberto}[1]{\mynote{alberto}{red}{#1}}
+\newcommand{\bernardo}[1]{\mynote{cesar}{red}{#1}}
+\newcommand{\nuno}[1]{\mynote{luis}{red}{#1}}
+
+% ---------------------------------------------------------------------------- %
+% document
+
+\begin{document}
+
+\mainmatter
+
+\title{TP3: Serviço de Resolução de Nomes (DNS)}
+
+\author{
+  {\bfseries Grupo PL59} \\
+  Alberto Campinho Faria \\
+  Bernardo Manuel Ribeiro Marques Soares Silva \\
+  Nuno Filipe Maranhão dos Reis
+  }
+
+\institute{
+  University of Minho, Department of  Informatics, 4710-057 Braga, Portugal \\
+  e-mail: \{a79077,a77230,a77310\}@alunos.uminho.pt
+  }
+
+\date{}
+
+\maketitle
+
+\input{body/01-introducao.tex}
+\input{body/02-respostas.tex}
+% \input{body/03-dominio.tex}
+\input{body/04-conclusao.tex}
+
+\end{document}
+
+% ---------------------------------------------------------------------------- %
