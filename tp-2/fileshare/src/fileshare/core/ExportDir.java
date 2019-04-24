@@ -2,8 +2,6 @@
 
 package fileshare.core;
 
-/* -------------------------------------------------------------------------- */
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -12,46 +10,113 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
+/* -------------------------------------------------------------------------- */
+
 /**
  * TODO: document
  *
  * This class is thread-safe: its methods can be invoked concurrently.
  *
- * Symbolic links are not supported.
+ * The behavior of this class' methods in face of symbolic links under the
+ * exported directory is unspecified.
  */
-public class ExportDir
+public class ExportedDirectory
 {
-    private final Path path;
+    private final Path directoryPath;
+
     private final Map< Path, Integer > fileLocks;
 
     /**
      * TODO: document
      *
-     * @param path TODO: document
+     * @param directoryPath TODO: document
      */
-    public ExportDir(Path path)
+    public ExportedDirectory(Path directoryPath)
     {
-        this.path      = path;
-        this.fileLocks = new HashMap<>();
-    }
+        this.directoryPath = directoryPath;
 
-    public Path getPath() {
-        return path;
+        this.fileLocks = new HashMap<>();
     }
 
     /**
      * TODO: document
      *
-     * @param filePath TODO: document
      * @return TODO: document
      */
-    public void readFile(Path filePath, OutputStream outputStream)
+    public Path getDirectoryPath()
     {
+        return this.directoryPath;
+    }
+
+    /**
+     * TODO: document
+     *
+     * If fileMustExist, throws a FileNotFoundException if the file pointed to
+     * by the path doesn't exist; otherwise, only the file's parent directory
+     * must exist.
+     *
+     * @param filePath TODO: document
+     * @return the file's size
+     */
+    public Path resolveFilePath(
+        Path filePath,
+        boolean fileMustExist
+        ) throws IOException
+    {
+        // validate arguments
+
+        if (filePath.isAbsolute())
+            throw new IllegalArgumentException("filePath must be relative");
+
+        // resolve file path
+
+        final var resolvedFilePath =
+            this.directoryPath
+            .resolve(filePath)
+            .toRealPath()
+            .normalize();
+
+        // check file existence and type
+
+        if (Files.exists(resolvedFilePath))
+        {
+            if (!Files.isRegularFile(resolvedFilePath))
+                throw new FileNotFoundException("file is not a regular file");
+        }
+        else
+        {
+            if (fileMustExist)
+                throw new FileNotFoundException("file does not exist");
+        }
+
+        // return resolved file path
+
+        return resolveFilePath;
+    }
+
+    /**
+     * TODO: document
+     *
+     * Writes the file to outputStream
+     *
+     * @param filePath TODO: document
+     * @return the file's size
+     */
+    public void readFile(
+        Path filePath,
+        OutputStream toStream,
+        LongConsumer onBytesTransferredIncreased
+        ) throws IOException
+    {
+        final var resolvedFilePath = this.resolveFilePath(filePath, true);
+
         this.lockFileAsReader(filePath);
+
+        final long fileSize = Files.size(resolvedFilePath)
 
         try
         {
-
+            final var in = new FileInputStream(filePath);
         }
         finally
         {
@@ -70,9 +135,9 @@ public class ExportDir
      */
     public void writeFile(
         Path filePath,
-        InputStream inputStream,
+        InputStream fromStream,
         long fileSize,
-        LongConsumer onBytesTransferred
+        LongConsumer onBytesTransferredIncreased
         )
     {
         this.lockFileAsWriter(filePath);
