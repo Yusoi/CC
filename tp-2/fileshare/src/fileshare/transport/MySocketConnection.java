@@ -2,7 +2,9 @@
 
 package fileshare.transport;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -48,6 +50,12 @@ public class MySocketConnection implements AutoCloseable
     /**
      * TODO: document
      *
+     * The stream's close() method has no effect.
+     *
+     * If the connection was closed and there is no unread data, the stream
+     * gives EOF. It is possible to read the remaining data even if the
+     * connection is already closed.
+     *
      * @return TODO: document
      */
     public InputStream getInputStream()
@@ -65,6 +73,12 @@ public class MySocketConnection implements AutoCloseable
     /**
      * TODO: document
      *
+     * The stream's data is buffered (to a certain unspecified size). In order
+     * to force write, use the stream's flush() method.
+     *
+     * The stream's close() method calls its flush() method but has no other
+     * effect.
+     *
      * @return TODO: document
      */
     public OutputStream getOutputStream()
@@ -81,6 +95,10 @@ public class MySocketConnection implements AutoCloseable
 
     /**
      * TODO: document
+     *
+     * Closes the connection. Any unread input data or non-flushed output data
+     * is lost. The remote can, however, read data that was written and flushed
+     * before the connection was closed.
      */
     @Override
     public void close()
