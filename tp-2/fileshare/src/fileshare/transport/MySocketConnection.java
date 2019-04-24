@@ -2,9 +2,7 @@
 
 package fileshare.transport;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -13,28 +11,15 @@ import java.net.Socket;
 /**
  * TODO: document
  */
-public class MySocketConnection
+public class MySocketConnection implements AutoCloseable
 {
     private final MySocket mySocket;
-
     private final Socket socket;
-    private final DataInputStream input;
-    private final DataOutputStream output;
 
     MySocketConnection(MySocket mySocket, Socket socket)
     {
-        try
-        {
-            this.mySocket = mySocket;
-
-            this.socket = socket;
-            this.input  = new DataInputStream(socket.getInputStream());
-            this.output = new DataOutputStream(socket.getOutputStream());
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.mySocket = mySocket;
+        this.socket   = socket;
     }
 
     /**
@@ -65,16 +50,11 @@ public class MySocketConnection
      *
      * @return TODO: document
      */
-    public byte[] receive()
+    public InputStream getInputStream()
     {
         try
         {
-            final int length = this.input.readInt();
-
-            final byte[] data = new byte[length];
-            this.input.readFully(data);
-
-            return data;
+            return this.socket.getInputStream();
         }
         catch (IOException e)
         {
@@ -85,14 +65,13 @@ public class MySocketConnection
     /**
      * TODO: document
      *
-     * @param data TODO: document
+     * @return TODO: document
      */
-    public void send(byte[] data)
+    public OutputStream getOutputStream()
     {
         try
         {
-            this.output.writeInt(data.length);
-            this.output.write(data);
+            return this.socket.getOutputStream();
         }
         catch (IOException e)
         {
@@ -103,6 +82,7 @@ public class MySocketConnection
     /**
      * TODO: document
      */
+    @Override
     public void close()
     {
         try

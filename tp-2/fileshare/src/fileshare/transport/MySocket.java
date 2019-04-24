@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 /**
  * TODO: document
  */
-public class MySocket
+public class MySocket implements AutoCloseable
 {
     private final int localPort;
     private final ServerSocket serverSocket;
@@ -21,7 +21,7 @@ public class MySocket
     /**
      * TODO: document
      *
-     * @param localPort TODO: document
+     * @param localPort the local UDP port
      */
     public MySocket(int localPort)
     {
@@ -47,32 +47,43 @@ public class MySocket
     }
 
     /**
-     * TODO: document
+     * Listen for incoming connection requests.
      *
-     * @param acceptOrReject TODO: document
+     * This method blocks until a connection request is received and accepted,
+     * in which case the connection is returned, or until this socket is closed,
+     * in which case null is returned.
+     *
+     * When a connection request is received, the accept predicate is invoked
+     * with the connection's remote endpoint. If the predicate returns true, the
+     * connection is accepted and this method returns it; otherwise, it is
+     * rejected and this method continues listening for incoming connection
+     * requests.
+     *
+     * @param accept predicate that determines if a connection should be
+     *        accepted
      * @return TODO: document
+     * @throws IllegalStateException if another invocation of this method is in
+     *         progress
+     * @throws IllegalStateException if this socket is already closed when this
+     *         method is invoked
      */
-    public MySocketConnection listen(
-        Predicate< InetSocketAddress > acceptOrReject
-        )
+    public MySocketConnection listen(Predicate< InetSocketAddress > accept)
     {
         try
         {
-            final Socket socket = this.serverSocket.accept();
+            while (true)
+            {
+                final Socket socket = this.serverSocket.accept();
 
-            final InetSocketAddress address = new InetSocketAddress(
-                socket.getInetAddress(),
-                socket.getPort()
+                final InetSocketAddress address = new InetSocketAddress(
+                    socket.getInetAddress(),
+                    socket.getPort()
                 );
 
-            if (acceptOrReject.test(address))
-            {
-                return new MySocketConnection(this, socket);
-            }
-            else
-            {
-                socket.close();
-                throw new RuntimeException("Rejected connection.");
+                if (accept.test(address))
+                    return new MySocketConnection(this, socket);
+                else
+                    socket.close();
             }
         }
         catch (IOException e)
@@ -82,10 +93,11 @@ public class MySocket
     }
 
     /**
-     * TODO: document
+     * Attempt to connect to the specified remote endpoint.
      *
      * @param remoteEndpoint TODO: document
      * @return TODO: document
+     * @throws RuntimeException if the connection is rejected by the remote
      */
     public MySocketConnection connect(InetSocketAddress remoteEndpoint)
     {
@@ -106,8 +118,11 @@ public class MySocket
     }
 
     /**
-     * TODO: document
+     * Close this socket and any open connection.
+     *
+     * If this socket is already closed, this method does nothing.
      */
+    @Override
     public void close()
     {
         try

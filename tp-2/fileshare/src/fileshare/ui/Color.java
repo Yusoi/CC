@@ -12,11 +12,6 @@ public enum Color
     /**
      * TODO: document
      */
-    DEFAULT("\u001b[39m"),
-
-    /**
-     * TODO: document
-     */
     GREEN("\u001b[32m"),
 
     /**
@@ -41,10 +36,7 @@ public enum Color
      */
     public String apply(String text)
     {
-        if (this != DEFAULT)
-            text = this.code + text + DEFAULT.code;
-
-        return text;
+        return this.code + text + "\u001b[39m";
     }
 }
 

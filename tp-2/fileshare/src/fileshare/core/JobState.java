@@ -12,35 +12,38 @@ import java.util.Objects;
 public class JobState
 {
     private Job job;
-    private long totalFileBytes;
-    private long tranferredFileBytes;
+    private long totalBytes;
+    private long tranferredBytes;
     private String errorMessage;
 
     /**
      * TODO: document
      *
      * @param job TODO: document
-     * @param totalFileBytes TODO: document
-     * @param tranferredFileBytes TODO: document
+     * @param totalBytes TODO: document
+     * @param tranferredBytes TODO: document
      * @param errorMessage TODO: document
      */
     public JobState(
         Job job,
-        long totalFileBytes,
-        long tranferredFileBytes,
+        long totalBytes,
+        long tranferredBytes,
         String errorMessage
         )
     {
-        if (totalFileBytes < 0)
+        if (totalBytes < 0)
             throw new IllegalArgumentException("TODO: write");
 
-        if (tranferredFileBytes < 0)
+        if (tranferredBytes < 0)
             throw new IllegalArgumentException("TODO: write");
 
-        this.job                 = Objects.requireNonNull(job);
-        this.totalFileBytes      = totalFileBytes;
-        this.tranferredFileBytes = tranferredFileBytes;
-        this.errorMessage        = errorMessage;
+        if (tranferredBytes > totalBytes)
+            throw new IllegalArgumentException("TODO: write");
+
+        this.job             = Objects.requireNonNull(job);
+        this.totalBytes      = totalBytes;
+        this.tranferredBytes = tranferredBytes;
+        this.errorMessage    = errorMessage;
     }
 
     /**
@@ -58,9 +61,9 @@ public class JobState
      *
      * @return TODO: document
      */
-    public long getTotalFileBytes()
+    public long getTotalBytes()
     {
-        return this.totalFileBytes;
+        return this.totalBytes;
     }
 
     /**
@@ -68,9 +71,9 @@ public class JobState
      *
      * @return TODO: document
      */
-    public long getTranferredFileBytes()
+    public long getTranferredBytes()
     {
-        return this.tranferredFileBytes;
+        return this.tranferredBytes;
     }
 
     /**

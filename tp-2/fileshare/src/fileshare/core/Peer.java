@@ -2,27 +2,35 @@
 
 package fileshare.core;
 
+import fileshare.transport.MySocket;
+
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 /* -------------------------------------------------------------------------- */
 
 /**
  * TODO: document
  */
-public class Peer
+public class Peer implements AutoCloseable
 {
+    private final MySocket socket;
+    private final Path exportDirPath;
+    private final Whitelist whitelist;
+
     /**
      * TODO: document
      *
-     * @param port TODO: document
+     * @param localPort the local UDP port
      * @param exportDirPath TODO: document
      */
-    public Peer(int port, Path exportDirPath)
+    public Peer(int localPort, Path exportDirPath)
     {
-        // TODO: implement
-        throw new UnsupportedOperationException();
+        this.socket        = new MySocket(localPort);
+        this.exportDirPath = Objects.requireNonNull(exportDirPath);
+        this.whitelist     = new Whitelist();
     }
 
     /**
@@ -30,10 +38,9 @@ public class Peer
      *
      * @return TODO: document
      */
-    public int getPort()
+    public int getLocalPort()
     {
-        // TODO: implement
-        throw new UnsupportedOperationException();
+        return this.socket.getLocalPort();
     }
 
     /**
@@ -43,8 +50,7 @@ public class Peer
      */
     public Path getExportDirPath()
     {
-        // TODO: implement
-        throw new UnsupportedOperationException();
+        return this.exportDirPath;
     }
 
     /**
@@ -52,10 +58,9 @@ public class Peer
      *
      * @return TODO: document
      */
-    public List< InetSocketAddress > getConnectedRemoteEndpoints()
+    public Whitelist getWhitelist()
     {
-        // TODO: implement
-        throw new UnsupportedOperationException();
+        return this.whitelist;
     }
 
     /**
@@ -70,27 +75,8 @@ public class Peer
     /**
      * TODO: document
      */
-    public void stop()
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @param callbacks TODO: document
-     */
-    public void startListening(ListenCallbacks callbacks)
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * TODO: document
-     */
-    public void stopListening()
+    @Override
+    public void close()
     {
         // TODO: implement
         throw new UnsupportedOperationException();
