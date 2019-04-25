@@ -112,7 +112,7 @@ public class ExportedDirectory
 
         this.lockFileAsReader(filePath);
 
-        final long fileSize = Files.size(resolvedFilePath)
+        final long fileSize = Files.size(resolvedFilePath);
 
         try
         {

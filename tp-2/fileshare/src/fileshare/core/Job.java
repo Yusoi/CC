@@ -12,22 +12,40 @@ import java.util.Objects;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Describes a job.
  */
 public class Job
 {
     private JobType type;
-    private ArrayList< InetSocketAddress > remoteEndpoints;
+    private List< InetSocketAddress > remoteEndpoints;
     private Path localFilePath;
     private Path remoteFilePath;
 
     /**
-     * TODO: document
+     * Constructs an instance of {@link Job}.
      *
-     * @param type TODO: document
-     * @param remoteEndpoints TODO: document
-     * @param localFilePath TODO: document
-     * @param remoteFilePath TODO: document
+     * The manner in which the remotes specified by {@code remoteEndpoints} are
+     * used depends on the job's type:
+     *
+     * <ul>
+     *   <li>
+     *     If {@code type} is {@link JobType#GET}, the job will download a file
+     *     by obtaining separate sections from each of the specified remotes.
+     *   </li>
+     *   <li>
+     *     If {@code type} is {@link JobType#PUT}, the job will upload a file to
+     *     each of the specified remotes.
+     *   </li>
+     * </ul>
+     *
+     * @param type the job's type
+     * @param remoteEndpoints the remote endpoints to be used by the job
+     * @param localFilePath the local path of the file
+     * @param remoteFilePath the path of the file in the remotes
+     *
+     * @throws NullPointerException if type, remoteEndpoints, localFilePath, or
+     *         remoteFilePath are null
+     * @throws IllegalArgumentException if remoteEndpoints is empty
      */
     public Job(
         JobType type,
@@ -36,10 +54,36 @@ public class Job
         Path remoteFilePath
         )
     {
-        Objects.requireNonNull(remoteEndpoints);
+        // validate arguments
+
+        Objects.requireNonNull(
+            type,
+            "type must not be null"
+            );
+
+        Objects.requireNonNull(
+            remoteEndpoints,
+            "remoteEndpoints must not be null"
+            );
+
+        Objects.requireNonNull(
+            localFilePath,
+            "localFilePath must not be null"
+            );
+
+        Objects.requireNonNull(
+            remoteFilePath,
+            "remoteFilePath must not be null"
+            );
 
         if (remoteEndpoints.size() == 0)
-            throw new IllegalArgumentException("TODO: write");
+        {
+            throw new IllegalArgumentException(
+                "remoteEndpoints must not be empty"
+                );
+        }
+
+        // initialize instance
 
         this.type            = Objects.requireNonNull(type);
         this.remoteEndpoints = new ArrayList<>(remoteEndpoints);
@@ -48,9 +92,9 @@ public class Job
     }
 
     /**
-     * TODO: document
+     * Returns the job type.
      *
-     * @return TODO: document
+     * @return the job type
      */
     public JobType getType()
     {
@@ -58,7 +102,7 @@ public class Job
     }
 
     /**
-     * TODO: document
+     * Returns an unmodifiable list of the remotes to be used by this job.
      *
      * @return TODO: document
      */

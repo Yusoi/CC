@@ -5,17 +5,17 @@ package fileshare.core;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Defines the possible job types.
  */
 public enum JobType
 {
     /**
-     * TODO: document
+     * A job that downloads a file from one or more remotes.
      */
     GET,
 
     /**
-     * TODO: document
+     * A job that uploads a file to one or more remotes.
      */
     PUT
 }
