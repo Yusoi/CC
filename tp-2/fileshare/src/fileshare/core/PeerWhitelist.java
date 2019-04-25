@@ -11,8 +11,10 @@ import java.util.Set;
 
 /**
  * TODO: document
+ *
+ * This class is thread-safe.
  */
-public class Whitelist
+public class PeerWhitelist
 {
     /**
      * TODO: document
@@ -47,7 +49,7 @@ public class Whitelist
     /**
      * TODO: document
      */
-    public Whitelist()
+    public PeerWhitelist()
     {
         this.patterns = new HashSet<>();
     }
@@ -57,9 +59,9 @@ public class Whitelist
      *
      * @param cidrPattern TODO: document
      */
-    public void add(String cidrPattern)
+    public synchronized void add(String cidrPattern)
     {
-        if (!Whitelist.isValidCidrPattern(cidrPattern))
+        if (!PeerWhitelist.isValidCidrPattern(cidrPattern))
             throw new IllegalArgumentException();
 
         this.patterns.add(cidrPattern);
@@ -70,9 +72,9 @@ public class Whitelist
      *
      * @param cidrPattern TODO: document
      */
-    public void remove(String cidrPattern)
+    public synchronized void remove(String cidrPattern)
     {
-        if (!Whitelist.isValidCidrPattern(cidrPattern))
+        if (!PeerWhitelist.isValidCidrPattern(cidrPattern))
             throw new IllegalArgumentException();
 
         this.patterns.remove(cidrPattern);
@@ -81,7 +83,7 @@ public class Whitelist
     /**
      * TODO: document
      */
-    public void clear()
+    public synchronized void clear()
     {
         this.patterns.clear();
     }
@@ -92,12 +94,12 @@ public class Whitelist
      * @param address TODO: document
      * @return TODO: document
      */
-    public boolean isWhitelisted(InetAddress address)
+    public synchronized boolean isWhitelisted(InetAddress address)
     {
         Objects.requireNonNull(address);
 
         return this.patterns.stream().anyMatch(
-            cidrPattern -> Whitelist.cidrPatternMatches(cidrPattern, address)
+            cidrPattern -> PeerWhitelist.cidrPatternMatches(cidrPattern, address)
             );
     }
 }

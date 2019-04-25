@@ -13,12 +13,12 @@ import java.net.Socket;
 /**
  * TODO: document
  */
-public class MySocketConnection implements AutoCloseable
+public class ReliableSocketConnection implements AutoCloseable
 {
-    private final MySocket mySocket;
+    private final ReliableSocket mySocket;
     private final Socket socket;
 
-    MySocketConnection(MySocket mySocket, Socket socket)
+    ReliableSocketConnection(ReliableSocket mySocket, Socket socket)
     {
         this.mySocket = mySocket;
         this.socket   = socket;
@@ -29,7 +29,7 @@ public class MySocketConnection implements AutoCloseable
      *
      * @return TODO: document
      */
-    public MySocket getSocket()
+    public ReliableSocket getSocket()
     {
         return this.mySocket;
     }

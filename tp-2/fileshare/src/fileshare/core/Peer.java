@@ -2,13 +2,13 @@
 
 package fileshare.core;
 
-import fileshare.transport.MySocket;
+import fileshare.transport.ReliableSocket;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -19,9 +19,10 @@ import java.util.stream.Collectors;
  */
 public class Peer implements AutoCloseable
 {
-    private final MySocket socket;
-    private final ExportDir exportDir;
-    private final Whitelist whitelist;
+    private final ReliableSocket socket;
+
+    private final ExportedDirectory exportedDirectory;
+    private final PeerWhitelist peerWhitelist;
 
     /**
      * TODO: document
@@ -29,11 +30,12 @@ public class Peer implements AutoCloseable
      * @param localPort the local UDP port
      * @param exportDirPath TODO: document
      */
-    public Peer(int localPort, Path exportDirPath)
+    public Peer(int localPort, Path exportedDirectoryPath)
     {
-        this.socket    = new MySocket(localPort);
-        this.exportDir = new ExportDir(exportDirPath);
-        this.whitelist = new Whitelist();
+        this.socket = new ReliableSocket(localPort);
+
+        this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
+        this.peerWhitelist     = new PeerWhitelist();
     }
 
     /**
@@ -51,9 +53,9 @@ public class Peer implements AutoCloseable
      *
      * @return TODO: document
      */
-    public Path getExportDirPath()
+    public Path getExportedDirectoryPath()
     {
-        return this.exportDir.getPath();
+        return this.exportedDirectory.getPath();
     }
 
     /**
@@ -61,9 +63,9 @@ public class Peer implements AutoCloseable
      *
      * @return TODO: document
      */
-    public Whitelist getWhitelist()
+    public PeerWhitelist getPeerWhitelist()
     {
-        return this.whitelist;
+        return this.peerWhitelist;
     }
 
     /**
@@ -246,7 +248,7 @@ public class Peer implements AutoCloseable
 
         // transfer file
 
-        this.exportDir.writeFile(
+        this.exportedDirectory.writeFile(
             state.getJob().getLocalFilePath(),
             in,
             response,

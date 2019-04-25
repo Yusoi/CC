@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 /**
  * TODO: document
  */
-public class MySocket implements AutoCloseable
+public class ReliableSocket implements AutoCloseable
 {
     private final int localPort;
     private final ServerSocket serverSocket;
@@ -23,7 +23,7 @@ public class MySocket implements AutoCloseable
      *
      * @param localPort the local UDP port
      */
-    public MySocket(int localPort)
+    public ReliableSocket(int localPort)
     {
         try
         {
@@ -67,7 +67,7 @@ public class MySocket implements AutoCloseable
      * @throws IllegalStateException if this socket is already closed when this
      *         method is invoked
      */
-    public MySocketConnection listen(Predicate< InetSocketAddress > accept)
+    public ReliableSocketConnection listen(Predicate< InetSocketAddress > accept)
     {
         try
         {
@@ -81,7 +81,7 @@ public class MySocket implements AutoCloseable
                 );
 
                 if (accept.test(address))
-                    return new MySocketConnection(this, socket);
+                    return new ReliableSocketConnection(this, socket);
                 else
                     socket.close();
             }
@@ -99,7 +99,7 @@ public class MySocket implements AutoCloseable
      * @return TODO: document
      * @throws RuntimeException if the connection is rejected by the remote
      */
-    public MySocketConnection connect(InetSocketAddress remoteEndpoint)
+    public ReliableSocketConnection connect(InetSocketAddress remoteEndpoint)
     {
         try
         {
@@ -108,7 +108,7 @@ public class MySocket implements AutoCloseable
                 remoteEndpoint.getPort()
                 );
 
-            return new MySocketConnection(this, socket);
+            return new ReliableSocketConnection(this, socket);
         }
         catch (IOException e)
         {
