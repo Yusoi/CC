@@ -28,7 +28,7 @@ public class Peer implements AutoCloseable
      * TODO: document
      *
      * @param localPort the local UDP port
-     * @param exportDirPath TODO: document
+     * @param exportedDirectoryPath TODO: document
      */
     public Peer(int localPort, Path exportedDirectoryPath)
     {
