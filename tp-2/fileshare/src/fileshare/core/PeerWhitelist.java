@@ -16,68 +16,34 @@ import java.util.Set;
  */
 public class PeerWhitelist
 {
-    /**
-     * TODO: document
-     *
-     * @param cidrPattern TODO: document
-     * @return TODO: document
-     */
-    public static boolean isValidCidrPattern(String cidrPattern)
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @param cidrPattern TODO: document
-     * @param address TODO: document
-     * @return TODO: document
-     */
-    public static boolean cidrPatternMatches(
-        String cidrPattern,
-        InetAddress address
-        )
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    private final Set< String > patterns;
+    private final Set< AddressRange > ranges;
 
     /**
      * TODO: document
      */
     public PeerWhitelist()
     {
-        this.patterns = new HashSet<>();
+        this.ranges = new HashSet<>();
     }
 
     /**
      * TODO: document
      *
-     * @param cidrPattern TODO: document
+     * @param range TODO: document
      */
-    public synchronized void add(String cidrPattern)
+    public synchronized void add(AddressRange range)
     {
-        if (!PeerWhitelist.isValidCidrPattern(cidrPattern))
-            throw new IllegalArgumentException();
-
-        this.patterns.add(cidrPattern);
+        this.ranges.add(range);
     }
 
     /**
      * TODO: document
      *
-     * @param cidrPattern TODO: document
+     * @param range TODO: document
      */
-    public synchronized void remove(String cidrPattern)
+    public synchronized void remove(AddressRange range)
     {
-        if (!PeerWhitelist.isValidCidrPattern(cidrPattern))
-            throw new IllegalArgumentException();
-
-        this.patterns.remove(cidrPattern);
+        this.ranges.remove(range);
     }
 
     /**
@@ -85,7 +51,7 @@ public class PeerWhitelist
      */
     public synchronized void clear()
     {
-        this.patterns.clear();
+        this.ranges.clear();
     }
 
     /**
@@ -93,14 +59,14 @@ public class PeerWhitelist
      *
      * @param address TODO: document
      * @return TODO: document
+     *
+     * @throws NullPointerException if address is null
      */
     public synchronized boolean isWhitelisted(InetAddress address)
     {
         Objects.requireNonNull(address);
 
-        return this.patterns.stream().anyMatch(
-            cidrPattern -> PeerWhitelist.cidrPatternMatches(cidrPattern, address)
-            );
+        return this.ranges.stream().anyMatch(range -> range.contains(address));
     }
 }
 
