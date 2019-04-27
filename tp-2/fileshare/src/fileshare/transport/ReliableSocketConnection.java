@@ -15,6 +15,12 @@ import java.net.Socket;
  */
 public class ReliableSocketConnection implements AutoCloseable
 {
+    /**
+     * Whether the receiver should explicitly request the retransmission of
+     * corrupted packets.
+     */
+    private static final boolean ENABLE_RETRANSMISSION_REQUESTS = false;
+
     private final ReliableSocket mySocket;
     private final Socket socket;
 
