@@ -67,7 +67,7 @@ public class ReliableSocket implements AutoCloseable
      * @throws IllegalStateException if this socket is already closed when this
      *         method is invoked
      */
-    public ReliableSocketConnection listen(Predicate< InetSocketAddress > accept)
+    public ReliableSocketConnection listen(Predicate< Endpoint > accept)
     {
         try
         {
@@ -75,12 +75,12 @@ public class ReliableSocket implements AutoCloseable
             {
                 final Socket socket = this.serverSocket.accept();
 
-                final InetSocketAddress address = new InetSocketAddress(
+                final var endpoint = new Endpoint(
                     socket.getInetAddress(),
                     socket.getPort()
-                );
+                    );
 
-                if (accept.test(address))
+                if (accept.test(endpoint))
                     return new ReliableSocketConnection(this, socket);
                 else
                     socket.close();

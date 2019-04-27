@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 
-package fileshare.core;
+package fileshare.transport;
 
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;

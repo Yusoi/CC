@@ -4,6 +4,7 @@
     <option name="RIGHT_MARGIN" value="80" />
     <option name="SOFT_MARGINS" value="80" />
     <JavaCodeStyleSettings>
+      <option name="SPACES_WITHIN_ANGLE_BRACKETS" value="true" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
       <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
       <option name="PACKAGES_TO_USE_IMPORT_ON_DEMAND">
@@ -23,6 +24,8 @@
       <option name="METHOD_BRACE_STYLE" value="2" />
       <option name="ELSE_ON_NEW_LINE" value="true" />
       <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="true" />
+      <option name="ALIGN_MULTILINE_RESOURCES" value="false" />
+      <option name="SPACE_WITHIN_ARRAY_INITIALIZER_BRACES" value="true" />
       <option name="CALL_PARAMETERS_WRAP" value="5" />
       <option name="CALL_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
       <option name="CALL_PARAMETERS_RPAREN_ON_NEXT_LINE" value="true" />
@@ -30,9 +33,12 @@
       <option name="METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
       <option name="METHOD_PARAMETERS_RPAREN_ON_NEXT_LINE" value="true" />
       <option name="METHOD_CALL_CHAIN_WRAP" value="5" />
+      <option name="WRAP_FIRST_METHOD_IN_CALL_CHAIN" value="true" />
       <option name="WRAP_COMMENTS" value="true" />
+      <option name="WRAP_ON_TYPING" value="1" />
       <indentOptions>
         <option name="CONTINUATION_INDENT_SIZE" value="4" />
+        <option name="USE_RELATIVE_INDENTS" value="true" />
       </indentOptions>
     </codeStyleSettings>
   </code_scheme>
