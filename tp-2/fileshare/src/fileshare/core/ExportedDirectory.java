@@ -94,7 +94,7 @@ public class ExportedDirectory
 
         // return resolved file path
 
-        return resolveFilePath;
+        return resolvedFilePath;
     }
 
     /**
