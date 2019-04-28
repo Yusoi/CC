@@ -2,6 +2,8 @@
 
 package fileshare.core;
 
+import com.sun.source.tree.DoWhileLoopTree;
+import fileshare.Util;
 import fileshare.transport.ReliableSocket;
 
 import java.io.DataInputStream;
@@ -48,6 +50,7 @@ public class Peer implements AutoCloseable
 
     private final ReliableSocket socket;
     private final Thread listenThread;
+    private final List< Thread > servingThreads;
 
     private final ExportedDirectory exportedDirectory;
     private final PeerWhitelist peerWhitelist;
@@ -66,6 +69,7 @@ public class Peer implements AutoCloseable
 
         this.socket            = new ReliableSocket(localPort);
         this.listenThread      = new Thread(this::listen);
+        this.servingThreads    = new ArrayList<>();
 
         this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
         this.peerWhitelist     = new PeerWhitelist();
@@ -148,19 +152,15 @@ public class Peer implements AutoCloseable
 
         if (this.state == State.RUNNING)
         {
-            this.listenThread.interrupt();
+            // interrupt listening and serving threads
 
-            while (true)
-            {
-                try
-                {
-                    this.listenThread.join();
-                    break;
-                }
-                catch (InterruptedException e)
-                {
-                }
-            }
+            this.listenThread.interrupt();
+            this.servingThreads.forEach(Thread::interrupt);
+
+            // join listening and serving threads
+
+            Util.uninterruptibleJoin(this.listenThread);
+            this.servingThreads.forEach(Util::uninterruptibleJoin);
         }
 
         // update state
@@ -175,6 +175,28 @@ public class Peer implements AutoCloseable
             final var connection = socket.listen(
                 e -> this.peerWhitelist.isWhitelisted(e.getAddress())
                 );
+
+            try (connection)
+            {
+                final var in = new DataInputStream(connection.getInputStream());
+                final var out = new DataOutputStream(connection.getOutputStream());
+
+                final byte jobTypeByte = in.readByte();
+
+                switch (jobTypeByte)
+                {
+                    case 0:
+                        // TODO: implement
+                        break;
+
+                    case 1:
+                        // TODO: implement
+                        break;
+                }
+            }
+            catch (IOException e)
+            {
+            }
         }
     }
 
@@ -241,22 +263,9 @@ public class Peer implements AutoCloseable
 
         onJobStatesUpdated.accept(jobStates);
 
-        // wait for all thread to die
+        // wait for all threads to die
 
-        for (final var thread : jobThreads)
-        {
-            while (true)
-            {
-                try
-                {
-                    thread.join();
-                    break;
-                }
-                catch (InterruptedException e)
-                {
-                }
-            }
-        }
+        jobThreads.forEach(Util::uninterruptibleJoin);
     }
 
     private void runJob(JobStateImpl state, Runnable stateUpdated)
