@@ -2,10 +2,15 @@
 
 package fileshare.transport;
 
+import jdk.nashorn.api.tree.RegExpLiteralTree;
+
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.function.Predicate;
 
 /* -------------------------------------------------------------------------- */
@@ -15,8 +20,7 @@ import java.util.function.Predicate;
  */
 public class ReliableSocket implements AutoCloseable
 {
-    private final int localPort;
-    private final ServerSocket serverSocket;
+    private final DatagramSocket socket;
 
     /**
      * TODO: document
@@ -27,10 +31,9 @@ public class ReliableSocket implements AutoCloseable
     {
         try
         {
-            this.localPort    = localPort;
-            this.serverSocket = new ServerSocket(localPort);
+            this.socket = new DatagramSocket(localPort);
         }
-        catch (IOException e)
+        catch (SocketException e)
         {
             throw new RuntimeException(e);
         }
@@ -43,7 +46,7 @@ public class ReliableSocket implements AutoCloseable
      */
     public int getLocalPort()
     {
-        return this.localPort;
+        return this.socket.getPort();
     }
 
     /**
@@ -59,8 +62,8 @@ public class ReliableSocket implements AutoCloseable
      * rejected and this method continues listening for incoming connection
      * requests.
      *
-     * @param accept predicate that determines if a connection should be
-     *        accepted
+     * @param accept predicate that determines whether a connection should be
+     *
      * @return TODO: document
      * @throws IllegalStateException if another invocation of this method is in
      *         progress
@@ -69,6 +72,37 @@ public class ReliableSocket implements AutoCloseable
      */
     public ReliableSocketConnection listen(Predicate< Endpoint > accept)
     {
+        final var segmentBuffer = new byte[
+            ReliableSocketConfig.MAX_SEGMENT_SIZE
+            ];
+
+        while (true)
+        {
+            final var segmentPacket = new DatagramPacket(
+                segmentBuffer,
+                segmentBuffer.length
+                );
+
+            try
+            {
+                socket.receive(segmentPacket);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+
+            final var endpoint = new Endpoint(
+                segmentPacket.getAddress(),
+                segmentPacket.getPort()
+                );
+
+
+        }
+
+
+
+
         try
         {
             while (true)
