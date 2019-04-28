@@ -23,6 +23,322 @@ import java.util.stream.Collectors;
  */
 public class Peer implements AutoCloseable
 {
+    /**
+     * TODO: document
+     */
+    public enum State
+    {
+        /**
+         * TODO: document
+         */
+        CREATED,
+
+        /**
+         * TODO: document
+         */
+        RUNNING,
+
+        /**
+         * TODO: document
+         */
+        CLOSED
+    }
+
+    private State state;
+
+    private final ReliableSocket socket;
+    private final Thread listenThread;
+
+    private final ExportedDirectory exportedDirectory;
+    private final PeerWhitelist peerWhitelist;
+
+    /**
+     * TODO: document
+     *
+     * @param localPort the local UDP port
+     * @param exportedDirectoryPath TODO: document
+     *
+     * @throws NullPointerException if exportedDirectoryPath is null
+     */
+    public Peer(int localPort, Path exportedDirectoryPath)
+    {
+        this.state             = State.CREATED;
+
+        this.socket            = new ReliableSocket(localPort);
+        this.listenThread      = new Thread(this::listen);
+
+        this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
+        this.peerWhitelist     = new PeerWhitelist();
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public int getLocalPort()
+    {
+        return this.socket.getLocalPort();
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public Path getExportedDirectoryPath()
+    {
+        return this.exportedDirectory.getDirectoryPath();
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public PeerWhitelist getPeerWhitelist()
+    {
+        return this.peerWhitelist;
+    }
+
+    /**
+     * Returns the peer's current state.
+     *
+     * @return the peer's current state
+     */
+    public synchronized State getState()
+    {
+        return this.state;
+    }
+
+    /**
+     * TODO: document
+     *
+     * Error if the peer is already running or if it was already closed.
+     */
+    public synchronized void start()
+    {
+        // validate state
+
+        if (this.state == State.RUNNING)
+            throw new IllegalStateException("Peer is already running.");
+
+        if (this.state == State.CLOSED)
+            throw new IllegalStateException("Peer is closed.");
+
+        // start listening thread
+
+        this.listenThread.start();
+
+        // update state
+
+        this.state = State.RUNNING;
+    }
+
+    /**
+     * TODO: document
+     *
+     * Calling this before the peer is started or when the peer is already
+     * closed does nothing.
+     */
+    @Override
+    public synchronized void close()
+    {
+        // stop listening thread (if running)
+
+        if (this.state == State.RUNNING)
+        {
+            this.listenThread.interrupt();
+
+            while (true)
+            {
+                try
+                {
+                    this.listenThread.join();
+                    break;
+                }
+                catch (InterruptedException e)
+                {
+                }
+            }
+        }
+
+        // update state
+
+        this.state = State.CLOSED;
+    }
+
+    private void listen()
+    {
+        while (!Thread.interrupted())
+        {
+            final var connection = socket.listen(
+                e -> this.peerWhitelist.isWhitelisted(e.getAddress())
+                );
+        }
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param jobs TODO: document
+     * @param onJobStatesUpdated TODO: document
+     */
+    public void runJobs(
+        List< Job > jobs,
+        Consumer< List< JobState > > onJobStatesUpdated
+    )
+    {
+        // initialize job states
+
+        final var jobStates =
+            jobs
+                .stream()
+                .map(job -> (JobState) new JobStateImpl(
+                    job, Optional.empty(), 0, Optional.empty()
+                ))
+                .collect(Collectors.toUnmodifiableList());
+
+        final var jobStatesUpdated = new AtomicBoolean(false);
+
+        // send initial state update
+
+        onJobStatesUpdated.accept(jobStates);
+
+        // start jobs
+
+        final var jobThreads = new ArrayList< Thread >();
+
+        for (final var jobState : jobStates)
+        {
+            final var thread = new Thread(() -> this.runJob(
+                (JobStateImpl) jobState,
+                () -> jobStatesUpdated.set(true)
+            ));
+
+            jobThreads.add(thread);
+
+            thread.start();
+        }
+
+        // wait for all jobs to complete
+
+        while (!jobStates.stream().allMatch(JobState::hasFinished))
+        {
+            if (jobStatesUpdated.getAndSet(false))
+                onJobStatesUpdated.accept(jobStates);
+
+            try
+            {
+                Thread.sleep(200);
+            }
+            catch (InterruptedException e)
+            {
+            }
+        }
+
+        // send final state update
+
+        onJobStatesUpdated.accept(jobStates);
+
+        // wait for all thread to die
+
+        for (final var thread : jobThreads)
+        {
+            while (true)
+            {
+                try
+                {
+                    thread.join();
+                    break;
+                }
+                catch (InterruptedException e)
+                {
+                }
+            }
+        }
+    }
+
+    private void runJob(JobStateImpl state, Runnable stateUpdated)
+    {
+        // TODO: support jobs with multiple remotes
+
+        if (state.getJob().getRemoteEndpoints().size() > 1)
+        {
+            throw new UnsupportedOperationException(
+                "multiple remotes not yet supported"
+            );
+        }
+
+        final var remoteEndpoint = state.getJob().getRemoteEndpoints().get(0);
+
+        // establish connection with remote
+
+        try (final var connection = this.socket.connect(remoteEndpoint))
+        {
+            final var in = new DataInputStream(connection.getInputStream());
+            final var out = new DataOutputStream(connection.getOutputStream());
+
+            switch (state.getJob().getType())
+            {
+                case GET:
+                    runJobGet(state, in, out, stateUpdated);
+                    break;
+
+                case PUT:
+                    // runJobPut(state, in, out, stateUpdated);
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            state.setErrorMessage(Optional.of(e.getMessage()));
+        }
+
+        // ensure notification that job is done
+
+        stateUpdated.run();
+    }
+
+    private void runJobGet(
+        JobStateImpl state,
+        DataInputStream in,
+        DataOutputStream out,
+        Runnable stateUpdated
+        ) throws IOException
+    {
+        // send request
+
+        out.writeByte(0);
+        out.writeUTF(state.getJob().getRemoteFilePath().toString());
+        out.flush();
+
+        // receive response
+
+        final long response = in.readLong();
+
+        if (response < 0)
+        {
+            throw new IllegalArgumentException(
+                "File does not exist on remote."
+            );
+        }
+
+        // update state with total bytes
+
+        state.setTotalBytes(Optional.of(response));
+        stateUpdated.run();
+
+        // transfer file
+
+        this.exportedDirectory.writeFile(
+            state.getJob().getLocalFilePath(),
+            in,
+            response,
+            t -> { state.setTransferredBytes(t); stateUpdated.run(); }
+        );
+    }
+
     private static class JobStateImpl extends JobState
     {
         private final Job job;
@@ -36,7 +352,7 @@ public class Peer implements AutoCloseable
             Optional< Long > totalBytes,
             long transferredBytes,
             Optional< String > errorMessage
-            )
+        )
         {
             // validate arguments
 
@@ -99,235 +415,6 @@ public class Peer implements AutoCloseable
         {
             this.errorMessage = errorMessage;
         }
-    }
-
-    private final ReliableSocket socket;
-
-    private final ExportedDirectory exportedDirectory;
-    private final PeerWhitelist peerWhitelist;
-
-    /**
-     * TODO: document
-     *
-     * @param localPort the local UDP port
-     * @param exportedDirectoryPath TODO: document
-     */
-    public Peer(int localPort, Path exportedDirectoryPath)
-    {
-        this.socket = new ReliableSocket(localPort);
-
-        this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
-        this.peerWhitelist     = new PeerWhitelist();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @return TODO: document
-     */
-    public int getLocalPort()
-    {
-        return this.socket.getLocalPort();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @return TODO: document
-     */
-    public Path getExportedDirectoryPath()
-    {
-        return this.exportedDirectory.getDirectoryPath();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @return TODO: document
-     */
-    public PeerWhitelist getPeerWhitelist()
-    {
-        return this.peerWhitelist;
-    }
-
-    /**
-     * TODO: document
-     */
-    public void start()
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * TODO: document
-     */
-    @Override
-    public void close()
-    {
-        // TODO: implement
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * TODO: document
-     *
-     * @param jobs TODO: document
-     * @param onJobStatesUpdated TODO: document
-     */
-    public void runJobs(
-        List< Job > jobs,
-        Consumer< List< JobState > > onJobStatesUpdated
-        )
-    {
-        // initialize job states
-
-        final var jobStates =
-            jobs
-            .stream()
-            .map(job -> (JobState) new JobStateImpl(
-                job, Optional.empty(), 0, Optional.empty()
-            ))
-            .collect(Collectors.toUnmodifiableList());
-
-        final var jobStatesUpdated = new AtomicBoolean(false);
-
-        // send initial state update
-
-        onJobStatesUpdated.accept(jobStates);
-
-        // start jobs
-
-        final var jobThreads = new ArrayList< Thread >();
-
-        for (final var jobState : jobStates)
-        {
-            final var thread = new Thread(() -> this.runJob(
-                (JobStateImpl) jobState,
-                () -> jobStatesUpdated.set(true)
-                ));
-
-            jobThreads.add(thread);
-
-            thread.start();
-        }
-
-        // wait for all jobs to complete
-
-        while (!jobStates.stream().allMatch(JobState::hasFinished))
-        {
-            if (jobStatesUpdated.getAndSet(false))
-                onJobStatesUpdated.accept(jobStates);
-
-            try
-            {
-                Thread.sleep(200);
-            }
-            catch (InterruptedException e)
-            {
-            }
-        }
-
-        // send final state update
-
-        onJobStatesUpdated.accept(jobStates);
-
-        // wait for all thread to die
-
-        for (final var thread : jobThreads)
-        {
-            while (true)
-            {
-                try
-                {
-                    thread.join();
-                    break;
-                }
-                catch (InterruptedException e)
-                {
-                }
-            }
-        }
-    }
-
-    private void runJob(JobStateImpl state, Runnable stateUpdated)
-    {
-        // TODO: support jobs with multiple remotes
-
-        if (state.getJob().getRemoteEndpoints().size() > 1)
-        {
-            throw new UnsupportedOperationException(
-                "multiple remotes not yet supported"
-                );
-        }
-
-        final var remoteEndpoint = state.getJob().getRemoteEndpoints().get(0);
-
-        // establish connection with remote
-
-        try (final var connection = this.socket.connect(remoteEndpoint))
-        {
-            final var in = new DataInputStream(connection.getInputStream());
-            final var out = new DataOutputStream(connection.getOutputStream());
-
-            switch (state.getJob().getType())
-            {
-                case GET:
-                    runJobGet(state, in, out, stateUpdated);
-                    break;
-
-                case PUT:
-                    // runJobPut(state, in, out, stateUpdated);
-                    break;
-            }
-        }
-        catch (Exception e)
-        {
-            state.setErrorMessage(Optional.of(e.getMessage()));
-        }
-
-        // ensure notification that job is done
-
-        stateUpdated.run();
-    }
-
-    private void runJobGet(
-        JobStateImpl state,
-        DataInputStream in,
-        DataOutputStream out,
-        Runnable stateUpdated
-        ) throws IOException
-    {
-        // send request
-
-        out.writeByte(0);
-        out.writeUTF(state.getJob().getRemoteFilePath().toString());
-        out.flush();
-
-        // receive response
-
-        final long response = in.readLong();
-
-        if (response < 0)
-        {
-            throw new IllegalArgumentException(
-                "File does not exist on remote."
-                );
-        }
-
-        // update state with total bytes
-
-        state.setTotalBytes(Optional.of(response));
-        stateUpdated.run();
-
-        // transfer file
-
-        this.exportedDirectory.writeFile(
-            state.getJob().getLocalFilePath(),
-            in,
-            response,
-            t -> { state.setTransferredBytes(t); stateUpdated.run(); }
-            );
     }
 }
 
