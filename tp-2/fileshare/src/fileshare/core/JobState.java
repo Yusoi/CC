@@ -21,6 +21,8 @@ public abstract class JobState
     /**
      * TODO: document
      *
+     * Is non-negative.
+     *
      * @return TODO: document
      */
     public abstract Optional< Long > getTotalBytes();
@@ -28,9 +30,23 @@ public abstract class JobState
     /**
      * TODO: document
      *
+     * If total bytes is empty, this is 0.
+     *
+     * Otherwise is non-negative and lower than or equal to total bytes.
+     *
      * @return TODO: document
      */
     public abstract long getTransferredBytes();
+
+    /**
+     * TODO: document
+     *
+     * Not a perfect representation of the throughput, and the interval to which
+     * the throughput is relative is left unspecified.
+     *
+     * @return TODO: document
+     */
+    public abstract Optional< Long > getThroughput();
 
     /**
      * TODO: document

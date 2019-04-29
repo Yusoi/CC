@@ -4,9 +4,11 @@ package fileshare.core;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -96,6 +98,28 @@ public class ExportedDirectory
 
         return resolvedFilePath;
     }
+
+
+    /**
+     * TODO: document
+     *
+     * The file is locked until the returned stream is closed.
+     *
+     * @param filePath TODO: document
+     * @return TODO: document
+     */
+    public RandomAccessFile openFileForReading(Path filePath)
+    {
+
+    }
+
+    public RandomAccessFile openFileForWriting(Path filePath, long fileSize)
+    {
+
+    }
+
+
+
 
     /**
      * TODO: document

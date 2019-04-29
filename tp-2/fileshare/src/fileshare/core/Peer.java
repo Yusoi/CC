@@ -324,9 +324,9 @@ public class Peer implements AutoCloseable
 
         // receive response
 
-        final long response = in.readLong();
+        final long fileSize = in.readLong();
 
-        if (response < 0)
+        if (fileSize < 0)
         {
             throw new IllegalArgumentException(
                 "File does not exist on remote."
@@ -335,15 +335,25 @@ public class Peer implements AutoCloseable
 
         // update state with total bytes
 
-        state.setTotalBytes(Optional.of(response));
+        state.setTotalBytes(Optional.of(fileSize));
         stateUpdated.run();
 
         // transfer file
 
+        final var fileOut = this.exportedDirectory.openFileForWriting(
+            state.getJob().getLocalFilePath(),
+            fileSize
+            );
+
+        try (fileOut)
+        {
+            in.transferTo(fileOut.getChannel());
+        }
+
         this.exportedDirectory.writeFile(
             state.getJob().getLocalFilePath(),
             in,
-            response,
+            fileSize,
             t -> { state.setTransferredBytes(t); stateUpdated.run(); }
         );
     }
@@ -354,36 +364,20 @@ public class Peer implements AutoCloseable
 
         private Optional< Long > totalBytes;
         private long transferredBytes;
+        private Optional< Long > throughput;
+
         private Optional< String > errorMessage;
 
-        public JobStateImpl(
-            Job job,
-            Optional< Long > totalBytes,
-            long transferredBytes,
-            Optional< String > errorMessage
-        )
+        public JobStateImpl(Job job)
         {
-            // validate arguments
-
-            Objects.requireNonNull(job);
-            Objects.requireNonNull(totalBytes);
-            Objects.requireNonNull(errorMessage);
-
-            if (transferredBytes < 0)
-                throw new IllegalArgumentException();
-
-            if (totalBytes.isPresent())
-            {
-                if (totalBytes.get() < 0 || totalBytes.get() < transferredBytes)
-                    throw new IllegalArgumentException();
-            }
-
-            // initialize instance
-
             this.job              = job;
-            this.totalBytes       = totalBytes;
-            this.transferredBytes = transferredBytes;
-            this.errorMessage     = errorMessage;
+
+            this.totalBytes       = Optional.empty();
+            this.transferredBytes = 0;
+            this.throughput       = Optional.empty();
+
+            this.errorMessage     = Optional.empty();
+
         }
 
         @Override
@@ -402,6 +396,12 @@ public class Peer implements AutoCloseable
         public long getTransferredBytes()
         {
             return this.transferredBytes;
+        }
+
+        @Override
+        public Optional< Long > getThroughput()
+        {
+            return this.throughput;
         }
 
         @Override
