@@ -2,6 +2,9 @@
 
 package fileshare.transport;
 
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -97,6 +100,26 @@ public class ReliableSocketConnection implements AutoCloseable
         {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return {@code new DataInputStream(this.getInputStream())}
+     */
+    public DataInputStream getDataInputStream()
+    {
+        return new DataInputStream(this.getInputStream());
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return {@code new DataOutputStream(this.getOutputStream())}
+     */
+    public DataOutputStream getDataOutputStream()
+    {
+        return new DataOutputStream(this.getOutputStream());
     }
 
     /**

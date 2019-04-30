@@ -2,6 +2,8 @@
 
 package fileshare;
 
+import java.util.Objects;
+
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -14,9 +16,13 @@ public final class Util
      * raising {@link InterruptedException}.
      *
      * @param thread the thread to be joined
+     *
+     * @throws NullPointerException if {@code thread} is null
      */
     public static void uninterruptibleJoin(Thread thread)
     {
+        Objects.requireNonNull(thread);
+
         while (true)
         {
             try
@@ -24,9 +30,28 @@ public final class Util
                 thread.join();
                 break;
             }
-            catch (InterruptedException e)
+            catch (InterruptedException ignored)
             {
             }
+        }
+    }
+
+    /**
+     * Invokes {@code Thread.sleep(milliseconds)}, returning immediately if
+     * {@code InterruptedException} is thrown.
+     *
+     * @param milliseconds the length of time to sleep in milliseconds
+     *
+     * @throws IllegalArgumentException if {@code milliseconds} is negative
+     */
+    public static void sleepUntilElapsedOrInterrupted(long milliseconds)
+    {
+        try
+        {
+            Thread.sleep(milliseconds);
+        }
+        catch (InterruptedException ignored)
+        {
         }
     }
 

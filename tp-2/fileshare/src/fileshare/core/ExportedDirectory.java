@@ -2,18 +2,15 @@
 
 package fileshare.core;
 
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.LongConsumer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -27,8 +24,27 @@ import java.util.function.LongConsumer;
  */
 public class ExportedDirectory
 {
-    private final Path directoryPath;
+    /**
+     * TODO: document
+     */
+    public abstract class RandomAccessFileForWriting extends RandomAccessFile
+    {
+        private RandomAccessFileForWriting(
+            File file,
+            long fileSize
+            ) throws IOException
+        {
+            super(file, "rw");
+            super.setLength(fileSize);
+        }
 
+        /**
+         * TODO: document
+         */
+        public abstract void commitAndClose() throws IOException;
+    }
+
+    private final Path directoryPath;
     private final Map< Path, Integer > fileLocks;
 
     /**
@@ -39,8 +55,7 @@ public class ExportedDirectory
     public ExportedDirectory(Path directoryPath)
     {
         this.directoryPath = directoryPath;
-
-        this.fileLocks = new HashMap<>();
+        this.fileLocks     = new HashMap<>();
     }
 
     /**
@@ -107,75 +122,100 @@ public class ExportedDirectory
      *
      * @param filePath TODO: document
      * @return TODO: document
-     */
-    public RandomAccessFile openFileForReading(Path filePath)
-    {
-
-    }
-
-    public RandomAccessFile openFileForWriting(Path filePath, long fileSize)
-    {
-
-    }
-
-
-
-
-    /**
-     * TODO: document
      *
-     * Writes the file to outputStream
-     *
-     * @param filePath TODO: document
-     * @return the file's size
+     * @throws IOException TODO: document
      */
-    public void readFile(
-        Path filePath,
-        OutputStream toStream,
-        LongConsumer onBytesTransferredIncreased
-        ) throws IOException
+    public RandomAccessFile openFileForReading(Path filePath) throws IOException
     {
         final var resolvedFilePath = this.resolveFilePath(filePath, true);
 
-        this.lockFileAsReader(filePath);
-
-        final long fileSize = Files.size(resolvedFilePath);
+        this.lockFileAsReader(resolvedFilePath);
 
         try
         {
-            final var in = new FileInputStream(filePath);
+            return new RandomAccessFile(resolvedFilePath.toFile(), "r")
+            {
+                @Override
+                public void close() throws IOException
+                {
+                    super.close();
+
+                    ExportedDirectory.this.unlockFileAsReader(resolvedFilePath);
+                }
+            };
         }
-        finally
+        catch (Throwable t)
         {
-            this.unlockFileAsReader(filePath);
+            this.unlockFileAsReader(resolvedFilePath);
+            throw t;
         }
     }
 
     /**
      * TODO: document
      *
-     * Reads all remaining data in stream and creates a file (overwriting if it
-     * already exists) with that data as its content.
+     * The file is locked until the returned stream is closed.
+     *
+     * Must call commitOnExit() on the returned stream for changes to take
+     * effect.
      *
      * @param filePath TODO: document
+     * @param fileSize TODO: document
      * @return TODO: document
+     *
+     * @throws IOException TODO: document
      */
-    public void writeFile(
+    public RandomAccessFileForWriting openFileForWriting(
         Path filePath,
-        InputStream fromStream,
-        long fileSize,
-        LongConsumer onBytesTransferredIncreased
-        )
+        long fileSize
+        ) throws IOException
     {
-        this.lockFileAsWriter(filePath);
+        final var resolvedFilePath = this.resolveFilePath(filePath, false);
+        Files.createDirectories(resolvedFilePath.getParent());
+
+        this.lockFileAsWriter(resolvedFilePath);
 
         try
         {
+            final var tempFilePath = Files.createTempFile(
+                resolvedFilePath.getParent(), null, null
+            );
 
+            return this.new RandomAccessFileForWriting(
+                tempFilePath.toFile(),
+                fileSize
+                )
+            {
+                @Override
+                public void commitAndClose() throws IOException
+                {
+                    super.close();
+
+                    Files.move(
+                        tempFilePath,
+                        resolvedFilePath,
+                        StandardCopyOption.REPLACE_EXISTING
+                    );
+
+                    ExportedDirectory.this.unlockFileAsWriter(resolvedFilePath);
+                }
+
+                @Override
+                public void close() throws IOException
+                {
+                    super.close();
+
+                    Files.delete(tempFilePath);
+
+                    ExportedDirectory.this.unlockFileAsWriter(resolvedFilePath);
+                }
+
+            };
         }
-        finally
+        catch (Throwable t)
         {
-            this.unlockFileAsWriter(filePath);
+            this.unlockFileAsWriter(resolvedFilePath);
+            throw t;
         }
     }
 
