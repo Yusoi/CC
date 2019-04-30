@@ -135,12 +135,26 @@ public class ExportedDirectory
         {
             return new RandomAccessFile(resolvedFilePath.toFile(), "r")
             {
+                private boolean closed = false;
+
                 @Override
                 public void close() throws IOException
                 {
-                    super.close();
+                    if (!this.closed)
+                    {
+                        this.closed = true;
 
-                    ExportedDirectory.this.unlockFileAsReader(resolvedFilePath);
+                        try
+                        {
+                            super.close();
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsReader(
+                                resolvedFilePath
+                            );
+                        }
+                    }
                 }
             };
         }
@@ -186,28 +200,54 @@ public class ExportedDirectory
                 fileSize
                 )
             {
+                private boolean closed = false;
+
                 @Override
                 public void commitAndClose() throws IOException
                 {
-                    super.close();
+                    if (!this.closed)
+                    {
+                        this.closed = true;
 
-                    Files.move(
-                        tempFilePath,
-                        resolvedFilePath,
-                        StandardCopyOption.REPLACE_EXISTING
-                    );
+                        try
+                        {
+                            super.close();
 
-                    ExportedDirectory.this.unlockFileAsWriter(resolvedFilePath);
+                            Files.move(
+                                tempFilePath,
+                                resolvedFilePath,
+                                StandardCopyOption.REPLACE_EXISTING
+                            );
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsWriter(
+                                resolvedFilePath
+                            );
+                        }
+                    }
                 }
 
                 @Override
                 public void close() throws IOException
                 {
-                    super.close();
+                    if (!this.closed)
+                    {
+                        this.closed = true;
 
-                    Files.delete(tempFilePath);
+                        try
+                        {
+                            super.close();
 
-                    ExportedDirectory.this.unlockFileAsWriter(resolvedFilePath);
+                            Files.delete(tempFilePath);
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsWriter(
+                                resolvedFilePath
+                            );
+                        }
+                    }
                 }
 
             };
@@ -219,50 +259,50 @@ public class ExportedDirectory
         }
     }
 
-    private void lockFileAsReader(Path canonicalFilePath)
+    private void lockFileAsReader(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
             final int lockValue = this.fileLocks.getOrDefault(
-                canonicalFilePath, 0
+                resolvedFilePath, 0
                 );
 
             if (lockValue == -1)
                 throw new IllegalStateException("already locked for writing");
 
-            this.fileLocks.put(canonicalFilePath, lockValue + 1);
+            this.fileLocks.put(resolvedFilePath, lockValue + 1);
         }
     }
 
-    private void unlockFileAsReader(Path canonicalFilePath)
+    private void unlockFileAsReader(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            final int lockValue = this.fileLocks.get(canonicalFilePath);
+            final int lockValue = this.fileLocks.get(resolvedFilePath);
 
             if (lockValue == 1)
-                this.fileLocks.remove(canonicalFilePath);
+                this.fileLocks.remove(resolvedFilePath);
             else
-                this.fileLocks.put(canonicalFilePath, lockValue - 1);
+                this.fileLocks.put(resolvedFilePath, lockValue - 1);
         }
     }
 
-    private void lockFileAsWriter(Path canonicalFilePath)
+    private void lockFileAsWriter(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            if (this.fileLocks.containsKey(canonicalFilePath))
+            if (this.fileLocks.containsKey(resolvedFilePath))
                 throw new IllegalStateException("already locked");
 
-            this.fileLocks.put(canonicalFilePath, -1);
+            this.fileLocks.put(resolvedFilePath, -1);
         }
     }
 
-    private void unlockFileAsWriter(Path canonicalFilePath)
+    private void unlockFileAsWriter(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            this.fileLocks.remove(canonicalFilePath);
+            this.fileLocks.remove(resolvedFilePath);
         }
     }
 }

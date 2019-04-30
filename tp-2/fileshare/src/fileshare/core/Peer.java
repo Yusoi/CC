@@ -446,8 +446,8 @@ public class Peer implements AutoCloseable
         while (!Thread.interrupted())
         {
             final var connection = socket.listen(
-                e -> this.peerWhitelist.isWhitelisted(e.getAddress())
-            );
+                ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
+                );
 
             final Thread thread;
 

@@ -40,9 +40,14 @@ public class Main
 
         // start peer
 
-        try (final var peer = new Peer(arguments.getUdpPort(), arguments.getExportDirPath()))
+        final var peer = new Peer(
+            arguments.getUdpPort(),
+            arguments.getExportDirPath()
+            );
+
+        try (peer)
         {
-            // peer.start();
+            peer.start();
 
             // input loop
 
