@@ -229,7 +229,7 @@ public class Peer implements AutoCloseable
 
         sendJobStateUpdate.run();
 
-        // start jobs
+        // start job threads
 
         final var jobThreads = new ArrayList< Thread >();
 
@@ -245,7 +245,7 @@ public class Peer implements AutoCloseable
             thread.start();
         }
 
-        // wait for all jobs to complete
+        // report progress periodically until all jobs are finished
 
         while (!jobStates.stream().allMatch(s -> s.get().hasFinished()))
         {
@@ -255,13 +255,13 @@ public class Peer implements AutoCloseable
             Util.sleepUntilElapsedOrInterrupted(STATUS_UPDATE_DELAY);
         }
 
+        // wait for all job threads to die
+
+        jobThreads.forEach(Util::uninterruptibleJoin);
+
         // send final state update
 
         sendJobStateUpdate.run();
-
-        // wait for all threads to die
-
-        jobThreads.forEach(Util::uninterruptibleJoin);
     }
 
     private void runJob(JobState state, Consumer< JobState > stateUpdated)
