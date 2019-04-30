@@ -23,6 +23,17 @@ public class ReliableSocket implements AutoCloseable
      */
     public ReliableSocket(int localPort) throws IOException
     {
+        // validate arguments
+
+        if (localPort < 1 || localPort > 65535)
+        {
+            throw new IllegalArgumentException(
+                "port must be between 1 and 65535, inclusive"
+            );
+        }
+
+        // initialize instance
+
         this.tcpServerSocket = new ServerSocket(localPort);
     }
 
