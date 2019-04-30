@@ -8,8 +8,11 @@ import fileshare.transport.ReliableSocketConnection;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,19 +52,8 @@ public class Peer implements AutoCloseable
         CLOSED
     }
 
-    /**
-     * In milliseconds.
-     */
-    private static final long STATUS_UPDATE_DELAY = 200;
-
-    /**
-     * TODO: document
-     */
+    private static final long STATUS_UPDATE_DELAY = 200; // in milliseconds
     private static final byte JOB_ID_GET = 0;
-
-    /**
-     * TODO: document
-     */
     private static final byte JOB_ID_PUT = 1;
 
     private State state;
@@ -287,8 +279,15 @@ public class Peer implements AutoCloseable
 
             try (final var connection = this.socket.connect(remoteEndpoint))
             {
-                final var connInput  = connection.getDataInputStream();
-                final var connOutput = connection.getDataOutputStream();
+                final var connInput = new DataInputStream(
+                    connection.getInputStream()
+                    );
+
+                final var connOutput = new DataOutputStream(
+                    connection.getOutputStream()
+                    );
+
+                // run job
 
                 switch (state.getJob().getType())
                 {
@@ -432,7 +431,6 @@ public class Peer implements AutoCloseable
                     Channels.newChannel(connOutput)
                 );
             }
-
         }
 
         // update state with transferred bytes (TODO: update periodically)
@@ -443,33 +441,34 @@ public class Peer implements AutoCloseable
 
     private void listen()
     {
-        while (!Thread.interrupted())
+        try
         {
-            final var connection = socket.listen(
-                ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
-                );
-
-            final Thread thread;
-
-            try
+            while (!Thread.interrupted())
             {
-                thread = new Thread(() -> this.serveJob(connection));
-                thread.start();
-            }
-            catch (Exception e)
-            {
-                connection.close();
-                throw e;
-            }
+                final var connection = socket.listen(
+                    ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
+                    );
 
-            this.servingThreads.add(thread);
+                final Thread thread;
 
-            try (connection)
-            {
+                try
+                {
+                    thread = new Thread(() -> this.serveJob(connection));
+
+                    this.servingThreads.add(thread);
+
+                    thread.start();
+                }
+                catch (Throwable t)
+                {
+                    connection.close();
+                    throw t;
+                }
             }
-            catch (IOException e)
-            {
-            }
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 
@@ -477,20 +476,39 @@ public class Peer implements AutoCloseable
     {
         try (connection)
         {
-            final var input  = new DataInputStream(connection.getInputStream());
-            final var output = new DataOutputStream(connection.getOutputStream());
+            final var connInput = new DataInputStream(
+                connection.getInputStream()
+                );
 
-            final var jobTypeByte = input.readByte();
-            final var filePath    = Path.of(input.readUTF());
+            final var connOutput = new DataOutputStream(
+                connection.getOutputStream()
+                );
+
+            // read job info
+
+            final var jobTypeByte = connInput.readByte();
+
+            final Path localFilePath;
+
+            try
+            {
+                localFilePath = Path.of(connInput.readUTF());
+            }
+            catch (InvalidPathException e)
+            {
+                return;
+            }
+
+            // serve job
 
             switch (jobTypeByte)
             {
                 case 0:
-                    serveJobGet(output, filePath);
+                    serveJobGet(localFilePath, connInput, connOutput);
                     break;
 
                 case 1:
-                    serveJobPut(output, filePath);
+                    serveJobPut(localFilePath, connInput, connOutput);
                     break;
             }
         }
@@ -501,11 +519,101 @@ public class Peer implements AutoCloseable
     }
 
     private void serveJobGet(
-        DataOutputStream input,
-        Path filePath
-        )
+        Path localFilePath,
+        DataInputStream connInput,
+        DataOutputStream connOutput
+        ) throws IOException
     {
+        // open local file
 
+        final RandomAccessFile fileInput;
+
+        try
+        {
+            fileInput = this.exportedDirectory.openFileForReading(
+                localFilePath
+                );
+        }
+        catch (FileNotFoundException e)
+        {
+            connOutput.writeLong(-1);
+            return;
+        }
+
+        try (fileInput)
+        {
+            // send file size
+
+            connOutput.writeLong(fileInput.length());
+
+            // send file data
+
+            try (final var fileInputChannel = fileInput.getChannel())
+            {
+                fileInputChannel.transferTo(
+                    0,
+                    fileInput.length(),
+                    Channels.newChannel(connOutput)
+                );
+            }
+        }
+    }
+
+    private void serveJobPut(
+        Path localFilePath,
+        DataInputStream connInput,
+        DataOutputStream connOutput
+        ) throws IOException
+    {
+        // read file size
+
+        final long fileSize = connInput.readLong();
+
+        // open local file
+
+        final var fileOutput = this.exportedDirectory.openFileForWriting(
+            localFilePath,
+            fileSize
+            );
+
+        try (fileOutput)
+        {
+            // receive file data
+
+            final long transferredBytes;
+
+            if (fileSize == 0)
+            {
+                transferredBytes = 0;
+            }
+            else
+            {
+                try (final var channel = fileOutput.getChannel())
+                {
+                    transferredBytes = channel.transferFrom(
+                        Channels.newChannel(connInput),
+                        0,
+                        fileSize
+                    );
+                }
+            }
+
+            // check transferred byte count
+
+            if (transferredBytes < fileSize)
+            {
+                throw new RuntimeException(
+                    String.format(
+                        "Only transferred %s of %s bytes.",
+                        transferredBytes, fileSize
+                    )
+                );
+            }
+
+            // commit file changes
+
+            fileOutput.commitAndClose();
+        }
     }
 }
 

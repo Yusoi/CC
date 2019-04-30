@@ -83,21 +83,15 @@ public class ReliableSocketConnection implements AutoCloseable
     /**
      * TODO: document
      *
-     * @return {@code new DataInputStream(this.getInputStream())}
-     */
-    public DataInputStream getDataInputStream() throws IOException
-    {
-        return new DataInputStream(this.getInputStream());
-    }
-
-    /**
-     * TODO: document
+     * Closes only this side's output stream (the other side's output stream
+     * will give EOF after all previously written data is read).
      *
-     * @return {@code new DataOutputStream(this.getOutputStream())}
+     * The socket still has to be closed with close() even if both sides call
+     * shutdownOutput().
      */
-    public DataOutputStream getDataOutputStream() throws IOException
+    public void shutdownOutput() throws IOException
     {
-        return new DataOutputStream(this.getOutputStream());
+
     }
 
     /**

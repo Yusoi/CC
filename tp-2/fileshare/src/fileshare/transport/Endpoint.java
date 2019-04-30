@@ -2,6 +2,7 @@
 
 package fileshare.transport;
 
+import fileshare.core.AddressRange;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;
@@ -30,12 +31,15 @@ public class Endpoint
      *
      * @return TODO: document
      *
+     * @throws NullPointerException if endpoint is null
      * @throws IllegalArgumentException TODO: document
      * @throws UnknownHostException TODO: document
      */
     public static Endpoint parse(String endpoint, int defaultPort)
         throws UnknownHostException
     {
+        Objects.requireNonNull(endpoint);
+
         // validate defaultPort argument
 
         if (defaultPort < 1 || defaultPort > 65535)
@@ -119,6 +123,25 @@ public class Endpoint
     public int getPort()
     {
         return this.port;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (obj == null || obj.getClass() != Endpoint.class)
+            return false;
+
+        final var other = (Endpoint) obj;
+
+        return
+            Objects.equals(this.getAddress(), other.getAddress()) &&
+            Objects.equals(this.getPort()   , other.getPort()   );
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(this.getAddress(), this.getPort());
     }
 }
 

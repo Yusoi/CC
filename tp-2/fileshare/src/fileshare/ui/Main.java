@@ -5,8 +5,13 @@ package fileshare.ui;
 /* -------------------------------------------------------------------------- */
 
 import fileshare.core.Peer;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.*;
+import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
@@ -22,6 +27,34 @@ public class Main
      */
     public static void main(String[] args) throws IOException
     {
+        ArgumentParser parser = ArgumentParsers.newFor("prog").build()
+                                 .description("Process some integers.");
+        parser.addArgument("integers")
+            .metavar("N")
+            .type(Integer.class)
+            .nargs("+")
+            .help("an integer for the accumulator");
+        parser.addArgument("--sum")
+            .dest("accumulate")
+            .action(Arguments.storeConst())
+            .setConst(new Sum())
+            .setDefault(new Max())
+            .help("sum the integers (default: find the max)");
+        try {
+            Namespace res = parser.parseArgs(args);
+            System.out.println(((Accumulate) res.get("accumulate"))
+                                   .accumulate((List<Integer>) res.get("integers")));
+        } catch (ArgumentParserException e) {
+            parser.handleError(e);
+        }
+
+
+
+
+
+
+
+
         // parse arguments
 
         final Arguments arguments;

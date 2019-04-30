@@ -2,6 +2,7 @@
 
 package fileshare.core;
 
+import fileshare.transport.Endpoint;
 import inet.ipaddr.AddressStringParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
@@ -12,6 +13,7 @@ import inet.ipaddr.ipv6.IPv6Address;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.util.Objects;
 
 /* -------------------------------------------------------------------------- */
 
@@ -87,16 +89,18 @@ public class AddressRange
     @Override
     public boolean equals(Object obj)
     {
-        return
-            obj != null &&
-            obj instanceof AddressRange &&
-            this.addressString.equals(((AddressRange) obj).addressString);
+        if (obj == null || obj.getClass() != AddressRange.class)
+            return false;
+
+        final var other = (AddressRange) obj;
+
+        return Objects.equals(this.addressString, other.addressString);
     }
 
     @Override
     public int hashCode()
     {
-        return this.addressString.hashCode();
+        return Objects.hash(this.addressString);
     }
 }
 
