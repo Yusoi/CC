@@ -90,7 +90,7 @@ public class AddressRange
         return
             obj != null &&
             obj instanceof AddressRange &&
-            this.addressString.equals(((AddressRange)obj).addressString);
+            this.addressString.equals(((AddressRange) obj).addressString);
     }
 
     @Override

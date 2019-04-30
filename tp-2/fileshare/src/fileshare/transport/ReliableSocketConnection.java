@@ -2,13 +2,11 @@
 
 package fileshare.transport;
 
-import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /* -------------------------------------------------------------------------- */
@@ -18,19 +16,13 @@ import java.net.Socket;
  */
 public class ReliableSocketConnection implements AutoCloseable
 {
-    /**
-     * Whether the receiver should explicitly request the retransmission of
-     * corrupted packets.
-     */
-    private static final boolean ENABLE_RETRANSMISSION_REQUESTS = false;
+    private final ReliableSocket reliableSocket;
+    private final Socket tcpSocket;
 
-    private final ReliableSocket mySocket;
-    private final Socket socket;
-
-    ReliableSocketConnection(ReliableSocket mySocket, Socket socket)
+    ReliableSocketConnection(ReliableSocket mySocket, Socket tcpSocket)
     {
-        this.mySocket = mySocket;
-        this.socket   = socket;
+        this.reliableSocket = mySocket;
+        this.tcpSocket      = tcpSocket;
     }
 
     /**
@@ -40,7 +32,7 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     public ReliableSocket getSocket()
     {
-        return this.mySocket;
+        return this.reliableSocket;
     }
 
     /**
@@ -48,12 +40,12 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return TODO: document
      */
-    public InetSocketAddress getRemoteEndpoint()
+    public Endpoint getRemoteEndpoint()
     {
-        return new InetSocketAddress(
-            this.socket.getInetAddress(),
-            this.socket.getPort()
-        );
+        return new Endpoint(
+            this.tcpSocket.getInetAddress(),
+            this.tcpSocket.getPort()
+            );
     }
 
     /**
@@ -67,16 +59,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return TODO: document
      */
-    public InputStream getInputStream()
+    public InputStream getInputStream() throws IOException
     {
-        try
-        {
-            return this.socket.getInputStream();
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        return this.tcpSocket.getInputStream();
     }
 
     /**
@@ -90,16 +75,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return TODO: document
      */
-    public OutputStream getOutputStream()
+    public OutputStream getOutputStream() throws IOException
     {
-        try
-        {
-            return this.socket.getOutputStream();
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        return this.tcpSocket.getOutputStream();
     }
 
     /**
@@ -107,7 +85,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return {@code new DataInputStream(this.getInputStream())}
      */
-    public DataInputStream getDataInputStream()
+    public DataInputStream getDataInputStream() throws IOException
     {
         return new DataInputStream(this.getInputStream());
     }
@@ -117,7 +95,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return {@code new DataOutputStream(this.getOutputStream())}
      */
-    public DataOutputStream getDataOutputStream()
+    public DataOutputStream getDataOutputStream() throws IOException
     {
         return new DataOutputStream(this.getOutputStream());
     }
@@ -130,16 +108,9 @@ public class ReliableSocketConnection implements AutoCloseable
      * before the connection was closed.
      */
     @Override
-    public void close()
+    public void close() throws IOException
     {
-        try
-        {
-            this.socket.close();
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.tcpSocket.close();
     }
 }
 

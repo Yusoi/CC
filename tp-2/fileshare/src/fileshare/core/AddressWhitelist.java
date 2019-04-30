@@ -14,14 +14,14 @@ import java.util.Set;
  *
  * This class is thread-safe.
  */
-public class PeerWhitelist
+public class AddressWhitelist
 {
     private final Set< AddressRange > ranges;
 
     /**
      * TODO: document
      */
-    public PeerWhitelist()
+    public AddressWhitelist()
     {
         this.ranges = new HashSet<>();
     }

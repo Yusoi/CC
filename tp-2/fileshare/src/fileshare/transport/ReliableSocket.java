@@ -3,11 +3,8 @@
 package fileshare.transport;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.function.Predicate;
 
 /* -------------------------------------------------------------------------- */
@@ -17,23 +14,16 @@ import java.util.function.Predicate;
  */
 public class ReliableSocket implements AutoCloseable
 {
-    private final DatagramSocket socket;
+    private final ServerSocket tcpServerSocket;
 
     /**
      * TODO: document
      *
      * @param localPort the local UDP port
      */
-    public ReliableSocket(int localPort)
+    public ReliableSocket(int localPort) throws IOException
     {
-        try
-        {
-            this.socket = new DatagramSocket(localPort);
-        }
-        catch (SocketException e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.tcpServerSocket = new ServerSocket(localPort);
     }
 
     /**
@@ -43,7 +33,7 @@ public class ReliableSocket implements AutoCloseable
      */
     public int getLocalPort()
     {
-        return this.socket.getPort();
+        return this.tcpServerSocket.getLocalPort();
     }
 
     /**
@@ -60,92 +50,54 @@ public class ReliableSocket implements AutoCloseable
      * requests.
      *
      * @param accept predicate that determines whether a connection should be
-     *
+     *        accepted
      * @return TODO: document
+     *
      * @throws IllegalStateException if another invocation of this method is in
      *         progress
      * @throws IllegalStateException if this socket is already closed when this
      *         method is invoked
      */
-    public ReliableSocketConnection listen(Predicate< Endpoint > accept)
+    public ReliableSocketConnection listen(
+        Predicate< Endpoint > accept
+        ) throws IOException
     {
-        final var segmentBuffer = new byte[
-            ReliableSocketConfig.MAX_SEGMENT_SIZE
-            ];
-
         while (true)
         {
-            final var segmentPacket = new DatagramPacket(
-                segmentBuffer,
-                segmentBuffer.length
+            final var tcpSocket = this.tcpServerSocket.accept();
+
+            final var remoteEndpoint = new Endpoint(
+                tcpSocket.getInetAddress(),
+                tcpSocket.getPort()
                 );
 
-            try
-            {
-                socket.receive(segmentPacket);
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
-
-            final var endpoint = new Endpoint(
-                segmentPacket.getAddress(),
-                segmentPacket.getPort()
-                );
-
-
-        }
-
-
-
-
-        try
-        {
-            while (true)
-            {
-                final Socket socket = this.serverSocket.accept();
-
-                final var endpoint = new Endpoint(
-                    socket.getInetAddress(),
-                    socket.getPort()
-                    );
-
-                if (accept.test(endpoint))
-                    return new ReliableSocketConnection(this, socket);
-                else
-                    socket.close();
-            }
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
+            if (accept.test(remoteEndpoint))
+                return new ReliableSocketConnection(this, tcpSocket);
+            else
+                tcpSocket.close();
         }
     }
 
     /**
-     * Attempt to connect to the specified remote endpoint.
+     * Attempt to connect to the specified remote remoteEndpoint.
      *
      * @param remoteEndpoint TODO: document
      * @return TODO: document
-     * @throws RuntimeException if the connection is rejected by the remote
+     *
+     * @throws NullPointerException if remoteEndpoint is null
+     * @throws IOException if the connection is rejected by the remote
+     * @throws IOException if an I/O error occurs
      */
-    public ReliableSocketConnection connect(InetSocketAddress remoteEndpoint)
+    public ReliableSocketConnection connect(
+        Endpoint remoteEndpoint
+        ) throws IOException
     {
-        try
-        {
-            final Socket socket = new Socket(
-                remoteEndpoint.getAddress(),
-                remoteEndpoint.getPort()
-                );
+        final var tcpSocket = new Socket(
+            remoteEndpoint.getAddress(),
+            remoteEndpoint.getPort()
+            );
 
-            return new ReliableSocketConnection(this, socket);
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
-
+        return new ReliableSocketConnection(this, tcpSocket);
     }
 
     /**
@@ -154,16 +106,9 @@ public class ReliableSocket implements AutoCloseable
      * If this socket is already closed, this method does nothing.
      */
     @Override
-    public void close()
+    public void close() throws IOException
     {
-        try
-        {
-            this.serverSocket.close();
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.tcpServerSocket.close();
     }
 }
 

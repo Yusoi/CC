@@ -7,7 +7,7 @@ package fileshare.transport;
 /**
  * TODO: document
  */
-final class ReliableSocketConfig
+final class Config
 {
     /**
      * The maximum size of received segments (including header).
@@ -36,7 +36,7 @@ final class ReliableSocketConfig
     public static final boolean SEND_DATA_NEGACK = false;
 
     // No point in ever instantiating this class.
-    private ReliableSocketConfig()
+    private Config()
     {
     }
 }

@@ -45,6 +45,8 @@ public class ExportedDirectory
     }
 
     private final Path directoryPath;
+    private final Path resolvedDirectoryPath;
+
     private final Map< Path, Integer > fileLocks;
 
     /**
@@ -52,10 +54,12 @@ public class ExportedDirectory
      *
      * @param directoryPath TODO: document
      */
-    public ExportedDirectory(Path directoryPath)
+    public ExportedDirectory(Path directoryPath) throws IOException
     {
-        this.directoryPath = directoryPath;
-        this.fileLocks     = new HashMap<>();
+        this.directoryPath         = directoryPath;
+        this.resolvedDirectoryPath = directoryPath.toRealPath().normalize();
+
+        this.fileLocks             = new HashMap<>();
     }
 
     /**
@@ -86,27 +90,36 @@ public class ExportedDirectory
         // validate arguments
 
         if (filePath.isAbsolute())
-            throw new IllegalArgumentException("filePath must be relative");
+            throw new IllegalArgumentException("Path must be relative.");
 
         // resolve file path
 
         final var resolvedFilePath =
-            this.directoryPath
+            this.resolvedDirectoryPath
             .resolve(filePath)
             .toRealPath()
             .normalize();
+
+        // ensure path is bellow exported directory
+
+        if (!resolvedFilePath.startsWith(this.resolvedDirectoryPath))
+        {
+            throw new IllegalArgumentException(
+                "Path is outside the exported directory."
+                );
+        }
 
         // check file existence and type
 
         if (Files.exists(resolvedFilePath))
         {
             if (!Files.isRegularFile(resolvedFilePath))
-                throw new FileNotFoundException("file is not a regular file");
+                throw new FileNotFoundException("Not a regular file.");
         }
         else
         {
             if (fileMustExist)
-                throw new FileNotFoundException("file does not exist");
+                throw new FileNotFoundException("File does not exist");
         }
 
         // return resolved file path

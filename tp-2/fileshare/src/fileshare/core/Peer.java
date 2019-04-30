@@ -71,7 +71,7 @@ public class Peer implements AutoCloseable
     private final List< Thread > servingThreads;
 
     private final ExportedDirectory exportedDirectory;
-    private final PeerWhitelist peerWhitelist;
+    private final AddressWhitelist peerWhitelist;
 
     /**
      * TODO: document
@@ -82,7 +82,7 @@ public class Peer implements AutoCloseable
      * @throws IllegalArgumentException if localPort is non-positive
      * @throws NullPointerException if exportedDirectoryPath is null
      */
-    public Peer(int localPort, Path exportedDirectoryPath)
+    public Peer(int localPort, Path exportedDirectoryPath) throws IOException
     {
         this.state             = State.CREATED;
 
@@ -91,7 +91,7 @@ public class Peer implements AutoCloseable
         this.servingThreads    = new ArrayList<>();
 
         this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
-        this.peerWhitelist     = new PeerWhitelist();
+        this.peerWhitelist     = new AddressWhitelist();
     }
 
     /**
@@ -119,7 +119,7 @@ public class Peer implements AutoCloseable
      *
      * @return TODO: document
      */
-    public PeerWhitelist getPeerWhitelist()
+    public AddressWhitelist getPeerWhitelist()
     {
         return this.peerWhitelist;
     }
@@ -506,74 +506,6 @@ public class Peer implements AutoCloseable
         )
     {
 
-    }
-
-    private static class JobStateImpl extends JobState
-    {
-        private final Job job;
-
-        private Optional< Long > totalBytes;
-        private long transferredBytes;
-        private Optional< Long > throughput;
-
-        private Optional< String > errorMessage;
-
-        public JobStateImpl(Job job)
-        {
-            this.job              = job;
-
-            this.totalBytes       = Optional.empty();
-            this.transferredBytes = 0;
-            this.throughput       = Optional.empty();
-
-            this.errorMessage     = Optional.empty();
-
-        }
-
-        @Override
-        public Job getJob()
-        {
-            return this.job;
-        }
-
-        @Override
-        public Optional< Long > getTotalBytes()
-        {
-            return this.totalBytes;
-        }
-
-        @Override
-        public long getTransferredBytes()
-        {
-            return this.transferredBytes;
-        }
-
-        @Override
-        public Optional< Long > getThroughput()
-        {
-            return this.throughput;
-        }
-
-        @Override
-        public Optional< String > getErrorMessage()
-        {
-            return this.errorMessage;
-        }
-
-        public void setTotalBytes(Optional<Long> totalBytes)
-        {
-            this.totalBytes = totalBytes;
-        }
-
-        public void setTransferredBytes(long transferredBytes)
-        {
-            this.transferredBytes = transferredBytes;
-        }
-
-        public void setErrorMessage(Optional<String> errorMessage)
-        {
-            this.errorMessage = errorMessage;
-        }
     }
 }
 
