@@ -10,16 +10,21 @@ import java.util.function.Predicate;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * A socket from which reliable data transfer channels (termed *connections*)
+ * between this and other sockets can be obtained.
+ *
+ * This class is thread-safe.
  */
 public class ReliableSocket implements AutoCloseable
 {
     private final ServerSocket tcpServerSocket;
 
     /**
-     * TODO: document
+     * Creates a {@code ReliableSocket} on the specified local UDP port.
      *
-     * @param localPort the local UDP port
+     * @param localPort the socket's local UDP port
+     *
+     * @throws IOException if an I/O error occurs
      */
     public ReliableSocket(int localPort) throws IOException
     {
@@ -38,9 +43,14 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns this socket's local UDP port.
      *
-     * @return TODO: document
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method (with the exception that only
+     * one invocation of {@link #listen(Predicate)} may be active on the same
+     * socket at any given time).
+     *
+     * @return this socket's local UDP port
      */
     public int getLocalPort()
     {
@@ -51,23 +61,35 @@ public class ReliableSocket implements AutoCloseable
      * Listen for incoming connection requests.
      *
      * This method blocks until a connection request is received and accepted,
-     * in which case the connection is returned, or until this socket is closed,
-     * in which case null is returned.
+     * in which case the created {@link ReliableSocketConnection} is returned,
+     * or until this socket is closed, in which case {@code null} is returned.
      *
-     * When a connection request is received, the accept predicate is invoked
-     * with the connection's remote endpoint. If the predicate returns true, the
-     * connection is accepted and this method returns it; otherwise, it is
-     * rejected and this method continues listening for incoming connection
-     * requests.
+     * When a connection request is received, the {@code accept} predicate is
+     * invoked with the connection's remote endpoint. If the predicate returns
+     * {@code true}, the connection is accepted and this method returns it;
+     * otherwise, it is rejected and this method continues listening for
+     * incoming connection requests.
+     *
+     * This method will also return {@code null} if invoked when this socket is
+     * already closed.
+     *
+     * This method will throw {@link IllegalStateException} if invoked
+     * concurrently with other invocations of itself on the same socket.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method (with the exception that only
+     * one invocation of {@code listen(Predicate)} may be active on the same
+     * socket at any given time).
      *
      * @param accept predicate that determines whether a connection should be
      *        accepted
-     * @return TODO: document
+     * @return the established connection, or null if this socket was closed
      *
      * @throws IllegalStateException if another invocation of this method is in
      *         progress
      * @throws IllegalStateException if this socket is already closed when this
      *         method is invoked
+     * @throws IOException if an I/O error occurs
      */
     public ReliableSocketConnection listen(
         Predicate< Endpoint > accept
@@ -90,10 +112,18 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Attempt to connect to the specified remote remoteEndpoint.
+     * Attempts to connect to the specified remote endpoint.
      *
-     * @param remoteEndpoint TODO: document
-     * @return TODO: document
+     * An {@link IOException} is thrown if the remote explicitly declines the
+     * connection attempt.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method (with the exception that only
+     * one invocation of {@code listen(Predicate)} may be active on the same
+     * socket at any given time).
+     *
+     * @param remoteEndpoint the remote's endpoint
+     * @return the established connection
      *
      * @throws NullPointerException if remoteEndpoint is null
      * @throws IOException if the connection is rejected by the remote
@@ -112,9 +142,17 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Close this socket and any open connection.
+     * Closes this socket and any open connection previously obtained from it.
      *
-     * If this socket is already closed, this method does nothing.
+     * If this method fails, this socket will nevertheless be left in a closed
+     * state.
+     *
+     * If this socket is already closed, this method has no effect.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method (with the exception that only
+     * one invocation of {@code listen(Predicate)} may be active on the same
+     * socket at any given time).
      */
     @Override
     public void close() throws IOException

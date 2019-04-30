@@ -2,8 +2,6 @@
 
 package fileshare.transport;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,7 +10,9 @@ import java.net.Socket;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * A connection between two instances of {@link ReliableSocket}.
+ *
+ * This class is thread-safe.
  */
 public class ReliableSocketConnection implements AutoCloseable
 {
@@ -26,9 +26,15 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the {@link ReliableSocket} from which this connection was
+     * created.
      *
-     * @return TODO: document
+     * This method succeeds even if this connection is closed.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @return the {@link ReliableSocket} from which this connection was created
      */
     public ReliableSocket getSocket()
     {
@@ -36,9 +42,14 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the endpoint of the host on the other side of this connection.
      *
-     * @return TODO: document
+     * This method succeeds even if this connection is closed.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @return the endpoint of the host on the other side of this connection
      */
     public Endpoint getRemoteEndpoint()
     {
@@ -49,15 +60,27 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the input stream for this side of this connection.
      *
-     * The stream's close() method has no effect.
+     * If this connection is open but the other side's output has been shut
+     * down, the returned stream is still readable (no data sent by the remote
+     * is lost) and will indicate EOF when all data sent by the remote has been
+     * read.
      *
-     * If the connection was closed and there is no unread data, the stream
-     * gives EOF. It is possible to read the remaining data even if the
-     * connection is already closed.
+     * If this connection is closed, reading from the returned stream will
+     * result in {@link IOException} being thrown.
      *
-     * @return TODO: document
+     * The returned stream's {@link InputStream#close()} method has no effect.
+     *
+     * This method succeeds even if this connection is closed.
+     *
+     * If this method fails, this connection is left in a closed state (as if by
+     * invoking {@link #close()}).
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @return the input stream for this side of this connection
      */
     public InputStream getInputStream() throws IOException
     {
@@ -65,15 +88,27 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the output stream for this side of this connection.
      *
-     * The stream's data is buffered (to a certain unspecified size). In order
-     * to force write, use the stream's flush() method.
+     * The returned stream's data is buffered (to a certain unspecified size).
+     * In order to force-send buffered data, use the returned stream's
+     * {@link OutputStream#flush()} method.
      *
-     * The stream's close() method calls its flush() method but has no other
-     * effect.
+     * If this connection is open but this side's output stream has been shut
+     * down, or if this connection is closed, writing to the returned stream
+     * will result in {@link IOException} being thrown.
      *
-     * @return TODO: document
+     * The returned stream's {@link InputStream#close()} method has no effect.
+     *
+     * This method succeeds even if this connection is closed.
+     *
+     * If this method fails, this connection is left in a closed state (as if by
+     * invoking {@link #close()}).
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @return the output stream for this side of this connection
      */
     public OutputStream getOutputStream() throws IOException
     {
@@ -81,25 +116,54 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Shuts down this side's output stream.
      *
-     * Closes only this side's output stream (the other side's output stream
-     * will give EOF after all previously written data is read).
+     * Invoking this method first flushes this connection's output stream (thus
+     * sending any already written but buffered data; see
+     * {@link #getOutputStream()}) and then closes that stream.
      *
-     * The socket still has to be closed with close() even if both sides call
-     * shutdownOutput().
+     * It is *not* mandatory to invoke this method prior to invoking
+     * {@link #close()}.
+     *
+     * This connection still has to be closed with {@link #close()} even if both
+     * sides invoke this method.
+     *
+     * See {@link #getInputStream()} and {@link #getOutputStream()} for more
+     * information on the effects of this method on this connection's streams.
+     *
+     * If this side's output stream is already shut down, or if this connection
+     * is closed, this method has no effect.
+     *
+     * If this method fails, this connection is left in a closed state (as if by
+     * invoking {@link #close()}).
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @throws IOException if an I/O error occurs
      */
     public void shutdownOutput() throws IOException
     {
-
+        this.tcpSocket.shutdownOutput();
     }
 
     /**
-     * TODO: document
+     * Closes this connection on both ends.
      *
-     * Closes the connection. Any unread input data or non-flushed output data
-     * is lost. The remote can, however, read data that was written and flushed
-     * before the connection was closed.
+     * Any unread data in this connection's input stream is lost.
+     *
+     * Any unsent data buffered in this connection's output stream is lost.
+     *
+     * See {@link #getInputStream()} and {@link #getOutputStream()} for more
+     * information on the effects of this method.
+     *
+     * If this connection is already closed, this method has no effect.
+     *
+     * If this method fails, this connection will nevertheless be left in a
+     * closed state.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
      */
     @Override
     public void close() throws IOException
