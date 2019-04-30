@@ -11,12 +11,12 @@ import java.nio.file.Path;
 /**
  * TODO: document
  */
-public class Arguments
+public class Argumentss
 {
     private final Path exportDirPath;
     private final int udpPort;
 
-    private Arguments(Path exportDirPath, int udpPort)
+    private Argumentss(Path exportDirPath, int udpPort)
     {
         this.exportDirPath = exportDirPath;
         this.udpPort       = udpPort;
@@ -25,7 +25,7 @@ public class Arguments
     /**
      * TODO: document
      */
-    public static Arguments parse(String[] args)
+    public static Argumentss parse(String[] args)
     {
         // check number of arguments
 
@@ -76,7 +76,7 @@ public class Arguments
 
         // return arguments
 
-        return new Arguments(exportDirPath, udpPort);
+        return new Argumentss(exportDirPath, udpPort);
     }
 
     /**

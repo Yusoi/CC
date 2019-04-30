@@ -2,18 +2,18 @@
 
 package fileshare.ui;
 
-/* -------------------------------------------------------------------------- */
-
 import fileshare.core.Peer;
 import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
-import net.sourceforge.argparse4j.inf.Namespace;
 
-import java.io.*;
-import java.util.List;
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * TODO: document
@@ -27,25 +27,42 @@ public class Main
      */
     public static void main(String[] args) throws IOException
     {
-        ArgumentParser parser = ArgumentParsers.newFor("prog").build()
-                                 .description("Process some integers.");
-        parser.addArgument("integers")
-            .metavar("N")
+        // parse arguments
+
+        final var argParser = ArgumentParsers.newFor("prog").build();
+
+        argParser.description("Runs a FileShare peer.");
+
+        argParser
+            .addArgument("export_dir")
+            .help("a path to the directory to be exported by the peer");
+
+        argParser
+            .addArgument("-p", "--port")
             .type(Integer.class)
-            .nargs("+")
-            .help("an integer for the accumulator");
-        parser.addArgument("--sum")
-            .dest("accumulate")
-            .action(Arguments.storeConst())
-            .setConst(new Sum())
-            .setDefault(new Max())
-            .help("sum the integers (default: find the max)");
-        try {
-            Namespace res = parser.parseArgs(args);
-            System.out.println(((Accumulate) res.get("accumulate"))
-                                   .accumulate((List<Integer>) res.get("integers")));
-        } catch (ArgumentParserException e) {
-            parser.handleError(e);
+            .setDefault(7777)
+            .help("the local UDP port to be used by the peer");
+
+        final Path exportedDirPath;
+        final int localPort;
+
+        try
+        {
+            final var argNamespace = argParser.parseArgs(args);
+
+            exportedDirPath = Path.of(argNamespace.getString("export_dir"));
+            localPort       = argNamespace.getInt("port");
+        }
+        catch (ArgumentParserException e)
+        {
+            try (final var errWriter = new PrintWriter(System.err))
+            {
+                argParser.printUsage(errWriter);
+                errWriter.println("error: " + e.getMessage());
+            }
+
+            System.exit(2);
+            return;
         }
 
 
@@ -57,11 +74,11 @@ public class Main
 
         // parse arguments
 
-        final Arguments arguments;
+        final Argumentss arguments;
 
         try
         {
-            arguments = Arguments.parse(args);
+            arguments = Argumentss.parse(args);
         }
         catch (RuntimeException e)
         {
