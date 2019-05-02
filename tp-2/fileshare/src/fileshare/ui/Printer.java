@@ -20,6 +20,8 @@ public class Printer
 
     /**
      * TODO: document
+     *
+     * @param text TODO: document
      */
     public void print(String text)
     {
@@ -35,6 +37,8 @@ public class Printer
 
     /**
      * TODO: document
+     *
+     * @param lines TODO: document
      */
     public void printLines(String... lines)
     {
@@ -53,6 +57,8 @@ public class Printer
      *
      * Print but clear and overwrite previous lines that were printed using this
      * method.
+     *
+     * @param lines TODO: document
      */
     public void printLinesReplace(String... lines)
     {
