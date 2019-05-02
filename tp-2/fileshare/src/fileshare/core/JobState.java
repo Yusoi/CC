@@ -4,12 +4,13 @@ package fileshare.core;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 /* -------------------------------------------------------------------------- */
 
 /**
  * TODO: document
+ *
+ * This class is thread-safe.
  */
 public class JobState
 {
