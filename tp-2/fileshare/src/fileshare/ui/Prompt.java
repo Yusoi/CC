@@ -19,6 +19,9 @@ import java.util.regex.Pattern;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Implements the application's interactive prompt.
+ */
 public class Prompt
 {
     private final Peer peer;
@@ -28,6 +31,11 @@ public class Prompt
 
     private List< Job > concurrentJobs;
 
+    /**
+     * Creates a {@code Prompt}.
+     *
+     * @param peer the peer on which commands should be performed
+     */
     public Prompt(Peer peer)
     {
         this.peer = peer;
@@ -38,6 +46,12 @@ public class Prompt
         this.concurrentJobs = null;
     }
 
+    /**
+     * Runs the input loop, thus capturing and processing user-given commands.
+     *
+     * @throws IOException if an error occurs reading from or writing to the
+     *         standard streams
+     */
     public void runInputLoop() throws IOException
     {
         while (true)
@@ -65,7 +79,11 @@ public class Prompt
             try
             {
                 if (!this.processCommand(line))
-                    break; // command requested exit
+                {
+                    // command requested exit
+                    this.concurrentJobs = null;
+                    break;
+                }
             }
             catch (Exception e)
             {

@@ -40,9 +40,12 @@ public class Printer
     }
 
     /**
-     * TODO: document
+     * Prints one or more strings, each on a separate line.
      *
-     * @param lines TODO: document
+     * This method does not replace lines previously printed with {@link
+     * #printLinesReplace(String...)}.
+     *
+     * @param lines the strings to be printed
      */
     public void printLines(String... lines)
     {
@@ -57,12 +60,14 @@ public class Printer
     }
 
     /**
-     * TODO: document
+     * Prints one or more strings, each on a separate line, possibly overwriting
+     * previously printed lines.
      *
-     * Print but clear and overwrite previous lines that were printed using this
-     * method.
+     * If {@code printLinesReplace} was the last method to be invoked on this
+     * instance, the lines printed by that invocation are first erased and then
+     * overwritten by the specified strings.
      *
-     * @param lines TODO: document
+     * @param lines the strings to be printed
      */
     public void printLinesReplace(String... lines)
     {
