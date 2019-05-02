@@ -9,6 +9,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /* -------------------------------------------------------------------------- */
 
@@ -27,6 +28,8 @@ public class Args
      */
     public static Args parse(String[] args) throws ArgumentParserException
     {
+        Objects.requireNonNull(args);
+
         // create parser
 
         final var argParser = ArgumentParsers.newFor("fileshare").build();

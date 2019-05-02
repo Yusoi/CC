@@ -16,18 +16,15 @@ import java.util.regex.Pattern;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Implements the commands supported by the application's interpreter.
+ */
 public abstract class Command
 {
     private final boolean isAllowedInNonConcurrentMode;
     private final boolean isAllowedInConcurrentMode;
     private final Pattern pattern;
 
-    /**
-     *
-     * @param isAllowedInNonConcurrentMode
-     * @param isAllowedInConcurrentMode
-     * @param patternRegex
-     */
     private Command(
         boolean isAllowedInNonConcurrentMode,
         boolean isAllowedInConcurrentMode,
@@ -41,8 +38,9 @@ public abstract class Command
     }
 
     /**
+     * Checks whether the command may be used while *not* in "concurrent" mode.
      *
-     * @return
+     * @return whether the command may be used while *not* in "concurrent" mode
      */
     public boolean isAllowedInNonConcurrentMode()
     {
@@ -50,8 +48,9 @@ public abstract class Command
     }
 
     /**
+     * Checks whether the command may be used while in "concurrent" mode.
      *
-     * @return
+     * @return whether the command may be used while in "concurrent" mode
      */
     public boolean isAllowedInConcurrentMode()
     {
@@ -59,8 +58,9 @@ public abstract class Command
     }
 
     /**
+     * Returns a {@link Pattern} defining the command's syntax.
      *
-     * @return
+     * @return a {@link Pattern} defining the command's syntax
      */
     public Pattern getPattern()
     {
@@ -68,16 +68,17 @@ public abstract class Command
     }
 
     /**
+     * Runs the command.
      *
-     * @param interpreter
-     * @param matcher
-     * @throws Exception
+     * @param interpreter the interpreter whose state the command should use
+     * @param matcher the {@link Matcher} object from which the command
+     *                arguments should be obtained
      */
     public abstract void run(Interpreter interpreter, Matcher matcher)
         throws Exception;
 
     /**
-     *
+     * An array of all commands supported by the application's interpreter.
      */
     public static final Command[] ALL_COMMANDS = new Command[] {
         new CommandExit(),

@@ -72,7 +72,7 @@ public final class Main
 
             peer.start();
 
-            // run input loop
+            // run interpreter input loop
 
             new Interpreter(peer).runInputLoop();
         }
