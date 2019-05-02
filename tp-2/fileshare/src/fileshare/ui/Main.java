@@ -12,14 +12,17 @@ import java.io.PrintWriter;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Provides the {@link #main} method for the application.
  */
 public final class Main
 {
     /**
-     * TODO: document
+     * The application's {@code main} method.
      *
-     * @param args TODO: document
+     * @param args the application's arguments
+     *
+     * @throws IOException if an error occurs reading from or writing to the
+     *         standard streams
      */
     public static void main(String[] args) throws IOException
     {
@@ -43,7 +46,7 @@ public final class Main
             return;
         }
 
-        // start peer
+        // create peer
 
         final var peer = new Peer(
             arguments.getLocalPort(),
@@ -62,12 +65,14 @@ public final class Main
 
                 peer.getPeerWhitelist().add(
                     AddressRange.fromCidrNotation("::/0")
-                    );
+                );
             }
 
-            // start peer and run input loop
+            // start peer
 
             peer.start();
+
+            // run input loop
 
             new Prompt(peer).runInputLoop();
         }

@@ -72,6 +72,9 @@ public class Prompt
 
     private boolean processCommand(String command) throws Exception
     {
+        if (command.isBlank())
+            return true;
+
         for (final var cmd : COMMANDS)
         {
             final var matcher = cmd.getPattern().matcher(command);
@@ -236,7 +239,7 @@ public class Prompt
                 Matcher matcher
                 ) throws Exception
             {
-                return true;
+                return false;
             }
         },
 
@@ -277,7 +280,7 @@ public class Prompt
                 else
                     prompt.concurrentJobs.add(job); // in concurrent
 
-                return false;
+                return true;
             }
         },
 
@@ -318,7 +321,7 @@ public class Prompt
                 else
                     prompt.concurrentJobs.add(job); // in concurrent
 
-                return false;
+                return true;
             }
         },
 
