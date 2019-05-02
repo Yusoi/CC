@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /* -------------------------------------------------------------------------- */
@@ -441,9 +442,11 @@ public class Peer implements AutoCloseable
 
     private void runJobPutMultipleRemotes(
         JobState state,
-        Consumer< JobState > stateUpdated
+        Runnable onStateUpdated
         ) throws IOException
     {
+        final var numRemotes = state.getJob().getRemoteEndpoints().size();
+
         final var connections = new ArrayList< ReliableSocketConnection >();
         final var threads     = new ArrayList< Thread >();
 
@@ -459,12 +462,8 @@ public class Peer implements AutoCloseable
 
             final var fileSize = fileInput.length();
 
-            state = state.withTotalBytes(Optional.of(fileSize));
-            stateUpdated.accept(state);
-
-            // get file input channel
-
-            final var fileInputChannel = fileInput.getChannel();
+            state.setTotalBytes(Optional.of(numRemotes * fileSize));
+            onStateUpdated.run();
 
             // open connections
 
@@ -478,49 +477,52 @@ public class Peer implements AutoCloseable
                 final var connInput  = new DataInputStream(conn.getInputStream());
                 final var connOutput = new DataOutputStream(conn.getOutputStream());
 
-                final var thread = new Thread(
-                    () -> {
-                        // send request
+                final var thread = new Thread(() -> {
 
-                        connOutput.writeByte(2);
-                        connOutput.writeUTF(state
-                                                .getJob()
-                                                .getRemoteFilePath()
-                                                .toString());
-                        connOutput.writeLong(fileSize);
-                        connOutput.flush();
+                    // send request
 
-                        // receive response
+                    connOutput.writeByte(2);
+                    connOutput.writeUTF(state.getJob().getRemoteFilePath().toString());
+                    connOutput.writeLong(fileSize);
+                    connOutput.flush();
 
-                        final var error1 = connInput.readUTF();
+                    // receive response
 
-                        if (!error1.isEmpty())
-                        {
-                            // TODO: implement
-                        }
+                    final var error1 = connInput.readUTF();
 
-                        // send file
-
-                        fileInputChannel.transferTo(
-                            0,
-                            fileSize,
-                            Channels.newChannel(connOutput)
-                            );
-
-                        // shutdown output
-
-                        conn.shutdownOutput();
-
-                        // receive response
-
-                        final var error2 = connInput.readUTF();
-
-                        if (!error2.isEmpty())
-                        {
-                            // TODO: implement
-                        }
+                    if (!error1.isEmpty())
+                    {
+                        // TODO: implement
                     }
-                );
+
+                    // send file and shutdown output
+
+                    Util.transfer(
+                        fileInput.getChannel(),
+                        Channels.newChannel(connOutput),
+                        t -> {
+                            synchronized (state)
+                            {
+                                state.setTransferredBytes(
+                                    state.getTransferredBytes() + t
+                                    );
+                            }
+
+                            onStateUpdated.run();
+                        }
+                        );
+
+                    conn.shutdownOutput();
+
+                    // receive response
+
+                    final var error2 = connInput.readUTF();
+
+                    if (!error2.isEmpty())
+                    {
+                        // TODO: implement
+                    }
+                });
             }
         }
         finally

@@ -2,7 +2,13 @@
 
 package fileshare;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
+import java.util.function.LongConsumer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -53,6 +59,42 @@ public final class Util
         catch (InterruptedException ignored)
         {
         }
+    }
+
+    public static long transfer(
+        ReadableByteChannel input,
+        WritableByteChannel output,
+        LongConsumer onBytesTransferred
+        ) throws IOException
+    {
+        final int  BUFFER_SIZE   = 1  << 13;
+        final long PROGRESS_SIZE = 1l << 14;
+
+        final var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
+        long transferredTotal         = 0;
+        long transferredSinceProgress = 0;
+
+        while (input.read(buffer) >= 0 || buffer.position() != 0)
+        {
+            buffer.flip();
+            final int written = output.write(buffer);
+            buffer.compact();
+
+            transferredTotal         += written;
+            transferredSinceProgress += written;
+
+            if (transferredSinceProgress >= PROGRESS_SIZE)
+            {
+                onBytesTransferred.accept(transferredSinceProgress);
+                transferredSinceProgress = 0;
+            }
+        }
+
+        if (transferredSinceProgress > 0)
+            onBytesTransferred.accept(transferredSinceProgress);
+
+        return transferredTotal;
     }
 
     // No point in ever instantiating this class.
