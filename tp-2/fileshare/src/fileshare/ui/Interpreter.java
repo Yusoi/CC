@@ -2,21 +2,14 @@
 
 package fileshare.ui;
 
-import fileshare.core.AddressRange;
 import fileshare.core.Job;
-import fileshare.core.JobState;
-import fileshare.core.JobType;
 import fileshare.core.Peer;
-import fileshare.transport.Endpoint;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /* -------------------------------------------------------------------------- */
 
@@ -75,7 +68,7 @@ public class Interpreter
     /**
      *
      */
-    public void enableConcurrentMode()
+    public void enterConcurrentMode()
     {
         this.concurrentJobs = new ArrayList<>();
     }
@@ -83,7 +76,7 @@ public class Interpreter
     /**
      *
      */
-    public void disableConcurrentMode()
+    public void leaveConcurrentMode()
     {
         this.concurrentJobs = null;
     }
@@ -129,7 +122,7 @@ public class Interpreter
         {
             // print prompt
 
-            if (this.concurrentJobs != null)
+            if (this.isInConcurrentMode())
             {
                 this.printer.print("  ");
                 this.printer.setLinePrefix("  ");
@@ -152,19 +145,18 @@ public class Interpreter
                 break;
             }
 
-            // process command
+            // process line
 
             try
             {
-                this.processCommand(line);
-
+                this.processLine(line);
             }
             catch (Exception e)
             {
                 printer.printLines(Color.RED.apply(e.getMessage()));
             }
 
-            // check if command requested to exit
+            // check if exit was requested
 
             if (this.shouldExit())
             {
@@ -175,32 +167,40 @@ public class Interpreter
 
         // reset state
 
-        this.disableConcurrentMode();
+        this.leaveConcurrentMode();
         this.setShouldExit(false);
     }
 
-    private boolean processCommand(String command) throws Exception
+    private void processLine(String line) throws Exception
     {
-        if (command.isBlank())
-            return true;
+        // check if line is empty
 
-        for (final var cmd : COMMANDS)
+        if (line.isBlank())
+            return;
+
+        // find command that matches
+
+        for (final var command : Command.ALL_COMMANDS)
         {
-            final var matcher = cmd.getPattern().matcher(command);
+            final var matcher = command.getPattern().matcher(line);
 
             if (matcher.matches())
             {
-                if (this.concurrentJobs == null &&
-                        !cmd.isAllowedOutsideConcurrent())
+                if (!this.isInConcurrentMode() &&
+                        !command.isAllowedInNonConcurrentMode())
                     throw new RuntimeException("Command not allowed here.");
 
-                if (this.concurrentJobs != null &&
-                        !cmd.isAllowedInsideConcurrent())
+                if (this.isInConcurrentMode() &&
+                        !command.isAllowedInConcurrentMode())
                     throw new RuntimeException("Command not allowed here.");
 
-                return cmd.process(this, matcher);
+                command.run(this, matcher);
+
+                return;
             }
         }
+
+        // invalid command
 
         throw new RuntimeException("Invalid command.");
     }

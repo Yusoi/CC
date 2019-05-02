@@ -2,8 +2,6 @@
 
 package fileshare.ui;
 
-/* -------------------------------------------------------------------------- */
-
 import fileshare.core.AddressRange;
 import fileshare.core.Job;
 import fileshare.core.JobState;
@@ -16,12 +14,20 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/* -------------------------------------------------------------------------- */
+
 public abstract class Command
 {
     private final boolean isAllowedInNonConcurrentMode;
     private final boolean isAllowedInConcurrentMode;
     private final Pattern pattern;
 
+    /**
+     *
+     * @param isAllowedInNonConcurrentMode
+     * @param isAllowedInConcurrentMode
+     * @param patternRegex
+     */
     private Command(
         boolean isAllowedInNonConcurrentMode,
         boolean isAllowedInConcurrentMode,
@@ -34,19 +40,45 @@ public abstract class Command
         this.pattern = Pattern.compile(patternRegex);
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isAllowedInNonConcurrentMode()
     {
         return isAllowedInNonConcurrentMode;
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isAllowedInConcurrentMode()
     {
         return isAllowedInConcurrentMode;
     }
 
+    /**
+     *
+     * @return
+     */
+    public Pattern getPattern()
+    {
+        return pattern;
+    }
+
+    /**
+     *
+     * @param interpreter
+     * @param matcher
+     * @throws Exception
+     */
     public abstract void run(Interpreter interpreter, Matcher matcher)
         throws Exception;
 
+    /**
+     *
+     */
     public static Command[] ALL_COMMANDS = new Command[] {
         new CommandExit(),
         new CommandWhitelistAll(),
@@ -256,7 +288,7 @@ public abstract class Command
         public void run(Interpreter interpreter, Matcher matcher)
             throws Exception
         {
-            interpreter.enableConcurrentMode();
+            interpreter.enterConcurrentMode();
         }
     }
 
@@ -274,7 +306,7 @@ public abstract class Command
             if (!interpreter.getConcurrentJobs().isEmpty())
                 runJobs(interpreter, interpreter.getConcurrentJobs());
 
-            interpreter.disableConcurrentMode();
+            interpreter.leaveConcurrentMode();
         }
     }
 
@@ -289,7 +321,7 @@ public abstract class Command
         public void run(Interpreter interpreter, Matcher matcher)
             throws Exception
         {
-            interpreter.disableConcurrentMode();
+            interpreter.leaveConcurrentMode();
         }
     }
 
