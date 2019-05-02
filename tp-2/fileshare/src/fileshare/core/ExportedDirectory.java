@@ -2,13 +2,15 @@
 
 package fileshare.core;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,7 +24,28 @@ import java.util.function.LongConsumer;
  */
 public class ExportedDirectory
 {
+    /**
+     * TODO: document
+     */
+    public abstract class RandomAccessFileForWriting extends RandomAccessFile
+    {
+        private RandomAccessFileForWriting(
+            File file,
+            long fileSize
+            ) throws IOException
+        {
+            super(file, "rw");
+            super.setLength(fileSize);
+        }
+
+        /**
+         * TODO: document
+         */
+        public abstract void commitAndClose() throws IOException;
+    }
+
     private final Path directoryPath;
+    private final Path resolvedDirectoryPath;
 
     private final Map< Path, Integer > fileLocks;
 
@@ -31,11 +54,12 @@ public class ExportedDirectory
      *
      * @param directoryPath TODO: document
      */
-    public ExportedDirectory(Path directoryPath)
+    public ExportedDirectory(Path directoryPath) throws IOException
     {
-        this.directoryPath = directoryPath;
+        this.directoryPath         = directoryPath;
+        this.resolvedDirectoryPath = directoryPath.toRealPath().normalize();
 
-        this.fileLocks = new HashMap<>();
+        this.fileLocks             = new HashMap<>();
     }
 
     /**
@@ -66,136 +90,232 @@ public class ExportedDirectory
         // validate arguments
 
         if (filePath.isAbsolute())
-            throw new IllegalArgumentException("filePath must be relative");
+            throw new IllegalArgumentException("Path must be relative.");
 
         // resolve file path
 
         final var resolvedFilePath =
-            this.directoryPath
+            this.resolvedDirectoryPath
             .resolve(filePath)
             .toRealPath()
             .normalize();
+
+        // ensure path is bellow exported directory
+
+        if (!resolvedFilePath.startsWith(this.resolvedDirectoryPath))
+        {
+            throw new IllegalArgumentException(
+                "Path is outside the exported directory."
+                );
+        }
 
         // check file existence and type
 
         if (Files.exists(resolvedFilePath))
         {
             if (!Files.isRegularFile(resolvedFilePath))
-                throw new FileNotFoundException("file is not a regular file");
+                throw new FileNotFoundException("Not a regular file.");
         }
         else
         {
             if (fileMustExist)
-                throw new FileNotFoundException("file does not exist");
+                throw new FileNotFoundException("File does not exist");
         }
 
         // return resolved file path
 
-        return resolveFilePath;
+        return resolvedFilePath;
     }
+
 
     /**
      * TODO: document
      *
-     * Writes the file to outputStream
-     *
-     * @param filePath TODO: document
-     * @return the file's size
-     */
-    public void readFile(
-        Path filePath,
-        OutputStream toStream,
-        LongConsumer onBytesTransferredIncreased
-        ) throws IOException
-    {
-        final var resolvedFilePath = this.resolveFilePath(filePath, true);
-
-        this.lockFileAsReader(filePath);
-
-        final long fileSize = Files.size(resolvedFilePath);
-
-        try
-        {
-            final var in = new FileInputStream(filePath);
-        }
-        finally
-        {
-            this.unlockFileAsReader(filePath);
-        }
-    }
-
-    /**
-     * TODO: document
-     *
-     * Reads all remaining data in stream and creates a file (overwriting if it
-     * already exists) with that data as its content.
+     * The file is locked until the returned stream is closed.
      *
      * @param filePath TODO: document
      * @return TODO: document
+     *
+     * @throws IOException TODO: document
      */
-    public void writeFile(
-        Path filePath,
-        InputStream fromStream,
-        long fileSize,
-        LongConsumer onBytesTransferredIncreased
-        )
+    public RandomAccessFile openFileForReading(Path filePath) throws IOException
     {
-        this.lockFileAsWriter(filePath);
+        final var resolvedFilePath = this.resolveFilePath(filePath, true);
+
+        this.lockFileAsReader(resolvedFilePath);
 
         try
         {
+            return new RandomAccessFile(resolvedFilePath.toFile(), "r")
+            {
+                private boolean closed = false;
 
+                @Override
+                public void close() throws IOException
+                {
+                    if (!this.closed)
+                    {
+                        this.closed = true;
+
+                        try
+                        {
+                            super.close();
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsReader(
+                                resolvedFilePath
+                            );
+                        }
+                    }
+                }
+            };
         }
-        finally
+        catch (Throwable t)
         {
-            this.unlockFileAsWriter(filePath);
+            this.unlockFileAsReader(resolvedFilePath);
+            throw t;
         }
     }
 
-    private void lockFileAsReader(Path canonicalFilePath)
+    /**
+     * TODO: document
+     *
+     * The file is locked until the returned stream is closed.
+     *
+     * Must call commitOnExit() on the returned stream for changes to take
+     * effect.
+     *
+     * @param filePath TODO: document
+     * @param fileSize TODO: document
+     * @return TODO: document
+     *
+     * @throws IOException TODO: document
+     */
+    public RandomAccessFileForWriting openFileForWriting(
+        Path filePath,
+        long fileSize
+        ) throws IOException
+    {
+        final var resolvedFilePath = this.resolveFilePath(filePath, false);
+        Files.createDirectories(resolvedFilePath.getParent());
+
+        this.lockFileAsWriter(resolvedFilePath);
+
+        try
+        {
+            final var tempFilePath = Files.createTempFile(
+                resolvedFilePath.getParent(), null, null
+            );
+
+            return this.new RandomAccessFileForWriting(
+                tempFilePath.toFile(),
+                fileSize
+                )
+            {
+                private boolean closed = false;
+
+                @Override
+                public void commitAndClose() throws IOException
+                {
+                    if (!this.closed)
+                    {
+                        this.closed = true;
+
+                        try
+                        {
+                            super.close();
+
+                            Files.move(
+                                tempFilePath,
+                                resolvedFilePath,
+                                StandardCopyOption.REPLACE_EXISTING
+                            );
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsWriter(
+                                resolvedFilePath
+                            );
+                        }
+                    }
+                }
+
+                @Override
+                public void close() throws IOException
+                {
+                    if (!this.closed)
+                    {
+                        this.closed = true;
+
+                        try
+                        {
+                            super.close();
+
+                            Files.delete(tempFilePath);
+                        }
+                        finally
+                        {
+                            ExportedDirectory.this.unlockFileAsWriter(
+                                resolvedFilePath
+                            );
+                        }
+                    }
+                }
+
+            };
+        }
+        catch (Throwable t)
+        {
+            this.unlockFileAsWriter(resolvedFilePath);
+            throw t;
+        }
+    }
+
+    private void lockFileAsReader(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
             final int lockValue = this.fileLocks.getOrDefault(
-                canonicalFilePath, 0
+                resolvedFilePath, 0
                 );
 
             if (lockValue == -1)
                 throw new IllegalStateException("already locked for writing");
 
-            this.fileLocks.put(canonicalFilePath, lockValue + 1);
+            this.fileLocks.put(resolvedFilePath, lockValue + 1);
         }
     }
 
-    private void unlockFileAsReader(Path canonicalFilePath)
+    private void unlockFileAsReader(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            final int lockValue = this.fileLocks.get(canonicalFilePath);
+            final int lockValue = this.fileLocks.get(resolvedFilePath);
 
             if (lockValue == 1)
-                this.fileLocks.remove(canonicalFilePath);
+                this.fileLocks.remove(resolvedFilePath);
             else
-                this.fileLocks.put(canonicalFilePath, lockValue - 1);
+                this.fileLocks.put(resolvedFilePath, lockValue - 1);
         }
     }
 
-    private void lockFileAsWriter(Path canonicalFilePath)
+    private void lockFileAsWriter(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            if (this.fileLocks.containsKey(canonicalFilePath))
+            if (this.fileLocks.containsKey(resolvedFilePath))
                 throw new IllegalStateException("already locked");
 
-            this.fileLocks.put(canonicalFilePath, -1);
+            this.fileLocks.put(resolvedFilePath, -1);
         }
     }
 
-    private void unlockFileAsWriter(Path canonicalFilePath)
+    private void unlockFileAsWriter(Path resolvedFilePath)
     {
         synchronized (this.fileLocks)
         {
-            this.fileLocks.remove(canonicalFilePath);
+            this.fileLocks.remove(resolvedFilePath);
         }
     }
 }

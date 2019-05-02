@@ -5,7 +5,7 @@ package fileshare.core;
 /* -------------------------------------------------------------------------- */
 
 /**
- * Defines the possible job types.
+ * Defines the available job types.
  */
 public enum JobType
 {

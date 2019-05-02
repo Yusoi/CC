@@ -4,18 +4,34 @@ package fileshare.core;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /* -------------------------------------------------------------------------- */
 
 /**
  * TODO: document
  */
-public class JobState implements JobStateView
+public class JobState
 {
-    private Job job;
+    private final Job job;
+
     private Optional< Long > totalBytes;
     private long transferredBytes;
+    private Optional< Long > throughput;
+
     private Optional< String > errorMessage;
+
+    /**
+     * TODO: document
+     *
+     * @param job TODO: document
+     *
+     * @throws NullPointerException TODO: document
+     */
+    public JobState(Job job)
+    {
+        this(job, Optional.empty(), 0, Optional.empty(), Optional.empty());
+    }
 
     /**
      * TODO: document
@@ -23,56 +39,57 @@ public class JobState implements JobStateView
      * @param job TODO: document
      * @param totalBytes TODO: document
      * @param transferredBytes TODO: document
+     * @param throughput TODO: document
      * @param errorMessage TODO: document
      *
-     * @throws NullPointerException if job, totalBytes, or errorMessage are null
-     * @throws IllegalArgumentException if transferredBytes is negative
-     * @throws IllegalArgumentException if totalBytes is non-empty and is
-     *     negative or lower than transferredBytes
+     * @throws NullPointerException TODO: document
+     * @throws IllegalArgumentException TODO: document
      */
     public JobState(
         Job job,
         Optional< Long > totalBytes,
         long transferredBytes,
+        Optional< Long > throughput,
         Optional< String > errorMessage
         )
     {
         // validate arguments
 
-        Objects.requireNonNull(job         , "job must not be null"         );
-        Objects.requireNonNull(totalBytes  , "totalBytes must not be null"  );
-        Objects.requireNonNull(errorMessage, "errorMessage must not be null");
+        Objects.requireNonNull(totalBytes);
+        Objects.requireNonNull(throughput);
+        Objects.requireNonNull(errorMessage);
 
-        if (transferredBytes < 0)
+        if (totalBytes.isEmpty())
         {
-            throw new IllegalArgumentException(
-                "transferredBytes must be non-negative"
-                );
-        }
+            if (transferredBytes != 0)
+                throw new IllegalArgumentException("TODO: write");
 
-        if (totalBytes.isPresent())
+            if (throughput.isPresent())
+                throw new IllegalArgumentException("TODO: write");
+        }
+        else
         {
             if (totalBytes.get() < 0)
-            {
-                throw new IllegalArgumentException(
-                    "totalBytes must be non-negative"
-                    );
-            }
+                throw new IllegalArgumentException("TODO: write");
 
-            if (totalBytes.get() < transferredBytes)
-            {
-                throw new IllegalArgumentException(
-                    "transferredBytes must be less than or equal to" +
-                    " totalBytes"
-                    );
-            }
+            if (transferredBytes < 0)
+                throw new IllegalArgumentException("TODO: write");
+
+            if (transferredBytes > totalBytes.get())
+                throw new IllegalArgumentException("TODO: write");
+
+            if (throughput.isPresent() && throughput.get() < 0)
+                throw new IllegalArgumentException("TODO: write");
         }
 
         // initialize instance
 
         this.job              = job;
+
         this.totalBytes       = totalBytes;
         this.transferredBytes = transferredBytes;
+        this.throughput       = throughput;
+
         this.errorMessage     = errorMessage;
     }
 
@@ -81,7 +98,6 @@ public class JobState implements JobStateView
      *
      * @return TODO: document
      */
-    @Override
     public Job getJob()
     {
         return this.job;
@@ -90,9 +106,10 @@ public class JobState implements JobStateView
     /**
      * TODO: document
      *
+     * Is non-negative.
+     *
      * @return TODO: document
      */
-    @Override
     public Optional< Long > getTotalBytes()
     {
         return this.totalBytes;
@@ -101,9 +118,12 @@ public class JobState implements JobStateView
     /**
      * TODO: document
      *
+     * If total bytes is empty, this is 0.
+     *
+     * Otherwise is non-negative and lower than or equal to total bytes.
+     *
      * @return TODO: document
      */
-    @Override
     public long getTransferredBytes()
     {
         return this.transferredBytes;
@@ -112,9 +132,23 @@ public class JobState implements JobStateView
     /**
      * TODO: document
      *
+     * Not a perfect representation of the throughput, and the interval to which
+     * the throughput is relative is left unspecified.
+     *
+     * In bytes per second.
+     *
      * @return TODO: document
      */
-    @Override
+    public Optional< Long > getThroughput()
+    {
+        return this.throughput;
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
     public Optional< String > getErrorMessage()
     {
         return this.errorMessage;
@@ -123,90 +157,120 @@ public class JobState implements JobStateView
     /**
      * TODO: document
      *
-     * @param totalBytes TODO: document
+     * Always between 0 and 100, inclusive. Also 0 if totalBytes is empty. Only
+     * 100 if the transfer is complete.
+     *
+     * @return TODO: document
      */
-    public void setTotalBytes(Optional<Long> totalBytes)
+    public int getTransferredPercentage()
     {
-        this.totalBytes = totalBytes;
+        if (this.getTotalBytes().isEmpty())
+        {
+            return 0;
+        }
+        else if (this.getTotalBytes().get() == 0)
+        {
+            return 100;
+        }
+        else
+        {
+            return 100 * (int)Math.floorDiv(
+                this.getTransferredBytes(),
+                this.getTotalBytes().get()
+                );
+        }
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public boolean hasFinished()
+    {
+        return
+            (this.getTotalBytes().isPresent() &&
+            this.getTransferredBytes() == this.getTotalBytes().get()) ||
+            this.getErrorMessage().isPresent();
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param totalSize TODO: document
+     * @return TODO: document
+     *
+     * @throws NullPointerException TODO: document
+     * @throws IllegalArgumentException
+     */
+    public JobState withTotalBytes(Optional< Long > totalSize)
+    {
+        return new JobState(
+            this.getJob(),
+            totalBytes,
+            this.getTransferredBytes(),
+            this.getThroughput(),
+            this.getErrorMessage()
+            );
     }
 
     /**
      * TODO: document
      *
      * @param transferredBytes TODO: document
+     * @return TODO: document
+     *
+     * @throws IllegalArgumentException
      */
-    public void setTransferredBytes(long transferredBytes)
+    public JobState withTransferredBytes(long transferredBytes)
     {
-        this.transferredBytes = transferredBytes;
+        return new JobState(
+            this.getJob(),
+            this.getTotalBytes(),
+            transferredBytes,
+            this.getThroughput(),
+            this.getErrorMessage()
+            );
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param throughput TODO: document
+     * @return TODO: document
+     *
+     * @throws NullPointerException TODO: document
+     * @throws IllegalArgumentException
+     */
+    public JobState withThroughput(Optional< Long > throughput)
+    {
+        return new JobState(
+            this.getJob(),
+            this.getTotalBytes(),
+            this.getTransferredBytes(),
+            throughput,
+            this.getErrorMessage()
+        );
     }
 
     /**
      * TODO: document
      *
      * @param errorMessage TODO: document
+     * @return TODO: document
+     *
+     * @throws NullPointerException TODO: document
      */
-    public void setErrorMessage(Optional<String> errorMessage)
+    public JobState withErrorMessage(Optional< String > errorMessage)
     {
-        this.errorMessage = errorMessage;
+        return new JobState(
+            this.getJob(),
+            this.getTotalBytes(),
+            this.getTransferredBytes(),
+            this.getThroughput(),
+            errorMessage
+        );
     }
-
-    // /**
-    //  * TODO: document
-    //  *
-    //  * @param totalBytes TODO: document
-    //  * @return TODO: document
-    //  *
-    //  * @throws NullPointerException if totalBytes is null
-    //  * @throws IllegalArgumentException if totalBytes is non-empty and is
-    //  *     negative or lower than the return value of this.getTransferredBytes()
-    //  */
-    // public JobState withTotalBytes(Optional< Long > totalBytes)
-    // {
-    //     return new JobState(
-    //         this.getJob(),
-    //         totalBytes,
-    //         this.getTransferredBytes(),
-    //         this.getErrorMessage()
-    //         );
-    // }
-
-    // /**
-    //  * TODO: document
-    //  *
-    //  * @param transferredBytes TODO: document
-    //  * @return TODO: document
-    //  *
-    //  * @throws IllegalArgumentException if transferredBytes is negative
-    //  * @throws IllegalArgumentException if the return value of
-    //  *     this.getTotalBytes() is non-empty and lower than transferredBytes
-    //  */
-    // public JobState withTransferredBytes(long transferredBytes)
-    // {
-    //     return new JobState(
-    //         this.getJob(),
-    //         this.getTotalBytes(),
-    //         transferredBytes,
-    //         this.getErrorMessage()
-    //         );
-    // }
-
-    // /**
-    //  * TODO: document
-    //  *
-    //  * @param errorMessage TODO: document
-    //  * @return TODO: document
-    //  *
-    //  * @throws NullPointerException if errorMessage is null
-    //  */
-    // public JobState withErrorMessage(Optional< String > errorMessage)
-    // {
-    //     return new JobState(
-    //         this.getJob(),
-    //         this.getTotalBytes(),
-    //         this.getTransferredBytes(),
-    //         errorMessage
-    //         );
-    // }
 }
 
 /* -------------------------------------------------------------------------- */

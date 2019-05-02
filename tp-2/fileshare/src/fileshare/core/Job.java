@@ -2,7 +2,8 @@
 
 package fileshare.core;
 
-import java.net.InetSocketAddress;
+import fileshare.transport.Endpoint;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,10 +17,10 @@ import java.util.Objects;
  */
 public class Job
 {
-    private JobType type;
-    private List< InetSocketAddress > remoteEndpoints;
-    private Path localFilePath;
-    private Path remoteFilePath;
+    private final JobType type;
+    private final List< Endpoint > remoteEndpoints;
+    private final Path localFilePath;
+    private final Path remoteFilePath;
 
     /**
      * Constructs an instance of {@link Job}.
@@ -49,7 +50,7 @@ public class Job
      */
     public Job(
         JobType type,
-        List< InetSocketAddress > remoteEndpoints,
+        List< Endpoint > remoteEndpoints,
         Path localFilePath,
         Path remoteFilePath
         )
@@ -106,7 +107,7 @@ public class Job
      *
      * @return TODO: document
      */
-    public List< InetSocketAddress > getRemoteEndpoints()
+    public List< Endpoint > getRemoteEndpoints()
     {
         return Collections.unmodifiableList(this.remoteEndpoints);
     }

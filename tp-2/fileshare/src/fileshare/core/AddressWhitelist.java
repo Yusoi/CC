@@ -14,14 +14,14 @@ import java.util.Set;
  *
  * This class is thread-safe.
  */
-public class PeerWhitelist
+public class AddressWhitelist
 {
     private final Set< AddressRange > ranges;
 
     /**
      * TODO: document
      */
-    public PeerWhitelist()
+    public AddressWhitelist()
     {
         this.ranges = new HashSet<>();
     }
@@ -33,6 +33,7 @@ public class PeerWhitelist
      */
     public synchronized void add(AddressRange range)
     {
+        Objects.requireNonNull(range);
         this.ranges.add(range);
     }
 
@@ -43,6 +44,7 @@ public class PeerWhitelist
      */
     public synchronized void remove(AddressRange range)
     {
+        Objects.requireNonNull(range);
         this.ranges.remove(range);
     }
 
@@ -65,7 +67,6 @@ public class PeerWhitelist
     public synchronized boolean isWhitelisted(InetAddress address)
     {
         Objects.requireNonNull(address);
-
         return this.ranges.stream().anyMatch(range -> range.contains(address));
     }
 }
