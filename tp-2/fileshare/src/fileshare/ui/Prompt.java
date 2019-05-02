@@ -60,7 +60,14 @@ public class Prompt
             // print prompt
 
             if (this.concurrentJobs != null)
+            {
                 this.printer.print("  ");
+                this.printer.setLinePrefix("  ");
+            }
+            else
+            {
+                this.printer.setLinePrefix("");
+            }
 
             this.printer.print("> ");
 
@@ -431,7 +438,7 @@ public class Prompt
         new Command(
             true,
             false,
-            "\\s*concurent\\s*"
+            "\\s*concurrent\\s*"
         ) {
             @Override
             public boolean process(
@@ -457,10 +464,9 @@ public class Prompt
             ) throws Exception
             {
                 if (!prompt.concurrentJobs.isEmpty())
-                {
                     prompt.runJobs(prompt.concurrentJobs);
-                    prompt.concurrentJobs = null;
-                }
+
+                prompt.concurrentJobs = null;
 
                 return true;
             }

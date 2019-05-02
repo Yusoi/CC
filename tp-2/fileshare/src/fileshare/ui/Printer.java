@@ -4,12 +4,15 @@ package fileshare.ui;
 
 /* -------------------------------------------------------------------------- */
 
+import java.util.Objects;
+
 /**
  * Utility class for line-based output, with support for text coloring and
  * replacement of already printed lines.
  */
 public class Printer
 {
+    private String linePrefix = "";
     private int numPrintedReplaceableLines = 0;
 
     /**
@@ -17,6 +20,32 @@ public class Printer
      */
     public Printer()
     {
+    }
+
+    /**
+     * Returns the current line prefix.
+     *
+     * Lines printed with {@link #printLines(String...)} and {@link
+     * #printLinesReplace(String...)} are prefixed with this value.
+     *
+     * @return the current line prefix
+     */
+    public String getLinePrefix()
+    {
+        return this.linePrefix;
+    }
+
+    /**
+     * Sets the current line prefix.
+     *
+     * Lines printed with {@link #printLines(String...)} and {@link
+     * #printLinesReplace(String...)} are prefixed with this value.
+     *
+     * @param linePrefix the new current line prefix
+     */
+    public void setLinePrefix(String linePrefix)
+    {
+        this.linePrefix = Objects.requireNonNull(linePrefix);
     }
 
     /**
@@ -52,7 +81,7 @@ public class Printer
         // print lines
 
         for (String line : lines)
-            System.out.println(line);
+            System.out.println(this.linePrefix + line);
 
         // reset number of printed replaceable lines
 
@@ -81,7 +110,7 @@ public class Printer
         // print lines
 
         for (String line : lines)
-            System.out.println(line);
+            System.out.println(this.linePrefix + line);
 
         // store number of printed replaceable lines
 
