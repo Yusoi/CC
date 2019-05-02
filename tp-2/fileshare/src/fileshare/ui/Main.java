@@ -65,7 +65,7 @@ public final class Main
 
                 peer.getPeerWhitelist().add(
                     AddressRange.fromCidrNotation("::/0")
-                );
+                    );
             }
 
             // start peer

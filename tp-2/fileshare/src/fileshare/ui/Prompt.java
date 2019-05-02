@@ -2,6 +2,7 @@
 
 package fileshare.ui;
 
+import fileshare.core.AddressRange;
 import fileshare.core.Job;
 import fileshare.core.JobState;
 import fileshare.core.JobType;
@@ -259,9 +260,89 @@ public class Prompt
             public boolean process(
                 Prompt prompt,
                 Matcher matcher
-                ) throws Exception
+            ) throws Exception
             {
                 return false;
+            }
+        },
+
+        new Command(true, true, "\\s*whitelist-all\\s*") {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                prompt.peer.getPeerWhitelist().add(
+                    AddressRange.fromCidrNotation("0.0.0.0/0")
+                );
+
+                prompt.peer.getPeerWhitelist().add(
+                    AddressRange.fromCidrNotation("::/0")
+                );
+
+                return true;
+            }
+        },
+
+        new Command(
+            true,
+            true,
+            "\\s*whitelist-add\\s+(?<cidrs>\\S+(?:\\s+\\S+)*)\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                final var addressRanges = new ArrayList< AddressRange >();
+
+                for (final var cidr : matcher.group("cidrs").split("\\s+"))
+                    addressRanges.add(AddressRange.fromCidrNotation(cidr));
+
+                addressRanges.forEach(prompt.peer.getPeerWhitelist()::add);
+
+                return true;
+            }
+        },
+
+        new Command(
+            true,
+            true,
+            "\\s*whitelist-remove\\s+(?<cidrs>\\S+(?:\\s+\\S+)*)\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                final var addressRanges = new ArrayList< AddressRange >();
+
+                for (final var cidr : matcher.group("cidrs").split("\\s+"))
+                    addressRanges.add(AddressRange.fromCidrNotation(cidr));
+
+                addressRanges.forEach(prompt.peer.getPeerWhitelist()::remove);
+
+                return true;
+            }
+        },
+
+        new Command(
+            true,
+            true,
+            "\\s*whitelist-clear\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                prompt.peer.getPeerWhitelist().clear();
+
+                return true;
             }
         },
 
@@ -342,6 +423,61 @@ public class Prompt
                     prompt.runJobs(List.of(job)); // not in concurrent
                 else
                     prompt.concurrentJobs.add(job); // in concurrent
+
+                return true;
+            }
+        },
+
+        new Command(
+            true,
+            false,
+            "\\s*concurent\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                prompt.concurrentJobs = new ArrayList<>();
+
+                return true;
+            }
+        },
+
+        new Command(
+            false,
+            true,
+            "\\s*run\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                if (!prompt.concurrentJobs.isEmpty())
+                {
+                    prompt.runJobs(prompt.concurrentJobs);
+                    prompt.concurrentJobs = null;
+                }
+
+                return true;
+            }
+        },
+
+        new Command(
+            false,
+            true,
+            "\\s*cancel\\s*"
+        ) {
+            @Override
+            public boolean process(
+                Prompt prompt,
+                Matcher matcher
+            ) throws Exception
+            {
+                prompt.concurrentJobs = null;
 
                 return true;
             }
