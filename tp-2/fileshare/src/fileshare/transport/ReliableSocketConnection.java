@@ -82,9 +82,16 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the input stream for this side of this connection
      */
-    public InputStream getInputStream() throws IOException
+    public InputStream getInputStream()
     {
-        return this.tcpSocket.getInputStream();
+        try
+        {
+            return this.tcpSocket.getInputStream();
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -110,9 +117,16 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the output stream for this side of this connection
      */
-    public OutputStream getOutputStream() throws IOException
+    public OutputStream getOutputStream()
     {
-        return this.tcpSocket.getOutputStream();
+        try
+        {
+            return this.tcpSocket.getOutputStream();
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
