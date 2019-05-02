@@ -150,7 +150,7 @@ public class Prompt
 
         if (!state.hasFinished())
         {
-            final var progress = Color.GREEN.apply(
+            final var progress = Color.YELLOW.apply(
                 String.format("[%3d%%]", state.getTransferredPercentage())
             );
 
