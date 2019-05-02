@@ -2,9 +2,9 @@
 
 package fileshare.ui;
 
-/* -------------------------------------------------------------------------- */
-
 import java.util.Objects;
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * Utility class for line-based output, with support for text coloring and

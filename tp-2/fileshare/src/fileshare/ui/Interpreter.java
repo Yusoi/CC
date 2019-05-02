@@ -14,7 +14,7 @@ import java.util.List;
 /* -------------------------------------------------------------------------- */
 
 /**
- * Implements the application's interactive prompt.
+ * Implements the application's command interpreter.
  */
 public class Interpreter
 {
@@ -25,7 +25,7 @@ public class Interpreter
     private boolean shouldExit;
 
     /**
-     * Creates a {@code Interpreter}.
+     * Creates an {@code Interpreter}.
      *
      * @param peer the peer on which commands should be performed
      */
@@ -39,8 +39,9 @@ public class Interpreter
     }
 
     /**
+     * Returns the peer on which commands are performed.
      *
-     * @return
+     * @return the peer on which commands are performed
      */
     public Peer getPeer()
     {
@@ -48,8 +49,9 @@ public class Interpreter
     }
 
     /**
+     * Returns the printer used by the interpreter.
      *
-     * @return
+     * @return the printer used by the interpreter
      */
     public Printer getPrinter()
     {
@@ -57,8 +59,10 @@ public class Interpreter
     }
 
     /**
+     * Returns whether the interpreter is in "concurrent" mode, i.e., in the
+     * context of the "concurrent" command.
      *
-     * @return
+     * @return whether the interpreter is in "concurrent" mode
      */
     public boolean isInConcurrentMode()
     {
@@ -66,7 +70,7 @@ public class Interpreter
     }
 
     /**
-     *
+     * Enables "concurrent" mode for the interpreter.
      */
     public void enterConcurrentMode()
     {
@@ -74,7 +78,7 @@ public class Interpreter
     }
 
     /**
-     *
+     * Disables "concurrent" mode for the interpreter.
      */
     public void leaveConcurrentMode()
     {
@@ -82,8 +86,14 @@ public class Interpreter
     }
 
     /**
+     * Returns a modifiable list of jobs specified in the context of a
+     * "concurrent" command.
      *
-     * @return
+     * Returns {@code null} if the interpreter is not in "concurrent" mode.
+     *
+     * @return a modifiable list of jobs specified in the context of a
+     *         "concurrent" command, or {@code null} if the interpreter is not
+     *         in "concurrent" mode
      */
     public List< Job > getConcurrentJobs()
     {
@@ -91,8 +101,9 @@ public class Interpreter
     }
 
     /**
+     * Checks whether a command instructed the interpreter to exit.
      *
-     * @return
+     * @return whether a command instructed the interpreter to exit
      */
     public boolean shouldExit()
     {
@@ -100,8 +111,9 @@ public class Interpreter
     }
 
     /**
+     * Sets whether the interpreter should exit when possible.
      *
-     * @param shouldExit
+     * @param shouldExit whether the interpreter should exit
      */
     public void setShouldExit(boolean shouldExit)
     {
@@ -109,10 +121,10 @@ public class Interpreter
     }
 
     /**
-     * Runs the input loop, thus capturing and processing user-given commands.
+     * Runs the input loop, capturing and running user-given commands.
      *
-     * @throws IOException if an error occurs reading from or writing to the
-     *         standard streams
+     * @throws IOException if an error occurs while reading from or writing to
+     *         the standard streams
      */
     public void runInputLoop() throws IOException
     {
