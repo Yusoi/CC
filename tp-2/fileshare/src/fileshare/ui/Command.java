@@ -79,7 +79,7 @@ public abstract class Command
     /**
      *
      */
-    public static Command[] ALL_COMMANDS = new Command[] {
+    public static final Command[] ALL_COMMANDS = new Command[] {
         new CommandExit(),
         new CommandWhitelistAll(),
         new CommandWhitelistAdd(),
