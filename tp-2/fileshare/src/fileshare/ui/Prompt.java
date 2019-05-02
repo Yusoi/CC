@@ -54,7 +54,11 @@ public class Prompt
             final String line = this.input.readLine();
 
             if (line == null)
-                break; // stdin eof, exit
+            {
+                // end-of-file on stdin, exit input loop
+                printer.printLines("");
+                break;
+            }
 
             // process command
 

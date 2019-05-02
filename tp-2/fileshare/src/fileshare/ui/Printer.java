@@ -5,23 +5,27 @@ package fileshare.ui;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Utility class for line-based output, with support for text coloring and
+ * replacement of already printed lines.
  */
 public class Printer
 {
     private int numPrintedReplaceableLines = 0;
 
     /**
-     * TODO: document
+     * Creates a {@code Printer}.
      */
     public Printer()
     {
     }
 
     /**
-     * TODO: document
+     * Prints and flushes a string without advancing the cursor to a new line.
      *
-     * @param text TODO: document
+     * This method does not replace lines previously printed with {@link
+     * #printLinesReplace(String...)}.
+     *
+     * @param text the string to be printed
      */
     public void print(String text)
     {

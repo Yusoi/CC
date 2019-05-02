@@ -12,15 +12,18 @@ import java.nio.file.Path;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Parses and holds the application arguments.
+ */
 public class Args
 {
     /**
-     * TODO: document
+     * Parses the application arguments.
      *
-     * @param args TODO: document
-     * @return TODO: document
+     * @param args the string arguments given to the application
+     * @return an instance of {@link Args} holding the parsed arguments
      *
-     * @throws ArgumentParserException TODO: document
+     * @throws ArgumentParserException if the arguments to be parsed are invalid
      */
     public static Args parse(String[] args) throws ArgumentParserException
     {
@@ -129,19 +132,19 @@ public class Args
     }
 
     /**
-     * TODO: document
+     * Returns whether any peer should be allowed to connect to the local peer.
      *
-     * @return TODO: document
+     * @return whether any peer should be allowed to connect to the local peer
      */
-    public boolean getAllowAllPeers()
+    public boolean allowAllPeers()
     {
         return this.allowAllPeers;
     }
 
     /**
-     * TODO: document
+     * Returns the local UDP port to be used by the local peer.
      *
-     * @return TODO: document
+     * @return the local UDP port to be used by the local peer
      */
     public int getLocalPort()
     {
@@ -149,9 +152,9 @@ public class Args
     }
 
     /**
-     * TODO: document
+     * Returns a path to the local directory to be exported by the local peer.
      *
-     * @return TODO: document
+     * @return a path to the local directory to be exported by the local peer
      */
     public Path getExportedDirectoryPath()
     {

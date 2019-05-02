@@ -57,7 +57,7 @@ public final class Main
         {
             // whitelist all peers if requested
 
-            if (arguments.getAllowAllPeers())
+            if (arguments.allowAllPeers())
             {
                 peer.getPeerWhitelist().add(
                     AddressRange.fromCidrNotation("0.0.0.0/0")
