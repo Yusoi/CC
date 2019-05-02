@@ -5,22 +5,22 @@ package fileshare.ui;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Defines colors that may be applied to strings for outputting to a terminal.
  */
 public enum Color
 {
     /**
-     * TODO: document
+     * Green.
      */
     GREEN("\u001b[32m"),
 
     /**
-     * TODO: document
+     * Yellow.
      */
     YELLOW("\u001b[33m"),
 
     /**
-     * TODO: document
+     * Red.
      */
     RED("\u001b[31m");
 
@@ -32,10 +32,10 @@ public enum Color
     }
 
     /**
-     * TODO: document
+     * Applies this color the specified string.
      *
-     * @param text TODO: document
-     * @return TODO: document
+     * @param text the string to which this color should be applied
+     * @return the same string with this color applied to it
      */
     public String apply(String text)
     {
