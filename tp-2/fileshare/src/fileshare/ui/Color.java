@@ -33,6 +33,9 @@ public enum Color
 
     /**
      * TODO: document
+     *
+     * @param text TODO: document
+     * @return TODO: document
      */
     public String apply(String text)
     {
