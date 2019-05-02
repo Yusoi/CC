@@ -107,7 +107,7 @@ public class Job
      *
      * @return TODO: document
      */
-    public List< Endpoint > getRemoteEndpoints()
+    public List< Endpoint > getPeerEndpoints()
     {
         return Collections.unmodifiableList(this.remoteEndpoints);
     }

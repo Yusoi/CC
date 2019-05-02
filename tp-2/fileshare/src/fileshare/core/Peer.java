@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /* -------------------------------------------------------------------------- */
@@ -263,7 +262,7 @@ public class Peer implements AutoCloseable
         {
             // TODO: support jobs with multiple remotes
 
-            if (state.getJob().getRemoteEndpoints().size() > 1)
+            if (state.getJob().getPeerEndpoints().size() > 1)
             {
                 throw new UnsupportedOperationException(
                     "multiple remotes not yet supported"
@@ -273,7 +272,7 @@ public class Peer implements AutoCloseable
             final var remoteEndpoint =
                 state
                 .getJob()
-                .getRemoteEndpoints()
+                .getPeerEndpoints()
                 .get(0);
 
             // establish connection with remote

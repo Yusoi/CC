@@ -3,7 +3,6 @@
 package fileshare;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
@@ -61,6 +60,15 @@ public final class Util
         }
     }
 
+    /**
+     * Transfers data between to channels
+     *
+     * @param input
+     * @param output
+     * @param onBytesTransferred
+     * @return
+     * @throws IOException
+     */
     public static long transfer(
         ReadableByteChannel input,
         WritableByteChannel output,

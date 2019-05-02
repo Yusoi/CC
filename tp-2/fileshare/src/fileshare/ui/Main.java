@@ -74,7 +74,7 @@ public final class Main
 
             // run input loop
 
-            new Prompt(peer).runInputLoop();
+            new Interpreter(peer).runInputLoop();
         }
     }
 
