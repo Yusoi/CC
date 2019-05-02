@@ -150,36 +150,6 @@ public class Prompt
 
         if (!state.hasFinished())
         {
-            final var progress = Color.GREEN.apply("[100%]");
-
-            switch (state.getJob().getType())
-            {
-                case GET:
-                    return String.format(
-                        "%s Got %s as %s from %d peer%s.",
-                        progress,
-                        state.getJob().getRemoteFilePath(),
-                        state.getJob().getLocalFilePath(),
-                        numRemotes,
-                        remotePlural
-                    );
-
-                case PUT:
-                    return String.format(
-                        "%s Put %s as %s to %d peer%s.",
-                        progress,
-                        state.getJob().getRemoteFilePath(),
-                        state.getJob().getLocalFilePath(),
-                        numRemotes,
-                        remotePlural
-                    );
-
-                default:
-                    throw new IllegalArgumentException();
-            }
-        }
-        else if (state.getErrorMessage().isEmpty())
-        {
             final var progress = Color.GREEN.apply(
                 String.format("[%3d%%]", state.getTransferredPercentage())
             );
@@ -199,6 +169,36 @@ public class Prompt
                 case PUT:
                     return String.format(
                         "%s Putting %s as %s to %d peer%s...",
+                        progress,
+                        state.getJob().getRemoteFilePath(),
+                        state.getJob().getLocalFilePath(),
+                        numRemotes,
+                        remotePlural
+                    );
+
+                default:
+                    throw new IllegalArgumentException();
+            }
+        }
+        else if (state.getErrorMessage().isEmpty())
+        {
+            final var progress = Color.GREEN.apply("[100%]");
+
+            switch (state.getJob().getType())
+            {
+                case GET:
+                    return String.format(
+                        "%s Got %s as %s from %d peer%s.",
+                        progress,
+                        state.getJob().getRemoteFilePath(),
+                        state.getJob().getLocalFilePath(),
+                        numRemotes,
+                        remotePlural
+                    );
+
+                case PUT:
+                    return String.format(
+                        "%s Put %s as %s to %d peer%s.",
                         progress,
                         state.getJob().getRemoteFilePath(),
                         state.getJob().getLocalFilePath(),
