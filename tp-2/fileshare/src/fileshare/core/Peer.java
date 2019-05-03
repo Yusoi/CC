@@ -58,12 +58,12 @@ public class Peer implements AutoCloseable
 
     private State state;
 
+    private final ExportedDirectory exportedDirectory;
+    private final AddressWhitelist peerWhitelist;
+
     private final ReliableSocket socket;
     private final Thread listenThread;
     private final List< Thread > servingThreads;
-
-    private final ExportedDirectory exportedDirectory;
-    private final AddressWhitelist peerWhitelist;
 
     /**
      * TODO: document
@@ -78,12 +78,22 @@ public class Peer implements AutoCloseable
     {
         this.state             = State.CREATED;
 
+        this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
+        this.peerWhitelist     = new AddressWhitelist();
+
         this.socket            = new ReliableSocket(localPort);
         this.listenThread      = new Thread(this::listen);
         this.servingThreads    = new ArrayList<>();
+    }
 
-        this.exportedDirectory = new ExportedDirectory(exportedDirectoryPath);
-        this.peerWhitelist     = new AddressWhitelist();
+    /**
+     * Returns the peer's current state.
+     *
+     * @return the peer's current state
+     */
+    public synchronized State getState()
+    {
+        return this.state;
     }
 
     /**
@@ -114,16 +124,6 @@ public class Peer implements AutoCloseable
     public AddressWhitelist getPeerWhitelist()
     {
         return this.peerWhitelist;
-    }
-
-    /**
-     * Returns the peer's current state.
-     *
-     * @return the peer's current state
-     */
-    public synchronized State getState()
-    {
-        return this.state;
     }
 
     /**
@@ -159,8 +159,6 @@ public class Peer implements AutoCloseable
     @Override
     public synchronized void close()
     {
-        // stop listening thread (if running)
-
         if (this.state == State.RUNNING)
         {
             // interrupt listening and serving threads
@@ -176,11 +174,11 @@ public class Peer implements AutoCloseable
             // clear serving thread list
 
             this.servingThreads.clear();
+
+            // update state
+
+            this.state = State.CLOSED;
         }
-
-        // update state
-
-        this.state = State.CLOSED;
     }
 
     /**
@@ -613,18 +611,6 @@ public class Peer implements AutoCloseable
             fileOutput.commitAndClose();
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 /* -------------------------------------------------------------------------- */

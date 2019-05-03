@@ -26,7 +26,72 @@ public class Things
         Runnable onStateUpdated
     )
     {
+        final var connections = new ArrayList< ReliableSocketConnection >();
 
+        try
+        {
+            long lastFileSize = -1;
+
+            for (final var peerEndpoint : state.getJob().getPeerEndpoints())
+            {
+                // connect to peer
+
+                final var conn = socket.connect(peerEndpoint);
+
+                connections.add(conn);
+
+                final var input =
+                    new DataInputStream(conn.getInputStream());
+
+                final var output =
+                    new DataOutputStream(conn.getOutputStream());
+
+                // send subjob info
+
+                output.writeByte(0);
+                output.writeUTF(state.getJob().getRemoteFilePath().toString());
+                output.flush();
+
+                // receive file size
+
+                final long fileSize = input.readLong();
+
+                if (fileSize < 0)
+                {
+                    final var errorMessage = input.readUTF();
+
+                    throw new Exception(
+                        String.format("%s: %s", peerEndpoint, errorMessage)
+                    );
+                }
+
+                // check file size
+
+                if (lastFileSize < 0)
+                    lastFileSize = fileSize;
+                else if (fileSize != lastFileSize)
+                    throw new Exception("Peers do not agree on file size.");
+            }
+        }
+        catch (Exception e)
+        {
+            // update state with error message
+
+            synchronized (state)
+            {
+                if (state.getErrorMessage().isEmpty())
+                    state.setErrorMessage(Optional.of(e.getMessage()));
+            }
+
+            onStateUpdated.run();
+        }
+        finally
+        {
+            // close connections
+
+            for (final var conn : connections)
+                conn.close();
+        }
     }
 
     private void runSubGet(
@@ -39,7 +104,63 @@ public class Things
         Runnable onStateUpdated
     )
     {
+        // connect to peer
 
+        try (final var connection = socket.connect(peerEndpoint))
+        {
+            final var input =
+                new DataInputStream(connection.getInputStream());
+
+            final var output =
+                new DataOutputStream(connection.getOutputStream());
+
+            // send file content
+
+            Util.transferFromFile(
+                localFile.getChannel(),
+                0,
+                localFile.length(),
+                Channels.newChannel(output),
+                (deltaTransferred, throughput) ->
+                {
+                    synchronized (state)
+                    {
+                        state.setTransferredBytes(
+                            state.getTransferredBytes() + deltaTransferred
+                        );
+
+                        state.setThroughput(Optional.of(throughput));
+                    }
+
+                    onStateUpdated.run();
+                }
+            );
+
+            output.flush();
+
+            // receive error message
+
+            final var finalErrorMessage = input.readUTF();
+
+            if (!finalErrorMessage.isEmpty())
+            {
+                throw new Exception(
+                    String.format("%s: %s", peerEndpoint, finalErrorMessage)
+                );
+            }
+        }
+        catch (Exception e)
+        {
+            // update state with error message
+
+            synchronized (state)
+            {
+                if (state.getErrorMessage().isEmpty())
+                    state.setErrorMessage(Optional.of(e.getMessage()));
+            }
+
+            onStateUpdated.run();
+        }
     }
 
 
@@ -201,10 +322,7 @@ public class Things
         }
     }
 
-
-
-
-
+    // !! DONE !!
     public void serve(
         ReliableSocketConnection connection,
         ExportedDirectory exportedDirectory
@@ -239,20 +357,88 @@ public class Things
         {
         }
 
-        // remove thread from serve workers
+        // remove thread from serve thread list
 
         this.serveThreads.remove(Thread.currentThread());
     }
 
+    // !! DONE !!
     public void serveGet(
         ExportedDirectory exportedDirectory,
         DataInputStream input,
         DataOutputStream output
     ) throws Exception
     {
+        // get job info
 
+        final var localFilePath = Path.of(input.readUTF());
+
+        // open local file
+
+        final ExportedDirectory.RandomAccessFileForWriting localFile;
+
+        try
+        {
+            final var localFile = exportedDirectory.openFileForReading(
+                localFilePath
+            );
+        }
+        catch (Exception e)
+        {
+            // write error
+
+            output.writeLong(-1);
+            output.writeUTF(e.getMessage());
+
+            throw e;
+        }
+
+        try (localFile)
+        {
+            // write file size
+
+            output.writeLong(localFile.length());
+            output.flush();
+
+            // get segment info
+
+            final long segmentOffset = input.readLong();
+            final long segmentSize = input.readLong();
+
+            // update state with total bytes
+
+            synchronized (state)
+            {
+                state.setTotalBytes(Optional.of(segmentSize));
+            }
+
+            onStateUpdated.run();
+
+            // send file content
+
+            Util.transferFromFile(
+                localFile.getChannel(),
+                segmentOffset,
+                segmentSize,
+                Channels.newChannel(output),
+                (deltaTransferred, throughput) ->
+                {
+                    synchronized (state)
+                    {
+                        state.setTransferredBytes(
+                            state.getTransferredBytes() + deltaTransferred
+                        );
+
+                        state.setThroughput(Optional.of(throughput));
+                    }
+
+                    onStateUpdated.run();
+                }
+            );
+        }
     }
 
+    // !! DONE !!
     public void servePut(
         ExportedDirectory exportedDirectory,
         DataInputStream input,
