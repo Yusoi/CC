@@ -11,13 +11,15 @@ import java.io.DataOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.Optional;
 
 /* -------------------------------------------------------------------------- */
 
 public class Things
 {
-    public void runPut(
+    // !! DONE !!
+    private void runPut(
         JobState state,
         ReliableSocket socket,
         ExportedDirectory exportedDirectory,
@@ -34,13 +36,16 @@ public class Things
         {
             // update job state with total bytes
 
+            final long totalBytes =
+                localFile.length() *
+                    state.getJob().getPeerEndpoints().size();
+
             synchronized (state)
             {
-                state.setTotalBytes(Optional.of(
-                    localFile.length() *
-                        state.getJob().getPeerEndpoints().size()
-                    ));
+                state.setTotalBytes(Optional.of(totalBytes))
             }
+
+            onStateUpdated.run();
 
             // launch subjobs
 
@@ -83,7 +88,8 @@ public class Things
         }
     }
 
-    public void runSubPut(
+    // !! DONE !!
+    private void runSubPut(
         JobState state,
         ReliableSocket socket,
         Endpoint peerEndpoint,
@@ -119,18 +125,19 @@ public class Things
                     );
             }
 
-            // send file data
+            // send file content
 
-            final long transferredBytes = Util.transferFromFile(
+            Util.transferFromFile(
                 localFile.getChannel(),
                 0,
                 localFile.length(),
                 Channels.newChannel(output),
-                (size, throughput) -> {
+                (deltaTransferred, throughput) ->
+                {
                     synchronized (state)
                     {
                         state.setTransferredBytes(
-                            state.getTransferredBytes() + size
+                            state.getTransferredBytes() + deltaTransferred
                         );
 
                         state.setThroughput(Optional.of(throughput));
@@ -140,19 +147,7 @@ public class Things
                 }
             );
 
-            // check transferred bytes
-
-            if (transferredBytes < localFile.length())
-            {
-                throw new Exception(
-                    String.format(
-                        "%s: only sent %d of %d bytes",
-                        peerEndpoint,
-                        transferredBytes,
-                        localFile.length()
-                    )
-                );
-            }
+            output.flush();
 
             // receive error message
 
@@ -179,9 +174,89 @@ public class Things
         }
     }
 
-    public void servePut()
+    public void servePut(
+        ExportedDirectory exportedDirectory,
+        DataInputStream input,
+        DataOutputStream output
+        ) throws Exception
     {
+        // get job info
 
+        final var localFilePath = Path.of(input.readUTF());
+        final long fileSize = input.readLong();
+
+        // update state with total bytes
+
+        synchronized (state)
+        {
+            state.setTotalBytes(Optional.of(fileSize));
+        }
+
+        onStateUpdated.run();
+
+        // open local file
+
+        final ExportedDirectory.RandomAccessFileForWriting localFile;
+
+        try
+        {
+            final var localFile = exportedDirectory.openFileForWriting(
+                localFilePath, fileSize
+            );
+        }
+        catch (Exception e)
+        {
+
+        }
+
+        try (localFile)
+        {
+            // write success
+
+            output.writeUTF("");
+            output.flush();
+
+            // receive file content
+
+            try
+            {
+                Util.transferToFile(
+                    Channels.newChannel(input),
+                    localFile.getChannel(),
+                    0,
+                    localFile.length(),
+                    (deltaTransferred, throughput) ->
+                    {
+                        synchronized (state)
+                        {
+                            state.setTransferredBytes(
+                                state.getTransferredBytes() + deltaTransferred
+                            );
+
+                            state.setThroughput(Optional.of(throughput));
+                        }
+
+                        onStateUpdated.run();
+                    }
+                );
+
+                // commit changes
+
+                localFile.commitAndClose();
+            }
+            catch (Exception e)
+            {
+                // write error
+
+                output.writeUTF(e.getMessage());
+
+                throw e;
+            }
+
+            // write success
+
+            output.writeUTF("");
+        }
     }
 
 

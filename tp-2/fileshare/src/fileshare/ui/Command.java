@@ -360,6 +360,24 @@ public abstract class Command
             final var numPeers   = state.getJob().getPeerEndpoints().size();
             final var peerPlural = (numPeers == 1) ? "" : "s";
 
+            final String throughputString;
+
+            if (state.getThroughput().isEmpty())
+            {
+                throughputString = "";
+            }
+            else
+            {
+                final var throughput = state.getThroughput().get();
+
+                if (throughput < 10 * (1 << 10))
+                    throughputString = String.format(" %d B/s", throughput);
+                else if (throughput < 10 * (1 << 20))
+                    throughputString = String.format(" %.2f KiB/s", throughput / 1024d);
+                else
+                    throughputString = String.format(" %.2f MiB/s", throughput / 1024d / 1024d);
+            }
+
             if (!state.hasFinished())
             {
                 // job in progress
@@ -367,24 +385,6 @@ public abstract class Command
                 final var progress = Color.YELLOW.apply(
                     String.format("[%3d%%]", state.getTransferredPercentage())
                 );
-
-                final String throughputString;
-
-                if (state.getThroughput().isEmpty())
-                {
-                    throughputString = "";
-                }
-                else
-                {
-                    final var throughput = state.getThroughput().get();
-
-                    if (throughput < 10 * (1 << 10))
-                        throughputString = String.format(" %d B/s", throughput);
-                    else if (throughput < 10 * (1 << 20))
-                        throughputString = String.format(" %.2f KiB/s", throughput / 1024d);
-                    else
-                        throughputString = String.format(" %.2f MiB/s", throughput / 1024d / 1024d);
-                }
 
                 switch (state.getJob().getType())
                 {
@@ -424,22 +424,24 @@ public abstract class Command
                 {
                     case GET:
                         return String.format(
-                            "%s Got %s as %s from %d peer%s.",
+                            "%s Got %s as %s from %d peer%s.%s",
                             progress,
                             state.getJob().getRemoteFilePath(),
                             state.getJob().getLocalFilePath(),
                             numPeers,
-                            peerPlural
+                            peerPlural,
+                            throughputString
                         );
 
                     case PUT:
                         return String.format(
-                            "%s Put %s as %s to %d peer%s.",
+                            "%s Put %s as %s to %d peer%s.%s",
                             progress,
                             state.getJob().getLocalFilePath(),
                             state.getJob().getRemoteFilePath(),
                             numPeers,
-                            peerPlural
+                            peerPlural,
+                            throughputString
                         );
 
                     default:
