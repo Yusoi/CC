@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
-import java.util.function.LongConsumer;
+import java.util.function.BiConsumer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -61,27 +61,36 @@ public final class Util
     }
 
     /**
-     * Transfers data between to channels
+     * Transfers data from one channel to another.
+     *
+     * onBytesTransferred is always called at least once.
+     *
+     * The final call to onBytesTransferred gives the throughput over the whole
+     * transfer (and may report 0 bytes).
      *
      * @param input
      * @param output
      * @param onBytesTransferred
      * @return
+     *
      * @throws IOException
      */
     public static long transfer(
         ReadableByteChannel input,
         WritableByteChannel output,
-        LongConsumer onBytesTransferred
+        BiConsumer< Long, Long > onBytesTransferred
         ) throws IOException
     {
         final int  BUFFER_SIZE   = 1  << 13;
-        final long PROGRESS_SIZE = 1l << 14;
+        final long PROGRESS_SIZE = 1L << 14;
 
         final var buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         long transferredTotal         = 0;
         long transferredSinceProgress = 0;
+
+        final long startNanos  = System.nanoTime();
+        long lastProgressNanos = startNanos;
 
         while (input.read(buffer) >= 0 || buffer.position() != 0)
         {
@@ -94,13 +103,32 @@ public final class Util
 
             if (transferredSinceProgress >= PROGRESS_SIZE)
             {
-                onBytesTransferred.accept(transferredSinceProgress);
+                final long nowNanos = System.nanoTime();
+
+                onBytesTransferred.accept(
+                    transferredSinceProgress,
+                    (long) (transferredSinceProgress / ((nowNanos - lastProgressNanos) / 1_000_000_000d))
+                    );
+
                 transferredSinceProgress = 0;
+                lastProgressNanos        = nowNanos;
             }
         }
 
+        final long endNanos = System.nanoTime();
+
         if (transferredSinceProgress > 0)
-            onBytesTransferred.accept(transferredSinceProgress);
+        {
+            onBytesTransferred.accept(
+                transferredSinceProgress,
+                (long) (transferredSinceProgress / ((endNanos - lastProgressNanos) / 1_000_000_000d))
+                );
+        }
+
+        onBytesTransferred.accept(
+            0L,
+            (long) (transferredTotal / ((endNanos - startNanos) / 1_000_000_000d))
+            );
 
         return transferredTotal;
     }

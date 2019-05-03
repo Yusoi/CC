@@ -2,7 +2,6 @@
 
 package fileshare.transport;
 
-import fileshare.core.AddressRange;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;
@@ -142,6 +141,16 @@ public class Endpoint
     public int hashCode()
     {
         return Objects.hash(this.getAddress(), this.getPort());
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format(
+            "%s:%d",
+            this.getAddress().getHostAddress(),
+            this.getPort()
+            );
     }
 }
 

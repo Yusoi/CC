@@ -119,6 +119,16 @@ public class JobState
     /**
      * TODO: document
      *
+     * @param totalBytes TODO: document
+     */
+    public void setTotalBytes(Optional< Long > totalBytes)
+    {
+        this.totalBytes = totalBytes;
+    }
+
+    /**
+     * TODO: document
+     *
      * If total bytes is empty, this is 0.
      *
      * Otherwise is non-negative and lower than or equal to total bytes.
@@ -128,6 +138,16 @@ public class JobState
     public long getTransferredBytes()
     {
         return this.transferredBytes;
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param transferredBytes TODO: document
+     */
+    public void setTransferredBytes(long transferredBytes)
+    {
+        this.transferredBytes = transferredBytes;
     }
 
     /**
@@ -148,11 +168,31 @@ public class JobState
     /**
      * TODO: document
      *
+     * @param throughput TODO: document
+     */
+    public void setThroughput(Optional< Long > throughput)
+    {
+        this.throughput = throughput;
+    }
+
+    /**
+     * TODO: document
+     *
      * @return TODO: document
      */
     public Optional< String > getErrorMessage()
     {
         return this.errorMessage;
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param errorMessage TODO: document
+     */
+    public void setErrorMessage(Optional< String > errorMessage)
+    {
+        this.errorMessage = errorMessage;
     }
 
     /**

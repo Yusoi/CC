@@ -10,12 +10,12 @@ package fileshare.core;
 public enum JobType
 {
     /**
-     * A job that downloads a file from one or more remotes.
+     * A job that downloads a file from one or more peers.
      */
     GET,
 
     /**
-     * A job that uploads a file to one or more remotes.
+     * A job that uploads a file to one or more peers.
      */
     PUT
 }
