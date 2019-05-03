@@ -5,19 +5,21 @@ package fileshare.transport;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 /* -------------------------------------------------------------------------- */
 
 /**
- * A socket from which reliable data transfer channels (termed *connections*)
- * between this and other sockets can be obtained.
+ * A UDP-backed socket from which reliable data transfer channels (termed
+ * *connections*) between this and other sockets can be obtained.
  *
  * This class is thread-safe.
  */
 public class ReliableSocket implements AutoCloseable
 {
     private final ServerSocket tcpServerSocket;
+    private final AtomicBoolean isListening;
 
     /**
      * Creates a {@code ReliableSocket} on the specified local UDP port.
@@ -40,15 +42,16 @@ public class ReliableSocket implements AutoCloseable
         // initialize instance
 
         this.tcpServerSocket = new ServerSocket(localPort);
+        this.isListening = new AtomicBoolean(false);
     }
 
     /**
      * Returns this socket's local UDP port.
      *
      * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that only
-     * one invocation of {@link #listen(Predicate)} may be active on the same
-     * socket at any given time).
+     * may be called concurrently with any method (with the exception that
+     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * the same instance will result in an exception).
      *
      * @return this socket's local UDP port
      */
@@ -77,9 +80,9 @@ public class ReliableSocket implements AutoCloseable
      * concurrently with other invocations of itself on the same socket.
      *
      * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that only
-     * one invocation of {@code listen(Predicate)} may be active on the same
-     * socket at any given time).
+     * may be called concurrently with any method (with the exception that
+     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * the same instance will result in an exception).
      *
      * @param accept predicate that determines whether a connection should be
      *        accepted
@@ -95,19 +98,29 @@ public class ReliableSocket implements AutoCloseable
         Predicate< Endpoint > accept
         ) throws IOException
     {
-        while (true)
-        {
-            final var tcpSocket = this.tcpServerSocket.accept();
+        if (isListening.getAndSet(true))
+            throw new IllegalStateException();
 
-            final var remoteEndpoint = new Endpoint(
-                tcpSocket.getInetAddress(),
-                tcpSocket.getPort()
+        try
+        {
+            while (true)
+            {
+                final var tcpSocket = this.tcpServerSocket.accept();
+
+                final var remoteEndpoint = new Endpoint(
+                    tcpSocket.getInetAddress(),
+                    tcpSocket.getPort()
                 );
 
-            if (accept.test(remoteEndpoint))
-                return new ReliableSocketConnection(this, tcpSocket);
-            else
-                tcpSocket.close();
+                if (accept.test(remoteEndpoint))
+                    return new ReliableSocketConnection(this, tcpSocket);
+                else
+                    tcpSocket.close();
+            }
+        }
+        finally
+        {
+            isListening.set(false);
         }
     }
 
@@ -118,9 +131,9 @@ public class ReliableSocket implements AutoCloseable
      * connection attempt.
      *
      * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that only
-     * one invocation of {@code listen(Predicate)} may be active on the same
-     * socket at any given time).
+     * may be called concurrently with any method (with the exception that
+     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * the same instance will result in an exception).
      *
      * @param remoteEndpoint the remote's endpoint
      * @return the established connection
@@ -150,9 +163,9 @@ public class ReliableSocket implements AutoCloseable
      * If this socket is already closed, this method has no effect.
      *
      * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that only
-     * one invocation of {@code listen(Predicate)} may be active on the same
-     * socket at any given time).
+     * may be called concurrently with any method (with the exception that
+     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * the same instance will result in an exception).
      */
     @Override
     public void close() throws IOException

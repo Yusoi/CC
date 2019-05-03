@@ -10,7 +10,8 @@ import java.net.Socket;
 /* -------------------------------------------------------------------------- */
 
 /**
- * A connection between two instances of {@link ReliableSocket}.
+ * A connection (reliable data transfer channel) between two instances of {@link
+ * ReliableSocket}.
  *
  * This class is thread-safe.
  */
@@ -73,13 +74,16 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * This method always succeeds, even if this connection is closed.
      *
-     * If this side of this connection has been closed, writing to the returned
-     * stream will result in {@link IOException} being thrown.
-     *
      * If this side of this connection is open but the other side has been
      * closed, the returned stream is still readable (no data sent by the remote
-     * is lost) and will indicate EOF when all data sent by the remote has been
-     * read.
+     * is lost) and will indicate end-of-file when all data sent by the remote
+     * has been read.
+     *
+     * If this side of this connection has been closed, reading from the
+     * returned stream will result in {@link IOException} being thrown.
+     *
+     * Any active calls on the returned stream will throw an exception when
+     * {@link #close()} is invoked on this instance.
      *
      * The returned stream's {@link InputStream#close()} method has no effect.
      *
@@ -105,6 +109,9 @@ public class ReliableSocketConnection implements AutoCloseable
      * If either side of this connection has been closed, writing to the
      * returned stream will result in {@link IOException} being thrown.
      *
+     * Any active calls on the returned stream will throw an exception when
+     * {@link #close()} is invoked on this instance.
+     *
      * The returned stream's {@link OutputStream#close()} method has no effect.
      *
      * This class' API (including this method) is fully thread-safe: all methods
@@ -128,24 +135,29 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Closes this end of the connection.
+     * Closes this end/side of the connection.
      *
-     * Any unread data in this connection's input stream is lost.
+     * Any unread data in the input stream is lost.
      *
-     * Reading from {@link #getInputStream()} after invoking this method will
-     * throw {@link IOException}.
+     * Any unsent data in the output stream is lost. Use {@code
+     * getOutputStream().flush()} before invoking this method to ensure that all
+     * unsent data is sent.
      *
-     * Any unsent data is flushed before this end of the connection is closed
-     * (as if {@code getInputStream().flush()} was invoked).
+     * Any active calls on this side's input or output streams will throw an
+     * exception when this method is called.
+     *
+     * Reading from {@link #getInputStream()} and writing to {@link
+     * #getOutputStream()} after invoking this method will throw {@link
+     * IOException}.
      *
      * See {@link #getInputStream()} and {@link #getOutputStream()} for more
-     * information on the effects of this method.
+     * information on the effects of this method on this side's streams.
      *
-     * If this side of the connection is already closed, this method has no
+     * If this end of the connection is already closed, this method has no
      * effect.
      *
-     * If this method fails (e.g., because flushing of unsent data failed), this
-     * connection will nevertheless be left in a closed state.
+     * If this method fails, this end of the connection will nevertheless be
+     * left in a closed state.
      *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method.
