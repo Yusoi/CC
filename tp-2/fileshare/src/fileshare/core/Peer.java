@@ -7,18 +7,12 @@ import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.Channels;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -53,8 +47,6 @@ public class Peer implements AutoCloseable
     }
 
     private static final long STATUS_UPDATE_DELAY = 200; // in milliseconds
-    private static final byte JOB_ID_GET = 0;
-    private static final byte JOB_ID_PUT = 1;
 
     private State state;
 
@@ -249,7 +241,12 @@ public class Peer implements AutoCloseable
         }
         catch (Throwable t)
         {
+            // interrupt job threads
+
             jobThreads.forEach(Thread::interrupt);
+
+            // rethrow throwable
+
             throw t;
         }
         finally
@@ -273,11 +270,21 @@ public class Peer implements AutoCloseable
             switch (state.getJob().getType())
             {
                 case GET:
-                    PeerRunGetImpl.run(state, onStateUpdated);
+                    PeerRunGetImpl.run(
+                        state,
+                        onStateUpdated,
+                        this.socket,
+                        this.exportedDirectory
+                    );
                     break;
 
                 case PUT:
-                    PeerRunPutImpl.run(state, onStateUpdated);
+                    PeerRunPutImpl.run(
+                        state,
+                        onStateUpdated,
+                        this.socket,
+                        this.exportedDirectory
+                    );
                     break;
             }
         }
@@ -310,7 +317,10 @@ public class Peer implements AutoCloseable
                         () -> this.serveJob(connection)
                     );
 
-                    this.servingThreads.add(thread);
+                    synchronized (this.servingThreads)
+                    {
+                        this.servingThreads.add(thread);
+                    }
 
                     thread.start();
                 }
@@ -343,11 +353,11 @@ public class Peer implements AutoCloseable
             switch (jobType)
             {
                 case 0:
-                    PeerServeGetImpl.run(connection);
+                    PeerServeGetImpl.run(connection, this.exportedDirectory);
                     break;
 
                 case 1:
-                    PeerServePutImpl.run(connection);
+                    PeerServePutImpl.run(connection, this.exportedDirectory);
                     break;
             }
         }
@@ -357,7 +367,10 @@ public class Peer implements AutoCloseable
 
         // remove thread from serving thread list
 
-        this.servingThreads.remove(Thread.currentThread());
+        synchronized (this.servingThreads)
+        {
+            this.servingThreads.remove(Thread.currentThread());
+        }
     }
 }
 
