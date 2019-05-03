@@ -449,11 +449,9 @@ public class Peer implements AutoCloseable
                     ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
                     );
 
-                final Thread thread;
-
                 try
                 {
-                    thread = new Thread(() -> this.serveJob(connection));
+                    final var thread = new Thread(() -> this.serveJob(connection));
 
                     this.servingThreads.add(thread);
 
