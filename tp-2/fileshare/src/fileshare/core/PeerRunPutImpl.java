@@ -2,20 +2,26 @@
 
 package fileshare.core;
 
-/* -------------------------------------------------------------------------- */
-
 import fileshare.Util;
+import fileshare.transport.Endpoint;
+import fileshare.transport.ReliableSocket;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
+import java.util.ArrayList;
 import java.util.Optional;
+
+/* -------------------------------------------------------------------------- */
 
 class PeerRunPutImpl
 {
-    private void runPut(
+    public static void run(
         JobState state,
+        Runnable onStateUpdated,
         ReliableSocket socket,
-        ExportedDirectory exportedDirectory,
-        Runnable onStateUpdated
+        ExportedDirectory exportedDirectory
     )
     {
         final var subjobThreads = new ArrayList< Thread >();

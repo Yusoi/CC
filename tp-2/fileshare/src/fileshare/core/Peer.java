@@ -203,7 +203,12 @@ public class Peer implements AutoCloseable
             () -> onJobStatesUpdated.accept(
                 jobStates
                     .stream()
-                    .map(JobState::clone)
+                    .map(state -> {
+                        synchronized (state)
+                        {
+                            return state.clone();
+                        }
+                    })
                     .collect(Collectors.toUnmodifiableList())
                 );
 
@@ -294,7 +299,8 @@ public class Peer implements AutoCloseable
 
             synchronized (state)
             {
-                state.setErrorMessage(Optional.of(e.getMessage()));
+                if (state.getErrorMessage().isEmpty())
+                    state.setErrorMessage(Optional.of(e.getMessage()));
             }
 
             onStateUpdated.run();
@@ -353,11 +359,11 @@ public class Peer implements AutoCloseable
             switch (jobType)
             {
                 case 0:
-                    PeerServeGetImpl.run(connection, this.exportedDirectory);
+                    PeerServeGetImpl.serve(connection, this.exportedDirectory);
                     break;
 
                 case 1:
-                    PeerServePutImpl.run(connection, this.exportedDirectory);
+                    PeerServePutImpl.serve(connection, this.exportedDirectory);
                     break;
             }
         }
