@@ -235,6 +235,13 @@ public class JobState
             this.getErrorMessage().isPresent();
     }
 
+    @Override
+    public JobState clone()
+    {
+        // TODO: implement
+        return null;
+    }
+
     /**
      * TODO: document
      *

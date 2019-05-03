@@ -203,17 +203,17 @@ public class Peer implements AutoCloseable
             jobs
             .stream()
             .map(JobState::new)
-            .map(AtomicReference::new)
             .collect(Collectors.toUnmodifiableList());
 
         final var jobStatesUpdated = new AtomicBoolean(false);
 
-        final Runnable sendJobStateUpdate = () -> onJobStatesUpdated.accept(
-            jobStates
-                .stream()
-                .map(AtomicReference::get)
-                .collect(Collectors.toUnmodifiableList())
-            );
+        final Runnable sendJobStateUpdate =
+            () -> onJobStatesUpdated.accept(
+                jobStates
+                    .stream()
+                    .map(JobState::clone)
+                    .collect(Collectors.toUnmodifiableList())
+                );
 
         // send initial state update
 
@@ -223,218 +223,75 @@ public class Peer implements AutoCloseable
 
         final var jobThreads = new ArrayList< Thread >();
 
-        for (final var jobStateReference : jobStates)
+        try
         {
-            final var thread = new Thread(() -> this.runJob(
-                jobStateReference.get(),
-                s -> { jobStateReference.set(s); jobStatesUpdated.set(true); }
-            ));
+            for (final var jobState : jobStates)
+            {
+                final var thread = new Thread(() -> this.runJob(
+                    jobState,
+                    () -> jobStatesUpdated.set(true)
+                ));
 
-            jobThreads.add(thread);
+                jobThreads.add(thread);
 
-            thread.start();
+                thread.start();
+            }
+
+            // report progress periodically until all jobs are finished
+
+            while (!jobStates.stream().allMatch(JobState::hasFinished))
+            {
+                if (jobStatesUpdated.getAndSet(false))
+                    sendJobStateUpdate.run();
+
+                Util.sleepUntilElapsedOrInterrupted(STATUS_UPDATE_DELAY);
+            }
         }
-
-        // report progress periodically until all jobs are finished
-
-        while (!jobStates.stream().allMatch(s -> s.get().hasFinished()))
+        catch (Throwable t)
         {
-            if (jobStatesUpdated.getAndSet(false))
-                sendJobStateUpdate.run();
-
-            Util.sleepUntilElapsedOrInterrupted(STATUS_UPDATE_DELAY);
+            jobThreads.forEach(Thread::interrupt);
+            throw t;
         }
+        finally
+        {
+            // wait for all job threads to die
 
-        // wait for all job threads to die
-
-        jobThreads.forEach(Util::uninterruptibleJoin);
+            jobThreads.forEach(Util::uninterruptibleJoin);
+        }
 
         // send final state update
 
         sendJobStateUpdate.run();
     }
 
-    private void runJob(JobState state, Consumer< JobState > stateUpdated)
+    private void runJob(JobState state, Runnable onStateUpdated)
     {
         try
         {
-            // TODO: support jobs with multiple remotes
+            // run job
 
-            if (state.getJob().getPeerEndpoints().size() > 1)
+            switch (state.getJob().getType())
             {
-                throw new UnsupportedOperationException(
-                    "multiple remotes not yet supported"
-                );
-            }
+                case GET:
+                    PeerRunGetImpl.run(state, onStateUpdated);
+                    break;
 
-            final var remoteEndpoint =
-                state
-                .getJob()
-                .getPeerEndpoints()
-                .get(0);
-
-            // establish connection with remote
-
-            try (final var connection = this.socket.connect(remoteEndpoint))
-            {
-                final var connInput = new DataInputStream(
-                    connection.getInputStream()
-                    );
-
-                final var connOutput = new DataOutputStream(
-                    connection.getOutputStream()
-                    );
-
-                // run job
-
-                switch (state.getJob().getType())
-                {
-                    case GET:
-                        runJobGet(state, stateUpdated, connInput, connOutput);
-                        break;
-
-                    case PUT:
-                        runJobPut(state, stateUpdated, connInput, connOutput);
-                        break;
-                }
+                case PUT:
+                    PeerRunPutImpl.run(state, onStateUpdated);
+                    break;
             }
         }
         catch (Exception e)
         {
             // update state with error
 
-            state = state.withErrorMessage(Optional.of(e.getMessage()));
-            stateUpdated.accept(state);
-        }
-    }
-
-    private void runJobGet(
-        JobState state,
-        Consumer< JobState > stateUpdated,
-        DataInputStream connInput,
-        DataOutputStream connOutput
-        ) throws IOException
-    {
-        // send request
-
-        connOutput.writeByte(JOB_ID_GET);
-        connOutput.writeUTF(state.getJob().getRemoteFilePath().toString());
-        connOutput.flush();
-
-        // receive response
-
-        final long fileSize = connInput.readLong();
-
-        if (fileSize < 0)
-        {
-            throw new IllegalArgumentException(
-                "File does not exist in remote."
-            );
-        }
-
-        // update state with total bytes
-
-        state = state.withTotalBytes(Optional.of(fileSize));
-        stateUpdated.accept(state);
-
-        // open local file
-
-        final var fileOutput = this.exportedDirectory.openFileForWriting(
-            state.getJob().getLocalFilePath(),
-            fileSize
-            );
-
-        try (fileOutput)
-        {
-            // receive file data
-
-            final long transferredBytes;
-
-            if (fileSize == 0)
+            synchronized (state)
             {
-                transferredBytes = 0;
-            }
-            else
-            {
-                try (final var channel = fileOutput.getChannel())
-                {
-                    transferredBytes = channel.transferFrom(
-                        Channels.newChannel(connInput),
-                        0,
-                        fileSize
-                        );
-                }
+                state.setErrorMessage(Optional.of(e.getMessage()));
             }
 
-            // check transferred byte count
-
-            if (transferredBytes < fileSize)
-            {
-                throw new RuntimeException(
-                    String.format(
-                        "Only transferred %s of %s bytes.",
-                        transferredBytes, fileSize
-                    )
-                );
-            }
-
-            // commit file changes
-
-            fileOutput.commitAndClose();
+            onStateUpdated.run();
         }
-
-        // update state with transferred bytes (TODO: update periodically)
-
-        state = state.withTransferredBytes(fileSize);
-        stateUpdated.accept(state);
-    }
-
-    private void runJobPut(
-        JobState state,
-        Consumer< JobState > stateUpdated,
-        DataInputStream connInput,
-        DataOutputStream connOutput
-        ) throws IOException
-    {
-        // open local file
-
-        final var fileInput = this.exportedDirectory.openFileForReading(
-            state.getJob().getLocalFilePath()
-            );
-
-        final long fileSize;
-
-        try (fileInput)
-        {
-            fileSize = fileInput.length();
-
-            // update state with total bytes
-
-            state = state.withTotalBytes(Optional.of(fileSize));
-            stateUpdated.accept(state);
-
-            // send request (no response necessary)
-
-            connOutput.writeByte(JOB_ID_PUT);
-            connOutput.writeUTF(state.getJob().getRemoteFilePath().toString());
-            connOutput.writeLong(fileSize);
-
-            // send file data
-
-            try (final var fileInputChannel = fileInput.getChannel())
-            {
-                fileInputChannel.transferTo(
-                    0,
-                    fileInput.length(),
-                    Channels.newChannel(connOutput)
-                );
-            }
-        }
-
-        // update state with transferred bytes (TODO: update periodically)
-
-        state = state.withTransferredBytes(fileSize);
-        stateUpdated.accept(state);
     }
 
     private void listen()
@@ -449,7 +306,9 @@ public class Peer implements AutoCloseable
 
                 try
                 {
-                    final var thread = new Thread(() -> this.serveJob(connection));
+                    final var thread = new Thread(
+                        () -> this.serveJob(connection)
+                    );
 
                     this.servingThreads.add(thread);
 
@@ -472,144 +331,33 @@ public class Peer implements AutoCloseable
     {
         try (connection)
         {
-            final var connInput = new DataInputStream(
-                connection.getInputStream()
-                );
+            final var connectionInput =
+                new DataInputStream(connection.getInputStream());
 
-            final var connOutput = new DataOutputStream(
-                connection.getOutputStream()
-                );
+            // get job type
 
-            // read job info
-
-            final var jobTypeByte = connInput.readByte();
-
-            final Path localFilePath;
-
-            try
-            {
-                localFilePath = Path.of(connInput.readUTF());
-            }
-            catch (InvalidPathException e)
-            {
-                return;
-            }
+            final byte jobType = connectionInput.readByte();
 
             // serve job
 
-            switch (jobTypeByte)
+            switch (jobType)
             {
                 case 0:
-                    serveJobGet(localFilePath, connInput, connOutput);
+                    PeerServeGetImpl.run(connection);
                     break;
 
                 case 1:
-                    serveJobPut(localFilePath, connInput, connOutput);
+                    PeerServePutImpl.run(connection);
                     break;
             }
         }
-        catch (IOException e)
+        catch (Exception ignored)
         {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void serveJobGet(
-        Path localFilePath,
-        DataInputStream connInput,
-        DataOutputStream connOutput
-        ) throws IOException
-    {
-        // open local file
-
-        final RandomAccessFile fileInput;
-
-        try
-        {
-            fileInput = this.exportedDirectory.openFileForReading(
-                localFilePath
-                );
-        }
-        catch (FileNotFoundException e)
-        {
-            connOutput.writeLong(-1);
-            return;
         }
 
-        try (fileInput)
-        {
-            // send file size
+        // remove thread from serving thread list
 
-            connOutput.writeLong(fileInput.length());
-
-            // send file data
-
-            try (final var fileInputChannel = fileInput.getChannel())
-            {
-                fileInputChannel.transferTo(
-                    0,
-                    fileInput.length(),
-                    Channels.newChannel(connOutput)
-                );
-            }
-        }
-    }
-
-    private void serveJobPut(
-        Path localFilePath,
-        DataInputStream connInput,
-        DataOutputStream connOutput
-        ) throws IOException
-    {
-        // read file size
-
-        final long fileSize = connInput.readLong();
-
-        // open local file
-
-        final var fileOutput = this.exportedDirectory.openFileForWriting(
-            localFilePath,
-            fileSize
-            );
-
-        try (fileOutput)
-        {
-            // receive file data
-
-            final long transferredBytes;
-
-            if (fileSize == 0)
-            {
-                transferredBytes = 0;
-            }
-            else
-            {
-                try (final var channel = fileOutput.getChannel())
-                {
-                    transferredBytes = channel.transferFrom(
-                        Channels.newChannel(connInput),
-                        0,
-                        fileSize
-                    );
-                }
-            }
-
-            // check transferred byte count
-
-            if (transferredBytes < fileSize)
-            {
-                throw new RuntimeException(
-                    String.format(
-                        "Only transferred %s of %s bytes.",
-                        transferredBytes, fileSize
-                    )
-                );
-            }
-
-            // commit file changes
-
-            fileOutput.commitAndClose();
-        }
+        this.servingThreads.remove(Thread.currentThread());
     }
 }
 
