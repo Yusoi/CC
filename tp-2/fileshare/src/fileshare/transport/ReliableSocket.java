@@ -107,15 +107,23 @@ public class ReliableSocket implements AutoCloseable
             {
                 final var tcpSocket = this.tcpServerSocket.accept();
 
-                final var remoteEndpoint = new Endpoint(
-                    tcpSocket.getInetAddress(),
-                    tcpSocket.getPort()
-                );
+                try
+                {
+                    final var remoteEndpoint = new Endpoint(
+                        tcpSocket.getInetAddress(),
+                        tcpSocket.getPort()
+                    );
 
-                if (accept.test(remoteEndpoint))
-                    return new ReliableSocketConnection(this, tcpSocket);
-                else
+                    if (accept.test(remoteEndpoint))
+                        return new ReliableSocketConnection(this, tcpSocket);
+                    else
+                        tcpSocket.close();
+                }
+                catch (Throwable t)
+                {
                     tcpSocket.close();
+                    throw t;
+                }
             }
         }
         finally
