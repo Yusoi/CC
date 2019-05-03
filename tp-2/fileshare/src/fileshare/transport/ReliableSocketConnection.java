@@ -80,7 +80,8 @@ public class ReliableSocketConnection implements AutoCloseable
      * has been read.
      *
      * If this side of this connection has been closed, reading from the
-     * returned stream will result in {@link IOException} being thrown.
+     * returned stream will result in {@link IllegalStateException} being
+     * thrown.
      *
      * Any active calls on the returned stream will throw an exception when
      * {@link #close()} is invoked on this instance.
@@ -107,7 +108,8 @@ public class ReliableSocketConnection implements AutoCloseable
      * This method always succeeds, even if this connection is closed.
      *
      * If either side of this connection has been closed, writing to the
-     * returned stream will result in {@link IOException} being thrown.
+     * returned stream will result in {@link IllegalStateException} being
+     * thrown.
      *
      * Any active calls on the returned stream will throw an exception when
      * {@link #close()} is invoked on this instance.
@@ -126,6 +128,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
     /**
      * Checks whether this side of the connection has been closed.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
      *
      * @return whether this side of the connection has been closed
      */
@@ -148,7 +153,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * Reading from {@link #getInputStream()} and writing to {@link
      * #getOutputStream()} after invoking this method will throw {@link
-     * IOException}.
+     * IllegalStateException}.
      *
      * See {@link #getInputStream()} and {@link #getOutputStream()} for more
      * information on the effects of this method on this side's streams.

@@ -138,6 +138,12 @@ public class ReliableSocket implements AutoCloseable
      * An {@link IOException} is thrown if the remote explicitly declines the
      * connection attempt.
      *
+     * If this socket is closed, invoking this method will result in {@link
+     * IllegalStateException} being thrown.
+     *
+     * Any active calls of this method will throw an exception when {@link
+     * #close()} is invoked on this instance.
+     *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method (with the exception that
      * invoking {@link #listen(Predicate)} while another invocation is active on
@@ -159,16 +165,43 @@ public class ReliableSocket implements AutoCloseable
             remoteEndpoint.getPort()
             );
 
+        // TODO: wait for connection confirmation
+
         return new ReliableSocketConnection(this, tcpSocket);
     }
 
     /**
-     * Closes this socket and any open connection previously obtained from it.
+     * Checks whether this socket has been closed.
      *
-     * If this method fails, this socket will nevertheless be left in a closed
-     * state.
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method (with the exception that
+     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * the same instance will result in an exception).
+     *
+     * @return whether this socket has been closed
+     */
+    public boolean isClosed()
+    {
+        return this.tcpServerSocket.isClosed();
+    }
+
+    /**
+     * Closes this socket and any open connection previously obtained from it
+     * (as if by invoking {@link ReliableSocketConnection#close()} on each of
+     * them).
+     *
+     * Any active calls of {@link #listen(Predicate)} or {@link
+     * #connect(Endpoint)} on this socket will throw an exception when this
+     * method is called.
+     *
+     * Invoking {@link #listen(Predicate)} or {@link #connect(Endpoint)} on this
+     * socket after it is closed will result in {@link IOException} being
+     * thrown.
      *
      * If this socket is already closed, this method has no effect.
+     *
+     * If this method fails, this socket and its associated connections will
+     * nevertheless be left in a closed state.
      *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method (with the exception that
@@ -178,6 +211,8 @@ public class ReliableSocket implements AutoCloseable
     @Override
     public void close() throws IOException
     {
+        // TODO: close connections
+
         this.tcpServerSocket.close();
     }
 }
