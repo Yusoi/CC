@@ -2,6 +2,7 @@
 
 package fileshare.core;
 
+import com.sun.imageio.spi.FileImageInputStreamSpi;
 import fileshare.Util;
 import fileshare.transport.Endpoint;
 import fileshare.transport.ReliableSocket;
@@ -11,6 +12,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
+import java.nio.file.FileStore;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Optional;
@@ -26,10 +28,15 @@ public class Things
         Runnable onStateUpdated
     )
     {
+        final var numSegments = state.getJob().getPeerEndpoints().size();
+
         final var connections = new ArrayList< ReliableSocketConnection >();
+        final var threads = new ArrayList< Thread >();
 
         try
         {
+            // connect to peers and get file size
+
             long lastFileSize = -1;
 
             for (final var peerEndpoint : state.getJob().getPeerEndpoints())
@@ -72,6 +79,53 @@ public class Things
                 else if (fileSize != lastFileSize)
                     throw new Exception("Peers do not agree on file size.");
             }
+
+            // update job state with total bytes
+
+            synchronized (state)
+            {
+                state.setTotalBytes(Optional.of(lastFileSize))
+            }
+
+            onStateUpdated.run();
+
+            // partition file
+
+            final long maxSegmentSize = (lastFileSize + numSegments - 1) / numSegments;
+
+            // TODO
+
+            try (final var localFile = exportedDirectory.openFileForWriting(
+                state.getJob().getLocalFilePath(), lastFileSize
+            ))
+            {
+                long currentOffset = 0;
+
+                for (final var conn : connections)
+                {
+                    final long thisSegmentOffset = currentOffset;
+
+                    final long thisSegmentSize = Math.min(
+                        lastFileSize - currentOffset,
+                        maxSegmentSize
+                    );
+
+                    currentOffset += thisSegmentOffset;
+
+                    final var thread = new Thread(() -> runSubGet(
+                        state,
+                        conn,
+                        localFile,
+                        thisSegmentOffset,
+                        thisSegmentSize,
+                        onStateUpdated
+                    );
+
+                    threads.add(thread);
+
+                    thread.start();
+                }
+            }
         }
         catch (Exception e)
         {
@@ -84,87 +138,67 @@ public class Things
             }
 
             onStateUpdated.run();
-        }
-        finally
-        {
+
             // close connections
 
             for (final var conn : connections)
                 conn.close();
+
+            // TODO
+
+            threads.forEach(Thread::interrupt);
+        }
+        finally
+        {
+            // TODO
+
+            threads.forEach(Util::uninterruptibleJoin);
         }
     }
 
     private void runSubGet(
         JobState state,
-        ReliableSocket socket,
-        Endpoint peerEndpoint,
+        ReliableSocketConnection conn,
         RandomAccessFile localFile,
         long fileSegmentPosition,
         long fileSegmentSize,
         Runnable onStateUpdated
     )
     {
-        // connect to peer
+        final var input =
+            new DataInputStream(conn.getInputStream());
 
-        try (final var connection = socket.connect(peerEndpoint))
-        {
-            final var input =
-                new DataInputStream(connection.getInputStream());
+        final var output =
+            new DataOutputStream(conn.getOutputStream());
 
-            final var output =
-                new DataOutputStream(connection.getOutputStream());
+        // write segment info
 
-            // send file content
+        output.writeLong(fileSegmentPosition);
+        output.writeLong(fileSegmentSize);
+        output.flush();
 
-            Util.transferFromFile(
-                localFile.getChannel(),
-                0,
-                localFile.length(),
-                Channels.newChannel(output),
-                (deltaTransferred, throughput) ->
+        // receive file segment content
+
+        Util.transferToFile(
+            Channels.newChannel(input),
+            localFile.getChannel(),
+            0,
+            localFile.length(),
+            (deltaTransferred, throughput) ->
+            {
+                synchronized (state)
                 {
-                    synchronized (state)
-                    {
-                        state.setTransferredBytes(
-                            state.getTransferredBytes() + deltaTransferred
-                        );
+                    state.setTransferredBytes(
+                        state.getTransferredBytes() + deltaTransferred
+                    );
 
-                        state.setThroughput(Optional.of(throughput));
-                    }
-
-                    onStateUpdated.run();
+                    state.setThroughput(Optional.of(throughput));
                 }
-            );
 
-            output.flush();
-
-            // receive error message
-
-            final var finalErrorMessage = input.readUTF();
-
-            if (!finalErrorMessage.isEmpty())
-            {
-                throw new Exception(
-                    String.format("%s: %s", peerEndpoint, finalErrorMessage)
-                );
+                onStateUpdated.run();
             }
-        }
-        catch (Exception e)
-        {
-            // update state with error message
-
-            synchronized (state)
-            {
-                if (state.getErrorMessage().isEmpty())
-                    state.setErrorMessage(Optional.of(e.getMessage()));
-            }
-
-            onStateUpdated.run();
-        }
+        );
     }
-
-
-
 
     // !! DONE !!
     private void runPut(
