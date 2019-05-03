@@ -9,6 +9,7 @@ import fileshare.transport.ReliableSocket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.RandomAccessFile;
+import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -100,7 +101,7 @@ public class Things
             final var output =
                 new DataOutputStream(connection.getOutputStream());
 
-            // send job info
+            // send subjob info
 
             output.writeByte(1);
             output.writeUTF(state.getJob().getRemoteFilePath().toString());
@@ -109,28 +110,72 @@ public class Things
 
             // receive error message
 
-            final var errorMessage = input.readUTF();
+            final var initialErrorMessage = input.readUTF();
 
-            if (!errorMessage.isEmpty())
+            if (!initialErrorMessage.isEmpty())
             {
                 throw new Exception(
-                    String.format("%s: %s", peerEndpoint, errorMessage)
+                    String.format("%s: %s", peerEndpoint, initialErrorMessage)
                     );
             }
 
             // send file data
 
-            Util.transfer(
-                localFile.getChannel()
-            )
+            final long transferredBytes = Util.transferFromFile(
+                localFile.getChannel(),
+                0,
+                localFile.length(),
+                Channels.newChannel(output),
+                (size, throughput) -> {
+                    synchronized (state)
+                    {
+                        state.setTransferredBytes(
+                            state.getTransferredBytes() + size
+                        );
+
+                        state.setThroughput(Optional.of(throughput));
+                    }
+
+                    onStateUpdated.run();
+                }
+            );
+
+            // check transferred bytes
+
+            if (transferredBytes < localFile.length())
+            {
+                throw new Exception(
+                    String.format(
+                        "%s: only sent %d of %d bytes",
+                        peerEndpoint,
+                        transferredBytes,
+                        localFile.length()
+                    )
+                );
+            }
+
+            // receive error message
+
+            final var finalErrorMessage = input.readUTF();
+
+            if (!finalErrorMessage.isEmpty())
+            {
+                throw new Exception(
+                    String.format("%s: %s", peerEndpoint, finalErrorMessage)
+                );
+            }
         }
         catch (Exception e)
         {
+            // update state with error message
+
             synchronized (state)
             {
                 if (state.getErrorMessage().isEmpty())
                     state.setErrorMessage(Optional.of(e.getMessage()));
             }
+
+            onStateUpdated.run();
         }
     }
 
