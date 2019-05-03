@@ -19,7 +19,7 @@ public class ReliableSocketConnection implements AutoCloseable
 {
     private final ReliableSocket reliableSocket;
 
-    private final Socket tcpSocket;
+    final Socket tcpSocket;
     private final InputStream inputStream;
     private final OutputStream outputStream;
 
@@ -171,6 +171,11 @@ public class ReliableSocketConnection implements AutoCloseable
     public void close() throws IOException
     {
         this.tcpSocket.close();
+
+        synchronized (reliableSocket.connections)
+        {
+            reliableSocket.connections.remove(this);
+        }
     }
 }
 

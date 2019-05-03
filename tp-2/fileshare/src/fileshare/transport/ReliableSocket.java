@@ -5,6 +5,8 @@ package fileshare.transport;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
@@ -20,6 +22,8 @@ public class ReliableSocket implements AutoCloseable
 {
     private final ServerSocket tcpServerSocket;
     private final AtomicBoolean isListening;
+
+    final List< ReliableSocketConnection > connections;
 
     /**
      * Creates a {@code ReliableSocket} on the specified local UDP port.
@@ -43,6 +47,8 @@ public class ReliableSocket implements AutoCloseable
 
         this.tcpServerSocket = new ServerSocket(localPort);
         this.isListening = new AtomicBoolean(false);
+
+        this.connections = new ArrayList<>();
     }
 
     /**
@@ -115,9 +121,25 @@ public class ReliableSocket implements AutoCloseable
                     );
 
                     if (accept.test(remoteEndpoint))
-                        return new ReliableSocketConnection(this, tcpSocket);
+                    {
+                        tcpSocket.getOutputStream().write(0);
+
+                        final var connection = new ReliableSocketConnection(
+                            this,
+                            tcpSocket
+                        );
+
+                        synchronized (this.connections)
+                        {
+                            this.connections.add(connection);
+                        }
+
+                        return connection;
+                    }
                     else
+                    {
                         tcpSocket.close();
+                    }
                 }
                 catch (Throwable t)
                 {
@@ -165,9 +187,25 @@ public class ReliableSocket implements AutoCloseable
             remoteEndpoint.getPort()
             );
 
-        // TODO: wait for connection confirmation
+        try
+        {
+            if (tcpSocket.getInputStream().read() == -1)
+                throw new IOException("Connection refused.");
+        }
+        catch (Throwable t)
+        {
+            tcpSocket.close();
+            throw t;
+        }
 
-        return new ReliableSocketConnection(this, tcpSocket);
+        final var connection = new ReliableSocketConnection(this, tcpSocket);
+
+        synchronized (this.connections)
+        {
+            this.connections.add(connection);
+        }
+
+        return connection;
     }
 
     /**
@@ -214,6 +252,20 @@ public class ReliableSocket implements AutoCloseable
         // TODO: close connections
 
         this.tcpServerSocket.close();
+
+        synchronized (this.connections)
+        {
+            for (final var connection : this.connections)
+            {
+                try
+                {
+                    connection.tcpSocket.close();
+                }
+                catch (Exception ignored)
+                {
+                }
+            }
+        }
     }
 }
 
