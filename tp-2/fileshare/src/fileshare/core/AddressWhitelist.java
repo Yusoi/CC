@@ -10,7 +10,7 @@ import java.util.Set;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * A whitelist of network addresses.
  *
  * This class is thread-safe.
  */
@@ -19,7 +19,7 @@ public class AddressWhitelist
     private final Set< AddressRange > ranges;
 
     /**
-     * TODO: document
+     * Creates an empty {@code AddressWhitelist}.
      */
     public AddressWhitelist()
     {
@@ -27,9 +27,13 @@ public class AddressWhitelist
     }
 
     /**
-     * TODO: document
+     * Adds an address range to this whitelist.
      *
-     * @param range TODO: document
+     * Overlapping or duplicate address ranges are allowed.
+     *
+     * @param range the address range to be added to this whitelist
+     *
+     * @throws NullPointerException if {@code range} is {@code null}
      */
     public synchronized void add(AddressRange range)
     {
@@ -38,9 +42,17 @@ public class AddressWhitelist
     }
 
     /**
-     * TODO: document
+     * Removes an address range from this whitelist.
      *
-     * @param range TODO: document
+     * The specified address range must be equal to a previously added range.
+     * Overlapping address ranges are not modified or removed.
+     *
+     * If this whitelist does not contain {@code range}, this method has no
+     * effect.
+     *
+     * @param range the address range to be removed from this whitelist
+     *
+     * @throws NullPointerException if {@code range} is {@code null}
      */
     public synchronized void remove(AddressRange range)
     {
@@ -49,7 +61,7 @@ public class AddressWhitelist
     }
 
     /**
-     * TODO: document
+     * Removes all address ranges from this whitelist.
      */
     public synchronized void clear()
     {
@@ -57,12 +69,12 @@ public class AddressWhitelist
     }
 
     /**
-     * TODO: document
+     * Checks whether a certain address is whitelisted.
      *
-     * @param address TODO: document
-     * @return TODO: document
+     * @param address the address to be checked
+     * @return whether {@code address} is whitelisted
      *
-     * @throws NullPointerException if address is null
+     * @throws NullPointerException if {@code address} is {@code null}
      */
     public synchronized boolean isWhitelisted(InetAddress address)
     {
