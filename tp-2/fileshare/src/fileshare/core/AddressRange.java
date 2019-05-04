@@ -24,12 +24,21 @@ import java.util.Objects;
 public class AddressRange
 {
     /**
-     * TODO: document
+     * Creates an {@code AddressRange} from an IPv4 or IPv6 CIDR-notation
+     * string.
      *
-     * @param cidrNotation TODO: document
-     * @return TODO: document
+     * The following are examples of valid CIDR-notation strings:
      *
-     * @throws IllegalArgumentException TODO: document
+     * <ul>
+     *     <li>TODO</li>
+     * </ul>
+     *
+     * @param cidrNotation the CIDR-notation string to be parsed
+     * @return the range specified by {@code cidrNotation}
+     *
+     * @throws NullPointerException if {@code cidrNotation} is {@code null}
+     * @throws IllegalArgumentException if {@¢ode cidrNotation} is not a valid
+     *         CIDR-notation string
      */
     public static AddressRange parseCidrNotation(String cidrNotation)
     {
