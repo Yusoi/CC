@@ -5,8 +5,6 @@ package fileshare.core;
 import fileshare.Util;
 import fileshare.transport.ReliableSocketConnection;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.nio.channels.Channels;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -36,7 +34,7 @@ class PeerServePutImpl
 
         // open local file
 
-        final ExportedDirectory.RandomAccessFileForWriting localFile;
+        final ExportedDirectory.TemporaryRandomAccessFile localFile;
 
         try
         {

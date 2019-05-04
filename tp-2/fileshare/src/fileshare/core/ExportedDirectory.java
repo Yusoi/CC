@@ -11,25 +11,25 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Mediates access to a file system sub-tree exported by a local peer.
  *
- * This class is thread-safe: its methods can be invoked concurrently.
- *
- * The behavior of this class' methods in face of symbolic links under the
- * exported directory is unspecified.
+ * This class is thread-safe.
  */
 public class ExportedDirectory
 {
     /**
-     * TODO: document
+     * A subclass of {@link RandomAccessFile} returned by {@link
+     * #openFileForWriting(Path, long)} that only commits changes when
+     * requested.
      */
-    public abstract class RandomAccessFileForWriting extends RandomAccessFile
+    public abstract class TemporaryRandomAccessFile extends RandomAccessFile
     {
-        private RandomAccessFileForWriting(
+        private TemporaryRandomAccessFile(
             File file,
             long fileSize
             ) throws IOException
@@ -39,7 +39,9 @@ public class ExportedDirectory
         }
 
         /**
-         * TODO: document
+         * Commits changes to the file and closes it.
+         *
+         * @throws IOException if an I/O error occurs
          */
         public abstract void commitAndClose() throws IOException;
     }
@@ -50,22 +52,24 @@ public class ExportedDirectory
     private final Map< Path, Integer > fileLocks;
 
     /**
-     * TODO: document
+     * Creates an instance of {@code ExportedDirectory} corresponding to a
+     * certain file system sub-tree.
      *
-     * @param directoryPath TODO: document
+     * @param directoryPath a path to the root directory of the file system
+     *        sub-tree to be exported
      */
     public ExportedDirectory(Path directoryPath) throws IOException
     {
-        this.directoryPath         = directoryPath;
+        this.directoryPath = directoryPath;
         this.resolvedDirectoryPath = directoryPath.toRealPath().normalize();
 
-        this.fileLocks             = new HashMap<>();
+        this.fileLocks = new HashMap<>();
     }
 
     /**
-     * TODO: document
+     * Returns a path to the exported file system sub-tree.
      *
-     * @return TODO: document
+     * @return a path to the exported file system sub-tree
      */
     public Path getDirectoryPath()
     {
@@ -73,30 +77,41 @@ public class ExportedDirectory
     }
 
     /**
-     * TODO: document
+     * Resolves a path relative to the exported file system sub-tree's root.
      *
-     * If fileMustExist, throws a FileNotFoundException if the file pointed to
-     * by the path doesn't exist; otherwise, only the file's parent directory
-     * must exist.
+     * If the path points to a file system entry that is not a regular file, a
+     * {@link FileNotFoundException} exception is thrown.
      *
-     * @param filePath TODO: document
-     * @return the file's size
+     * If {@code mustExist} is {@code true} and the path points to a
+     * non-existing entry, a {@link FileNotFoundException} exception is thrown.
+     *
+     * @param path the path to be resolved
+     * @return the resolved paht
+     *
+     * @throws NullPointerException if {@code path} is {@code null}
+     * @throws IllegalArgumentException if {@code path} is absolute
+     * @throws IllegalArgumentException if {@code path} resolves to outside the
+     *         exported file system sub-tree
+     * @throws FileNotFoundException if {@code path} points to a file system
+     *         entry that is not a regular file
+     * @throws FileNotFoundException if {@code mustExist} is {@code true}
+     *         and {@code path} points to a non-existing entry
+     * @throws IOException if an I/O error occurs
      */
-    public Path resolveFilePath(
-        Path filePath,
-        boolean fileMustExist
-        ) throws IOException
+    public Path resolveFilePath(Path path, boolean mustExist) throws IOException
     {
         // validate arguments
 
-        if (filePath.isAbsolute())
+        Objects.requireNonNull(path);
+
+        if (path.isAbsolute())
             throw new IllegalArgumentException("Path must be relative.");
 
         // resolve file path
 
         final var resolvedFilePath =
             this.resolvedDirectoryPath
-            .resolve(filePath)
+            .resolve(path)
             .toRealPath()
             .normalize();
 
@@ -118,7 +133,7 @@ public class ExportedDirectory
         }
         else
         {
-            if (fileMustExist)
+            if (mustExist)
                 throw new FileNotFoundException("File does not exist");
         }
 
@@ -127,20 +142,29 @@ public class ExportedDirectory
         return resolvedFilePath;
     }
 
-
     /**
-     * TODO: document
+     * Opens a file with reading permissions.
      *
-     * The file is locked until the returned stream is closed.
+     * The file is locked until the returned {@link RandomAccessFile} is closed.
      *
-     * @param filePath TODO: document
-     * @return TODO: document
+     * This method succeeds even if the file is already open with reading
+     * permissions.
      *
-     * @throws IOException TODO: document
+     * @param path a path to the file to be opened
+     * @return a {@link RandomAccessFile} corresponding to the opened file
+     *
+     * @throws NullPointerException if {@code path} is {@code null}
+     * @throws IllegalArgumentException if {@code path} is absolute
+     * @throws IllegalArgumentException if {@code path} resolves to outside the
+     *         exported file system sub-tree
+     * @throws FileNotFoundException if {@code path} points to a file system
+     *         entry that does not exist or is not a regular file
+     * @throws IllegalStateException if the file is locked for writing
+     * @throws IOException if an I/O error occurs
      */
-    public RandomAccessFile openFileForReading(Path filePath) throws IOException
+    public RandomAccessFile openFileForReading(Path path) throws IOException
     {
-        final var resolvedFilePath = this.resolveFilePath(filePath, true);
+        final var resolvedFilePath = this.resolveFilePath(path, true);
 
         this.lockFileAsReader(resolvedFilePath);
 
@@ -179,25 +203,34 @@ public class ExportedDirectory
     }
 
     /**
-     * TODO: document
+     * Opens a file with writing permissions.
      *
-     * The file is locked until the returned stream is closed.
+     * The file is locked until the returned {@link TemporaryRandomAccessFile}
+     * is closed.
      *
-     * Must call commitOnExit() on the returned stream for changes to take
-     * effect.
+     * The returned {@link TemporaryRandomAccessFile} is initially empty and
+     * changes made to it are only persisted in the file if {@link
+     * TemporaryRandomAccessFile#commitAndClose()} is invoked.
      *
-     * @param filePath TODO: document
-     * @param fileSize TODO: document
-     * @return TODO: document
+     * @param path a path to the file to be opened
+     * @return a {@link TemporaryRandomAccessFile} corresponding to the opened
+     *         file
      *
-     * @throws IOException TODO: document
+     * @throws NullPointerException if {@code path} is {@code null}
+     * @throws IllegalArgumentException if {@code path} is absolute
+     * @throws IllegalArgumentException if {@code path} resolves to outside the
+     *         exported file system sub-tree
+     * @throws FileNotFoundException if {@code path} points to a file system
+     *         entry that does not exist or is not a regular file
+     * @throws IllegalStateException if the file is locked for writing
+     * @throws IOException if an I/O error occurs
      */
-    public RandomAccessFileForWriting openFileForWriting(
-        Path filePath,
+    public TemporaryRandomAccessFile openFileForWriting(
+        Path path,
         long fileSize
         ) throws IOException
     {
-        final var resolvedFilePath = this.resolveFilePath(filePath, false);
+        final var resolvedFilePath = this.resolveFilePath(path, false);
         Files.createDirectories(resolvedFilePath.getParent());
 
         this.lockFileAsWriter(resolvedFilePath);
@@ -208,7 +241,7 @@ public class ExportedDirectory
                 resolvedFilePath.getParent(), null, null
             );
 
-            return this.new RandomAccessFileForWriting(
+            return this.new TemporaryRandomAccessFile(
                 tempFilePath.toFile(),
                 fileSize
                 )
