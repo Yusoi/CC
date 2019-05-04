@@ -37,8 +37,7 @@ public class AddressWhitelist
      */
     public synchronized void add(AddressRange range)
     {
-        Objects.requireNonNull(range);
-        this.ranges.add(range);
+        this.ranges.add(Objects.requireNonNull(range));
     }
 
     /**
@@ -56,8 +55,7 @@ public class AddressWhitelist
      */
     public synchronized void remove(AddressRange range)
     {
-        Objects.requireNonNull(range);
-        this.ranges.remove(range);
+        this.ranges.remove(Objects.requireNonNull(range));
     }
 
     /**
