@@ -2,7 +2,6 @@
 
 package fileshare.core;
 
-import fileshare.transport.Endpoint;
 import inet.ipaddr.AddressStringParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
@@ -18,9 +17,9 @@ import java.util.Objects;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Defines a contiguous range of IPv4 or IPv6 addresses.
  *
- * Instances of this class are equality comparable and hashable.
+ * Instances of this class are immutable, equality comparable, and hashable.
  */
 public class AddressRange
 {
@@ -32,7 +31,7 @@ public class AddressRange
      *
      * @throws IllegalArgumentException TODO: document
      */
-    public static AddressRange fromCidrNotation(String cidrNotation)
+    public static AddressRange parseCidrNotation(String cidrNotation)
     {
         final var params = new IPAddressStringParameters.Builder()
             .allowAll(false)
@@ -57,12 +56,14 @@ public class AddressRange
     }
 
     /**
-     * TODO: document
+     * Checks whether this address range contains the specified address.
      *
-     * @param address TODO: document
-     * @return TODO: document
+     * @param address the address
+     * @return whether this address range contains {@code address}
      *
-     * @throws IllegalArgumentException TODO: document
+     * @throws NullPointerException if {@code address} is {@code null}
+     * @throws IllegalArgumentException if {@code address} is not an instance of
+     *         {@link Inet4Address} or {@link Inet6Address}
      */
     public boolean contains(InetAddress address)
     {
@@ -79,7 +80,7 @@ public class AddressRange
         else
         {
             throw new IllegalArgumentException(
-                "address must be of type Inet4Address or Inet6Address"
+                "address must be an instance of Inet4Address or Inet6Address"
             );
         }
 

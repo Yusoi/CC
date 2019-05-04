@@ -60,11 +60,11 @@ public final class Main
             if (arguments.allowAllPeers())
             {
                 peer.getPeerWhitelist().add(
-                    AddressRange.fromCidrNotation("0.0.0.0/0")
+                    AddressRange.parseCidrNotation("0.0.0.0/0")
                     );
 
                 peer.getPeerWhitelist().add(
-                    AddressRange.fromCidrNotation("::/0")
+                    AddressRange.parseCidrNotation("::/0")
                     );
             }
 

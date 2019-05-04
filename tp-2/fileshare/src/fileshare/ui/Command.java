@@ -121,11 +121,11 @@ public abstract class Command
             throws Exception
         {
             interpreter.getPeer().getPeerWhitelist().add(
-                AddressRange.fromCidrNotation("0.0.0.0/0")
+                AddressRange.parseCidrNotation("0.0.0.0/0")
             );
 
             interpreter.getPeer().getPeerWhitelist().add(
-                AddressRange.fromCidrNotation("::/0")
+                AddressRange.parseCidrNotation("::/0")
             );
         }
     }
@@ -148,7 +148,7 @@ public abstract class Command
             final var ranges = new ArrayList< AddressRange >();
 
             for (final var cidr : matcher.group("cidrs").split("\\s+"))
-                ranges.add(AddressRange.fromCidrNotation(cidr));
+                ranges.add(AddressRange.parseCidrNotation(cidr));
 
             ranges.forEach(interpreter.getPeer().getPeerWhitelist()::add);
         }
@@ -172,7 +172,7 @@ public abstract class Command
             final var ranges = new ArrayList< AddressRange >();
 
             for (final var cidr : matcher.group("cidrs").split("\\s+"))
-                ranges.add(AddressRange.fromCidrNotation(cidr));
+                ranges.add(AddressRange.parseCidrNotation(cidr));
 
             ranges.forEach(interpreter.getPeer().getPeerWhitelist()::remove);
         }
