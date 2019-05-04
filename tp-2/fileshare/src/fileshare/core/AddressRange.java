@@ -30,7 +30,9 @@ public class AddressRange
      * The following are examples of valid CIDR-notation strings:
      *
      * <ul>
-     *     <li>TODO</li>
+     *     <li>192.168.100.14/24</li>
+     *     <li>2001:db8::/48</li>
+     *     <li>::1/128</li>
      * </ul>
      *
      * @param cidrNotation the CIDR-notation string to be parsed
