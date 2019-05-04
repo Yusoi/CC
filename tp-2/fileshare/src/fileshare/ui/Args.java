@@ -2,6 +2,7 @@
 
 package fileshare.ui;
 
+import fileshare.core.Peer;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -44,8 +45,13 @@ public class Args
         argParser
             .addArgument("-p", "--port")
             .type(Integer.class)
-            .setDefault(7777)
-            .help("the local UDP port to be used by the peer (default: 7777)");
+            .setDefault(Peer.DEFAULT_PORT)
+            .help(
+                String.format(
+                    "the local UDP port to be used by the peer (default: %s)",
+                    Peer.DEFAULT_PORT
+                )
+            );
 
         argParser
             .addArgument("export_dir")

@@ -6,6 +6,7 @@ import fileshare.core.AddressRange;
 import fileshare.core.Job;
 import fileshare.core.JobState;
 import fileshare.core.JobType;
+import fileshare.core.Peer;
 import fileshare.transport.Endpoint;
 
 import java.nio.file.Path;
@@ -212,7 +213,7 @@ public abstract class Command
             final var remoteEndpoints = new ArrayList< Endpoint >();
 
             for (final var endpoint : matcher.group("from").split("\\s+"))
-                remoteEndpoints.add(Endpoint.parse(endpoint, 7777));
+                remoteEndpoints.add(Endpoint.parse(endpoint, Peer.DEFAULT_PORT));
 
             final var remoteFilePath = Path.of(matcher.group("get"));
 
@@ -255,7 +256,7 @@ public abstract class Command
             final var remoteEndpoints = new ArrayList< Endpoint >();
 
             for (final var endpoint : matcher.group("to").split("\\s+"))
-                remoteEndpoints.add(Endpoint.parse(endpoint, 7777));
+                remoteEndpoints.add(Endpoint.parse(endpoint, Peer.DEFAULT_PORT));
 
             final var localFilePath = Path.of(matcher.group("put"));
 
