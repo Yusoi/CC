@@ -24,18 +24,13 @@ public class ExportedDirectory
 {
     /**
      * A subclass of {@link RandomAccessFile} returned by {@link
-     * #openFileForWriting(Path, long)} that only commits changes when
-     * requested.
+     * #openFileForWriting(Path)} that only commits changes when requested.
      */
     public abstract class TemporaryRandomAccessFile extends RandomAccessFile
     {
-        private TemporaryRandomAccessFile(
-            File file,
-            long fileSize
-            ) throws IOException
+        private TemporaryRandomAccessFile(File file) throws IOException
         {
             super(file, "rw");
-            super.setLength(fileSize);
         }
 
         /**
@@ -226,8 +221,7 @@ public class ExportedDirectory
      * @throws IOException if an I/O error occurs
      */
     public TemporaryRandomAccessFile openFileForWriting(
-        Path path,
-        long fileSize
+        Path path
         ) throws IOException
     {
         final var resolvedFilePath = this.resolveFilePath(path, false);
@@ -241,10 +235,7 @@ public class ExportedDirectory
                 resolvedFilePath.getParent(), null, null
             );
 
-            return this.new TemporaryRandomAccessFile(
-                tempFilePath.toFile(),
-                fileSize
-                )
+            return this.new TemporaryRandomAccessFile(tempFilePath.toFile())
             {
                 private boolean closed = false;
 
