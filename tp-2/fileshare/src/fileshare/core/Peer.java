@@ -46,6 +46,11 @@ public class Peer implements AutoCloseable
         CLOSED
     }
 
+    /**
+     * The value that should be used as a default peer port number.
+     */
+    public static final int DEFAULT_PORT = 7777;
+
     private static final long STATUS_UPDATE_DELAY = 200; // in milliseconds
 
     private State state;

@@ -6,33 +6,54 @@ import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Identifies an endpoint by its address and port number.
  *
- * InetSocketAddress already does this, but we want to force addresses to be
- * resolved.
+ * This class mainly differs from {@link InetSocketAddress} in that it does not
+ * allow unresolved hostnames.
  *
- * Instances of this class are immutable.
+ * Instances of this class are immutable, equality comparable, and hashable.
  */
 public class Endpoint
 {
     /**
-     * TODO: document
+     * Creates an {@code Endpoint} from a string representation.
      *
-     * @param endpoint TODO: document
-     * @param defaultPort TODO: document
+     * The following are examples of valid endpoint string representations:
      *
-     * @return TODO: document
+     * <ul>
+     *     <li>{@code 127.0.0.1}</li>
+     *     <li>{@code 127.0.0.1:7777}</li>
+     *     <li>{@code [2001:db8::ff00:42:8329]:1234}</li>
+     *     <li>{@code [2001:db8::ff00:42:8329]:1234}</li>
+     *     <li>{@code hostname1}</li>
+     *     <li>{@code hostname1:1234}</li>
+     * </ul>
+     *
+     * Note that a hostname can be given instead of an address, in which case an
+     * attempt will be made to resolve it. If that attempt fails, {@link
+     * UnknownHostException} is thrown.
+     *
+     * @param endpoint the endpoint's string representation
+     * @param defaultPort the port to be used if none is explicitly specified in
+     *        the string representation
+     *
+     * @return the {@code Endpoint} corresponding to the given string
      *
      * @throws NullPointerException if endpoint is null
-     * @throws IllegalArgumentException TODO: document
-     * @throws UnknownHostException TODO: document
+     * @throws IllegalArgumentException if {@code endpoint} is not a valid
+     *         string representation of an endpoint
+     * @throws UnknownHostException if a hostname was specified instead of an
+     *         address and the attempt to resolve it failed
      */
     public static Endpoint parse(String endpoint, int defaultPort)
         throws UnknownHostException
@@ -78,18 +99,30 @@ public class Endpoint
     private final int port;
 
     /**
-     * TODO: document
+     * Creates an {@code Endpoint} from an address and a port number.
      *
-     * @param address TODO: document
-     * @param port TODO: document
+     * @param address the endpoint's address
+     * @param port the endpoint's port number
      *
-     * @throws IllegalArgumentException TODO: document
+     * @throws NullPointerException if {@code address} is {@code null}
+     * @throws IllegalArgumentException if {@code address} is not an instance of
+     *         {@link Inet4Address} or {@link Inet6Address}
+     * @throws IllegalArgumentException if {@code port} is less than 1 or
+     *         greater than 65535
      */
     public Endpoint(InetAddress address, int port)
     {
         // validate arguments
 
-        Objects.requireNonNull(address, "address must not be null");
+        Objects.requireNonNull(address);
+
+        if (!(address instanceof Inet4Address) &&
+                !(address instanceof Inet6Address))
+        {
+            throw new IllegalArgumentException(
+                "address must be an instance of Inet4Address or Inet6Address"
+            );
+        }
 
         if (port < 1 || port > 65535)
         {
@@ -105,9 +138,9 @@ public class Endpoint
     }
 
     /**
-     * TODO: document
+     * Returns the endpoint's address.
      *
-     * @return TODO: document
+     * @return the endpoint's address
      */
     public InetAddress getAddress()
     {
@@ -115,9 +148,9 @@ public class Endpoint
     }
 
     /**
-     * TODO: document
+     * Returns the endpoint's port number.
      *
-     * @return TODO: document
+     * @return the endpoint's port number
      */
     public int getPort()
     {
@@ -146,11 +179,18 @@ public class Endpoint
     @Override
     public String toString()
     {
+        final String format;
+
+        if (this.getAddress() instanceof Inet4Address)
+            format = "%s:%d";
+        else
+            format = "[%s]:%d";
+
         return String.format(
-            "%s:%d",
+            format,
             this.getAddress().getHostAddress(),
             this.getPort()
-            );
+        );
     }
 }
 
