@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 /* -------------------------------------------------------------------------- */
 
@@ -19,12 +18,35 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class JobState
 {
+    /**
+     * TODO: document
+     */
+    public enum Phase
+    {
+        /**
+         * TODO: document
+         */
+        STARTING,
+
+        /**
+         * TODO: document
+         */
+        RUNNING,
+
+        /**
+         * TODO: document
+         */
+        SUCCEEDED,
+
+        /**
+         * TODO: document
+         */
+        FAILED
+    }
+
     private final Job job;
 
-    private long totalBytes;
-    private AtomicLong transferredBytes;
-
-    private String errorMessage;
+    private Phase phase;
 
     /**
      * TODO: document
@@ -36,11 +58,18 @@ public class JobState
     public JobState(Job job)
     {
         this.job = job;
+
+        this.phase = Phase.STARTING;
     }
 
     public Job getJob()
     {
 
+    }
+
+    public Phase getPhase()
+    {
+        return phase;
     }
 
     public List< Endpoint > getPeerEndpoints()

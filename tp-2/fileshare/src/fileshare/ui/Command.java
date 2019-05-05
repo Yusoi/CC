@@ -349,7 +349,7 @@ public abstract class Command
         final var numPeers = state.getJob().getPeerEndpoints().size();
         final var peerPlural = (numPeers == 1) ? "" : "s";
 
-        switch (state.getState())
+        switch (state.getPhase())
         {
             case STARTING:
             case RUNNING:
