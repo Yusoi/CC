@@ -93,9 +93,12 @@ public final class Util
         long inputSize,
         WritableByteChannel output,
         LongConsumer onBytesTransferred
-    )
+    ) throws IOException
     {
+        if (input.transferTo(inputPosition, inputSize, output) != inputSize)
+            throw new IOException(":/");
 
+        onBytesTransferred.accept(inputSize);
     }
 
     /**
@@ -116,9 +119,12 @@ public final class Util
         long outputPosition,
         long outputSize,
         LongConsumer onBytesTransferred
-    )
+    ) throws IOException
     {
+        if (output.transferFrom(input, outputPosition, outputSize) != outputSize)
+            throw new IOException(":/");
 
+        onBytesTransferred.accept(outputSize);
     }
 
 

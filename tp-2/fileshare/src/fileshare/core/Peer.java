@@ -6,12 +6,10 @@ import fileshare.Util;
 import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 

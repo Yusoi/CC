@@ -5,7 +5,6 @@ package fileshare.core;
 import fileshare.transport.Endpoint;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 /* -------------------------------------------------------------------------- */
@@ -97,6 +96,16 @@ public class JobState
     /**
      * TODO: document
      *
+     * @return TODO: document
+     */
+    public boolean hasFinished()
+    {
+        return this.phase == Phase.SUCCEEDED || this.phase == Phase.FAILED;
+    }
+
+    /**
+     * TODO: document
+     *
      * Allowed on STARTING, RUNNING, and SUCCEEDED.
      *
      * @return TODO: document
@@ -123,6 +132,8 @@ public class JobState
             case FAILED:
                 throw new IllegalStateException("job has failed");
         }
+
+        throw new RuntimeException();
     }
 
     /**
