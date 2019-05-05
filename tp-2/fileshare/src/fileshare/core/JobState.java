@@ -2,12 +2,9 @@
 
 package fileshare.core;
 
-import fileshare.transport.Endpoint;
-
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 /* -------------------------------------------------------------------------- */
 
@@ -48,6 +45,16 @@ public class JobState
 
     private Phase phase;
 
+    private long totalBytes;
+
+    private long startNanos;
+    private final AtomicLong transferredBytes;
+
+    private long markNanos;
+    private long markTransferredBytes;
+
+    private long endNanos;
+
     /**
      * TODO: document
      *
@@ -60,78 +67,9 @@ public class JobState
         this.job = job;
 
         this.phase = Phase.STARTING;
+
+        this.transferredBytes = new AtomicLong(0);
     }
-
-    public Job getJob()
-    {
-
-    }
-
-    public Phase getPhase()
-    {
-        return phase;
-    }
-
-    public List< Endpoint > getPeerEndpoints()
-    {
-
-    }
-
-    public Path getLocalFilePath()
-    {
-
-    }
-
-    public Path getRemoteFilePath()
-    {
-
-    }
-
-    public int getProgressPercentage()
-    {
-
-    }
-
-    public long getImmediateThroughput()
-    {
-
-    }
-
-    public long getOverallThroughput()
-    {
-
-    }
-
-    public void start(long totalBytes)
-    {
-
-    }
-
-    public void addToTransferredBytes(long bytes)
-    {
-
-    }
-
-    public void succeed()
-    {
-
-    }
-
-    public void fail(String errorMessage)
-    {
-
-    }
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * TODO: document
@@ -148,20 +86,153 @@ public class JobState
      *
      * @return TODO: document
      */
-    public synchronized boolean hasBegun()
+    public synchronized Phase getPhase()
     {
-
+        return this.phase;
     }
 
     /**
      * TODO: document
      *
+     * Allowed on STARTING, RUNNING, and SUCCEEDED.
+     *
      * @return TODO: document
      */
-    public synchronized boolean hasEnded()
+    public synchronized int getProgressPercentage()
+    {
+        // TODO: implement
+    }
+
+    /**
+     * TODO: document
+     *
+     * The overall throughput since the last time this method was invoked (and
+     * until the job finished, if that happened).
+     *
+     * @return TODO: document
+     */
+    public synchronized long getImmediateThroughput()
+    {
+        // TODO: implement
+    }
+
+    /**
+     * TODO: document
+     *
+     * The overall throughput since the transfer began (and until the job
+     * finished, if that happened).
+     *
+     * @return TODO: document
+     */
+    public synchronized long getOverallThroughput()
+    {
+        // TODO: implement
+    }
+
+    /**
+     * Allowed on STARTING and leads to RUNNING.
+     *
+     * @param totalBytes
+     */
+    public synchronized void start(long totalBytes)
+    {
+        // validate arguments and state
+
+        if (totalBytes < 0)
+        {
+            throw new IllegalArgumentException(
+                "totalBytes must not be negative"
+            );
+        }
+
+        if (this.phase != Phase.STARTING)
+            throw new IllegalStateException("job has already started");
+
+        // start job
+
+        this.totalBytes = totalBytes;
+
+        this.startNanos = System.nanoTime();
+
+        this.markNanos = this.startNanos;
+        this.markTransferredBytes = 0;
+
+        this.phase = Phase.RUNNING;
+    }
+
+    /**
+     * TODO: document
+     *
+     * Allowed on any phase.
+     *
+     * @param bytes TODO: document
+     *
+     * @throws IllegalArgumentException if {@code bytes} is negative
+     */
+    public void addToTransferredBytes(long bytes)
+    {
+        if (bytes < 0)
+            throw new IllegalArgumentException("bytes must not be negative");
+
+        this.transferredBytes.addAndGet(bytes);
+    }
+
+    /**
+     * TODO: document
+     *
+     * Allowed on RUNNING and SUCCEEDED, and leads to SUCCEEDED.
+     */
+    public synchronized void succeed()
+    {
+        if (this.phase != Phase.RUNNING && this.phase != Phase.SUCCEEDED)
+            throw new IllegalStateException("job has not yet started");
+
+        if (this.phase == Phase.RUNNING)
+        {
+            // TODO: implement
+
+            this.phase = Phase.SUCCEEDED;
+        }
+    }
+
+    /**
+     * TODO: document
+     *
+     * Allowed on RUNNING and FAILED, and leads to FAILED.
+     *
+     * Does not replace previous error message, if any.
+     *
+     * @param errorMessage TODO: document
+     */
+    public synchronized void fail(String errorMessage)
+    {
+        if (this.phase != Phase.RUNNING && this.phase != Phase.FAILED)
+            throw new IllegalStateException();
+
+        if (this.phase == Phase.RUNNING)
+        {
+            // TODO: implement
+
+            this.phase = Phase.FAILED;
+        }
+    }
+
+    @Override
+    public synchronized JobState clone()
     {
 
     }
+
+
+
+
+
+
+
+
+
+
+
 
     public synchronized int getProgressPercentage()
     {
@@ -186,37 +257,10 @@ public class JobState
             throw new IllegalStateException("job has already begun");
     }
 
-    /**
-     * TODO: document
-     *
-     * Updated value is clamped to totalBytes.
-     *
-     * @param increase
-     */
-    public synchronized void addToTransferredBytes(long increase)
-    {
-        if (!this.hasBegun())
-            throw new IllegalStateException("job has not begun");
-
-        if (this.hasEnded())
-            throw new IllegalStateException("job has ended");
-
-        if (increase < 0)
-            throw new IllegalArgumentException("TODO: write");
-
-        this.transferredBytes.addAndGet(increase);
-    }
-
     public synchronized void end(String errorMessage)
     {
         if (this.hasEnded())
             throw new IllegalStateException("job has already ended");
-    }
-
-    @Override
-    public JobState clone()
-    {
-
     }
 
     /**
@@ -277,16 +321,6 @@ public class JobState
         this.throughput       = throughput;
 
         this.errorMessage     = errorMessage;
-    }
-
-    /**
-     * TODO: document
-     *
-     * @return TODO: document
-     */
-    public Job getJob()
-    {
-        return this.job;
     }
 
     /**
