@@ -2,6 +2,8 @@
 
 package fileshare.core;
 
+import fileshare.transport.Endpoint;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -101,6 +103,22 @@ public class JobState
     public synchronized int getProgressPercentage()
     {
         // TODO: implement
+
+        if (this.getTotalBytes().isEmpty())
+        {
+            return 0;
+        }
+        else if (this.getTotalBytes().get() == 0)
+        {
+            return 100;
+        }
+        else
+        {
+            return 100 * (int)Math.floorDiv(
+                this.getTransferredBytes(),
+                this.getTotalBytes().get()
+            );
+        }
     }
 
     /**
@@ -217,6 +235,11 @@ public class JobState
         }
     }
 
+    public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
+    {
+        
+    }
+
     @Override
     public synchronized JobState clone()
     {
@@ -233,35 +256,6 @@ public class JobState
 
 
 
-
-    public synchronized int getProgressPercentage()
-    {
-        if (!this.hasBegun())
-            throw new IllegalStateException("job has not started");
-    }
-
-    public String computeThroughput()
-    {
-        if (!this.hasBegun())
-            throw new IllegalStateException("job has not started");
-    }
-
-    public String getErrorMessage()
-    {
-        return this.errorMessage;
-    }
-
-    public void begin(long totalBytes)
-    {
-        if (!this.hasBegun())
-            throw new IllegalStateException("job has already begun");
-    }
-
-    public synchronized void end(String errorMessage)
-    {
-        if (this.hasEnded())
-            throw new IllegalStateException("job has already ended");
-    }
 
     /**
      * TODO: document
@@ -422,37 +416,6 @@ public class JobState
      *
      * @return TODO: document
      */
-    public int getTransferredPercentage()
-    {
-        if (this.getTotalBytes().isEmpty())
-        {
-            return 0;
-        }
-        else if (this.getTotalBytes().get() == 0)
-        {
-            return 100;
-        }
-        else
-        {
-            return 100 * (int)Math.floorDiv(
-                this.getTransferredBytes(),
-                this.getTotalBytes().get()
-                );
-        }
-    }
-
-    /**
-     * TODO: document
-     *
-     * @return TODO: document
-     */
-    public boolean hasFinished()
-    {
-        return
-            (this.getTotalBytes().isPresent() &&
-            this.getTransferredBytes() == this.getTotalBytes().get()) ||
-            this.getErrorMessage().isPresent();
-    }
 }
 
 /* -------------------------------------------------------------------------- */
