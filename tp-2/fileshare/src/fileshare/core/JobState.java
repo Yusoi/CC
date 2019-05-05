@@ -48,14 +48,17 @@ public class JobState
     private Phase phase;
 
     private long totalBytes;
+    private final AtomicLong transferredBytes;
 
     private long startNanos;
-    private final AtomicLong transferredBytes;
 
     private long markNanos;
     private long markTransferredBytes;
 
     private long endNanos;
+    private long endTransferredBytes;
+
+    private String errorMessage;
 
     /**
      * TODO: document
@@ -67,9 +70,7 @@ public class JobState
     public JobState(Job job)
     {
         this.job = job;
-
         this.phase = Phase.STARTING;
-
         this.transferredBytes = new AtomicLong(0);
     }
 
@@ -102,22 +103,25 @@ public class JobState
      */
     public synchronized int getProgressPercentage()
     {
-        // TODO: implement
+        switch (this.phase)
+        {
+            case STARTING:
+                return 0;
 
-        if (this.getTotalBytes().isEmpty())
-        {
-            return 0;
-        }
-        else if (this.getTotalBytes().get() == 0)
-        {
-            return 100;
-        }
-        else
-        {
-            return 100 * (int)Math.floorDiv(
-                this.getTransferredBytes(),
-                this.getTotalBytes().get()
-            );
+            case RUNNING:
+                return Math.min(
+                    100,
+                    (int)Math.floorDiv(
+                        100 * this.transferredBytes.get(),
+                        this.totalBytes
+                    )
+                );
+
+            case SUCCEEDED:
+                return 100;
+
+            case FAILED:
+                throw new IllegalStateException("job has failed");
         }
     }
 
@@ -131,7 +135,30 @@ public class JobState
      */
     public synchronized long getImmediateThroughput()
     {
-        // TODO: implement
+        // validate state
+
+        if (this.phase != Phase.RUNNING)
+            throw new IllegalStateException("job is not running");
+
+        // get current time and transferred bytes
+
+        final long transferred = this.transferredBytes.get();
+        final long now = System.nanoTime();
+
+        // compute immediate throughput
+
+        final long immediateThroughput =
+            (1_000_000_000L * (transferred - this.markTransferredBytes)) /
+                (now - this.markNanos);
+
+        // update marked time and transferred bytes
+
+        this.markNanos = now;
+        this.markTransferredBytes = transferred;
+
+        // return immediate throughput
+
+        return immediateThroughput;
     }
 
     /**
@@ -144,7 +171,31 @@ public class JobState
      */
     public synchronized long getOverallThroughput()
     {
-        // TODO: implement
+        if (this.phase != Phase.SUCCEEDED)
+        {
+            throw new IllegalStateException(
+                "job has failed or has not yet finished"
+            );
+        }
+
+        // compute and return overall throughput
+
+        return
+            (1_000_000_000L * this.endTransferredBytes) /
+                (this.endNanos - this.startNanos);
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public synchronized String getErrorMessage()
+    {
+        if (this.phase != Phase.FAILED)
+            throw new IllegalStateException("job has not failed");
+
+        return this.errorMessage;
     }
 
     /**
@@ -207,10 +258,23 @@ public class JobState
 
         if (this.phase == Phase.RUNNING)
         {
-            // TODO: implement
+            this.endNanos = System.nanoTime();
+            this.endTransferredBytes = this.transferredBytes.get();
 
             this.phase = Phase.SUCCEEDED;
         }
+    }
+
+    /**
+     * TODO: document
+     *
+     * Same as {@code fail(null, errorMessage)}.
+     *
+     * @param errorMessage TODO: document
+     */
+    public void fail(String errorMessage)
+    {
+        this.fail(null, errorMessage);
     }
 
     /**
@@ -220,30 +284,33 @@ public class JobState
      *
      * Does not replace previous error message, if any.
      *
+     * @param peerEndpoint TODO: document
      * @param errorMessage TODO: document
+     *
+     * @throws NullPointerException if {@code errorMessage} is {@code null}
      */
-    public synchronized void fail(String errorMessage)
+    public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
     {
+        Objects.requireNonNull(errorMessage);
+
         if (this.phase != Phase.RUNNING && this.phase != Phase.FAILED)
             throw new IllegalStateException();
 
         if (this.phase == Phase.RUNNING)
         {
-            // TODO: implement
+            if (peerEndpoint != null)
+                this.errorMessage = errorMessage;
+            else
+                this.errorMessage = peerEndpoint.toString() + ": " + errorMessage;
 
             this.phase = Phase.FAILED;
         }
     }
 
-    public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
-    {
-        
-    }
-
     @Override
     public synchronized JobState clone()
     {
-
+        final var other = super.clone();
     }
 
 
