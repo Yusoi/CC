@@ -261,19 +261,11 @@ public class Peer implements AutoCloseable
         switch (state.getJob().getType())
         {
             case GET:
-                PeerRunGetImpl.run(
-                    state,
-                    this.socket,
-                    this.exportedDirectory
-                );
+                PeerRunGetImpl.run(state, this.socket, this.exportedDirectory);
                 break;
 
             case PUT:
-                PeerRunPutImpl.run(
-                    state,
-                    this.socket,
-                    this.exportedDirectory
-                );
+                PeerRunPutImpl.run(state, this.socket, this.exportedDirectory);
                 break;
         }
     }

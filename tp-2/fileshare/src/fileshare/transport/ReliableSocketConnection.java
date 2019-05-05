@@ -163,6 +163,7 @@ public class ReliableSocketConnection implements AutoCloseable
      * If this end of the connection is already closed, this method has no
      * effect.
      *
+     * (TODO: would simplify things if this didn't throw checked exceptions)
      * If this method fails, this end of the connection will nevertheless be
      * left in a closed state.
      *
@@ -170,9 +171,15 @@ public class ReliableSocketConnection implements AutoCloseable
      * may be called concurrently with any method.
      */
     @Override
-    public void close() throws IOException
+    public void close()
     {
-        this.tcpSocket.close();
+        try
+        {
+            this.tcpSocket.close();
+        }
+        catch (IOException ignored)
+        {
+        }
 
         synchronized (reliableSocket.connections)
         {

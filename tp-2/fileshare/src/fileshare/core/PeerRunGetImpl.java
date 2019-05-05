@@ -6,8 +6,6 @@ import fileshare.Util;
 import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
@@ -113,8 +111,7 @@ class PeerRunGetImpl
 
             // close connections to peers
 
-            for (final var connection : connections)
-                connection.close();
+            connections.forEach(ReliableSocketConnection::close);
 
             // update job state
 
@@ -123,8 +120,8 @@ class PeerRunGetImpl
     }
 
     private static long getFileSize(
-        Path peerFilePath,
-        List< ReliableSocketConnection > connections
+        List< ReliableSocketConnection > connections,
+        Path remoteFilePath
     ) throws IOException
     {
         long lastFileSize = -1;
@@ -137,7 +134,7 @@ class PeerRunGetImpl
             // send job info
 
             output.writeByte(0);
-            output.writeUTF(peerFilePath.toString());
+            output.writeUTF(remoteFilePath.toString());
             output.flush();
 
             // receive file size
