@@ -346,110 +346,127 @@ public abstract class Command
 
     private static String jobStateToString(JobState state)
     {
-        if (state.getErrorMessage().isPresent())
+        final var numPeers = state.getJob().getPeerEndpoints().size();
+        final var peerPlural = (numPeers == 1) ? "" : "s";
+
+        switch (state.getState())
         {
-            // job failed
+            case STARTING:
 
-            return String.format(
-                "%s %s",
-                Color.RED.apply("ERROR!"),
-                state.getErrorMessage().get()
-            );
-        }
-        else
-        {
-            final var numPeers   = state.getJob().getPeerEndpoints().size();
-            final var peerPlural = (numPeers == 1) ? "" : "s";
+                final var progress = Color.YELLOW.apply("[  0%%]");
 
-            final String throughputString;
+                switch (state.getJob().getType())
+                {
+                    case GET:
+                        return String.format(
+                            "%s Getting %s as %s from %d peer%s...",
+                            progress,
+                            state.getJob().getRemoteFilePath(),
+                            state.getJob().getLocalFilePath(),
+                            numPeers,
+                            peerPlural
+                        );
 
-            if (state.getThroughput().isEmpty())
-            {
-                throughputString = "";
-            }
-            else
-            {
-                final var throughput = state.getThroughput().get();
+                    case PUT:
+                        return String.format(
+                            "%s Putting %s as %s to %d peer%s...",
+                            progress,
+                            state.getJob().getLocalFilePath(),
+                            state.getJob().getRemoteFilePath(),
+                            numPeers,
+                            peerPlural
+                        );
+                }
 
-                if (throughput < 10 * (1 << 10))
-                    throughputString = String.format(" %d B/s", throughput);
-                else if (throughput < 10 * (1 << 20))
-                    throughputString = String.format(" %.2f KiB/s", throughput / 1024d);
-                else
-                    throughputString = String.format(" %.2f MiB/s", throughput / 1024d / 1024d);
-            }
+                break;
 
-            if (!state.hasFinished())
-            {
-                // job in progress
+            case RUNNING:
 
                 final var progress = Color.YELLOW.apply(
-                    String.format("[%3d%%]", state.getTransferredPercentage())
+                    String.format("[%3d%%]", state.getProgressPercentage())
                 );
 
                 switch (state.getJob().getType())
                 {
                     case GET:
                         return String.format(
-                            "%s Getting %s as %s from %d peer%s...%s",
+                            "%s Getting %s as %s from %d peer%s... (%s)",
                             progress,
                             state.getJob().getRemoteFilePath(),
                             state.getJob().getLocalFilePath(),
                             numPeers,
                             peerPlural,
-                            throughputString
+                            state.getImmediateThroughput()
                         );
 
                     case PUT:
                         return String.format(
-                            "%s Putting %s as %s to %d peer%s...%s",
+                            "%s Putting %s as %s to %d peer%s... (%s)",
                             progress,
                             state.getJob().getLocalFilePath(),
                             state.getJob().getRemoteFilePath(),
                             numPeers,
                             peerPlural,
-                            throughputString
+                            state.getImmediateThroughput()
                         );
-
-                    default:
-                        throw new IllegalArgumentException();
                 }
-            }
-            else
-            {
-                // job finished
 
-                final var progress = Color.GREEN.apply("[100%]");
+                break;
+
+            case SUCCEEDED:
 
                 switch (state.getJob().getType())
                 {
                     case GET:
                         return String.format(
-                            "%s Got %s as %s from %d peer%s.%s",
-                            progress,
+                            "%s Got %s as %s from %d peer%s. (%s)",
+                            Color.GREEN.apply("[100%]"),
                             state.getJob().getRemoteFilePath(),
                             state.getJob().getLocalFilePath(),
                             numPeers,
                             peerPlural,
-                            throughputString
+                            state.getAverageThroughput()
                         );
 
                     case PUT:
                         return String.format(
-                            "%s Put %s as %s to %d peer%s.%s",
-                            progress,
+                            "%s Put %s as %s to %d peer%s. (%s)",
+                            Color.GREEN.apply("[100%]"),
                             state.getJob().getLocalFilePath(),
                             state.getJob().getRemoteFilePath(),
                             numPeers,
                             peerPlural,
-                            throughputString
+                            state.getAverageThroughput()
                         );
-
-                    default:
-                        throw new IllegalArgumentException();
                 }
-            }
+
+                break;
+
+            case FAILED:
+
+                return String.format(
+                    "%s %s",
+                    Color.RED.apply("ERROR!"),
+                    state.getErrorMessage()
+                );
+
+                break;
         }
+
+        throw new RuntimeException();
+
+
+
+
+
+        final var throughput = state.getThroughput().get();
+
+        if (throughput < 10 * (1 << 10))
+            throughputString = String.format(" %d B/s", throughput);
+        else if (throughput < 10 * (1 << 20))
+            throughputString = String.format(" %.2f KiB/s", throughput / 1024d);
+        else
+            throughputString = String.format(" %.2f MiB/s", throughput / 1024d / 1024d);
     }
 }
 

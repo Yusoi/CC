@@ -4,6 +4,7 @@ package fileshare.core;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 /* -------------------------------------------------------------------------- */
 
@@ -16,22 +17,107 @@ public class JobState
 {
     private final Job job;
 
-    private Optional< Long > totalBytes;
-    private long transferredBytes;
-    private Optional< Long > throughput;
+    private long totalBytes;
+    private AtomicLong transferredBytes;
 
-    private Optional< String > errorMessage;
+    private String errorMessage;
 
     /**
      * TODO: document
      *
      * @param job TODO: document
      *
-     * @throws NullPointerException TODO: document
+     * @throws NullPointerException if {@code job} is {@code null}
      */
     public JobState(Job job)
     {
-        this(job, Optional.empty(), 0, Optional.empty(), Optional.empty());
+        this.job = job;
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public Job getJob()
+    {
+        return this.job;
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public synchronized boolean hasBegun()
+    {
+
+    }
+
+    /**
+     * TODO: document
+     *
+     * @return TODO: document
+     */
+    public synchronized boolean hasEnded()
+    {
+
+    }
+
+    public synchronized int getProgressPercentage()
+    {
+        if (!this.hasBegun())
+            throw new IllegalStateException("job has not started");
+    }
+
+    public String computeThroughput()
+    {
+        if (!this.hasBegun())
+            throw new IllegalStateException("job has not started");
+    }
+
+    public String getErrorMessage()
+    {
+        return this.errorMessage;
+    }
+
+    public void begin(long totalBytes)
+    {
+        if (!this.hasBegun())
+            throw new IllegalStateException("job has already begun");
+    }
+
+    /**
+     * TODO: document
+     *
+     * Updated value is clamped to totalBytes.
+     *
+     * @param increase
+     */
+    public synchronized void increaseTransferredBytes(long increase)
+    {
+        if (!this.hasBegun())
+            throw new IllegalStateException("job has not begun");
+
+        if (this.hasEnded())
+            throw new IllegalStateException("job has ended");
+
+        if (increase < 0)
+            throw new IllegalArgumentException("TODO: write");
+
+        this.transferredBytes.addAndGet(increase);
+    }
+
+    public synchronized void end(String errorMessage)
+    {
+        if (this.hasEnded())
+            throw new IllegalStateException("job has already ended");
+    }
+
+    @Override
+    public JobState clone()
+    {
+
     }
 
     /**
@@ -233,13 +319,6 @@ public class JobState
             (this.getTotalBytes().isPresent() &&
             this.getTransferredBytes() == this.getTotalBytes().get()) ||
             this.getErrorMessage().isPresent();
-    }
-
-    @Override
-    public JobState clone()
-    {
-        // TODO: implement
-        return null;
     }
 }
 
