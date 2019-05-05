@@ -17,6 +17,19 @@ import java.util.function.BiConsumer;
 public final class Util
 {
     /**
+     * TODO: document
+     *
+     * @param message TODO: document
+     *
+     * @throws RuntimeException TODO: document
+     */
+    public static void throwIfNotEmpty(String message)
+    {
+        if (!message.isEmpty())
+            throw new RuntimeException(message);
+    }
+
+    /**
      * Repeatedly invokes {@code thread.join()} until it succeeds without
      * raising {@link InterruptedException}.
      *

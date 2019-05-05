@@ -2,6 +2,8 @@
 
 package fileshare.transport;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -176,6 +178,18 @@ public class ReliableSocketConnection implements AutoCloseable
         {
             reliableSocket.connections.remove(this);
         }
+    }
+
+    // TODO: decide what to do with this
+    public DataInputStream getInput()
+    {
+        return new DataInputStream(this.getInputStream());
+    }
+
+    // TODO: decide what to do with this
+    public DataOutputStream getOutput()
+    {
+        return new DataOutputStream(this.getOutputStream());
     }
 }
 

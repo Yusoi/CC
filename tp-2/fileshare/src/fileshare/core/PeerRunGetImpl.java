@@ -23,10 +23,10 @@ class PeerRunGetImpl
         JobState state,
         ReliableSocket socket,
         ExportedDirectory exportedDirectory
-    ) throws IOException
+    )
     {
         final var connections = new ArrayList< ReliableSocketConnection >();
-        final var threads = new ArrayList< Thread >();
+        final var subjobThreads = new ArrayList< Thread >();
 
         try
         {
@@ -38,8 +38,8 @@ class PeerRunGetImpl
             // get file size
 
             final long fileSize = getFileSize(
-                state.getJob().getRemoteFilePath(),
-                connections
+                connections,
+                state.getJob().getRemoteFilePath()
             );
 
             // partition file into segments
@@ -60,14 +60,16 @@ class PeerRunGetImpl
 
                 // update job state
 
-                state.begin(fileSize);
+                state.start(fileSize);
 
-                // request and read segments from peers
+                // concurrently get file segments from peers
 
                 long currentPosition = 0;
 
                 for (final var connection : connections)
                 {
+                    // compute segment position and size
+
                     final long thisSegmentPosition = currentPosition;
 
                     final long thisSegmentSize = Math.min(
@@ -77,6 +79,8 @@ class PeerRunGetImpl
 
                     currentPosition += thisSegmentSize;
 
+                    // launch subjob thread
+
                     final var thread = new Thread(() -> readSegment(
                         state,
                         connection,
@@ -85,35 +89,36 @@ class PeerRunGetImpl
                         thisSegmentSize
                     ));
 
-                    threads.add(thread);
+                    subjobThreads.add(thread);
+
                     thread.start();
                 }
             }
         }
         catch (Exception e)
         {
-            // update state with error message
+            // update job state
 
             state.fail(e.getMessage());
 
-            // close connections
+            // interrupt subjob threads
+
+            subjobThreads.forEach(Thread::interrupt);
+        }
+        finally
+        {
+            // wait for subjob threads to die
+
+            subjobThreads.forEach(Util::uninterruptibleJoin);
+
+            // close connections to peers
 
             for (final var connection : connections)
                 connection.close();
 
-            // interrupt peer threads
-
-            threads.forEach(Thread::interrupt);
-        }
-        finally
-        {
-            // wait for peer threads to die
-
-            threads.forEach(Util::uninterruptibleJoin);
-
             // update job state
 
-            state.finish();
+            state.succeed();
         }
     }
 
@@ -126,11 +131,8 @@ class PeerRunGetImpl
 
         for (final var connection : connections)
         {
-            final var input =
-                new DataInputStream(connection.getInputStream());
-
-            final var output =
-                new DataOutputStream(connection.getOutputStream());
+            final var input = connection.getInput();
+            final var output = connection.getOutput();
 
             // send job info
 
@@ -143,17 +145,7 @@ class PeerRunGetImpl
             final long fileSize = input.readLong();
 
             if (fileSize < 0)
-            {
-                final var errorMessage = input.readUTF();
-
-                throw new RuntimeException(
-                    String.format(
-                        "%s: %s",
-                        connection.getRemoteEndpoint(),
-                        errorMessage
-                    )
-                );
-            }
+                throw new RuntimeException(input.readUTF());
 
             // check file size
 
@@ -176,8 +168,8 @@ class PeerRunGetImpl
     {
         try
         {
-            final var input = new DataInputStream(connection.getInputStream());
-            final var output = new DataOutputStream(connection.getOutputStream());
+            final var input = connection.getInput();
+            final var output = connection.getOutput();
 
             // write segment info
 
@@ -197,6 +189,8 @@ class PeerRunGetImpl
         }
         catch (Exception e)
         {
+            // update job state
+
             state.fail(connection.getRemoteEndpoint(), e.getMessage());
         }
     }

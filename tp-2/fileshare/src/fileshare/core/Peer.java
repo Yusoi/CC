@@ -256,36 +256,25 @@ public class Peer implements AutoCloseable
         sendJobStateUpdate.run();
     }
 
-    private void runJob(JobState state, Runnable onStateUpdated)
+    private void runJob(JobState state)
     {
-        try
+        switch (state.getJob().getType())
         {
-            // run job
+            case GET:
+                PeerRunGetImpl.run(
+                    state,
+                    this.socket,
+                    this.exportedDirectory
+                );
+                break;
 
-            switch (state.getJob().getType())
-            {
-                case GET:
-                    PeerRunGetImpl.run(
-                        state,
-                        this.socket,
-                        this.exportedDirectory
-                    );
-                    break;
-
-                case PUT:
-                    PeerRunPutImpl.run(
-                        state,
-                        this.socket,
-                        this.exportedDirectory
-                    );
-                    break;
-            }
-        }
-        catch (Exception e)
-        {
-            // update state with error
-
-            state.fail(e.getMessage());
+            case PUT:
+                PeerRunPutImpl.run(
+                    state,
+                    this.socket,
+                    this.exportedDirectory
+                );
+                break;
         }
     }
 

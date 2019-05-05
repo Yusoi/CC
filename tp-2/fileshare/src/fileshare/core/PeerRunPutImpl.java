@@ -6,12 +6,9 @@ import fileshare.Util;
 import fileshare.transport.Endpoint;
 import fileshare.transport.ReliableSocket;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
-import java.util.Optional;
 
 /* -------------------------------------------------------------------------- */
 
@@ -19,7 +16,6 @@ class PeerRunPutImpl
 {
     public static void run(
         JobState state,
-        Runnable onStateUpdated,
         ReliableSocket socket,
         ExportedDirectory exportedDirectory
     )
@@ -32,29 +28,22 @@ class PeerRunPutImpl
             state.getJob().getLocalFilePath()
         ))
         {
-            // update job state with total bytes
+            // update job state
 
-            final long totalBytes =
+            state.start(
                 localFile.length() *
-                    state.getJob().getPeerEndpoints().size();
+                    state.getJob().getPeerEndpoints().size()
+            );
 
-            synchronized (state)
-            {
-                state.setTotalBytes(Optional.of(totalBytes))
-            }
-
-            onStateUpdated.run();
-
-            // launch subjobs
-
+            // concurrently put file to peers
+            
             for (final var peerEndpoint : state.getJob().getPeerEndpoints())
             {
-                final var thread = new Thread(() -> runSubPut(
+                final var thread = new Thread(() -> runSub(
                     state,
                     socket,
                     peerEndpoint,
-                    localFile,
-                    onStateUpdated
+                    localFile
                 ));
 
                 subjobThreads.add(thread);
@@ -64,45 +53,39 @@ class PeerRunPutImpl
         }
         catch (Exception e)
         {
-            // update state with error message
+            // update job state
 
-            synchronized (state)
-            {
-                if (state.getErrorMessage().isEmpty())
-                    state.setErrorMessage(Optional.of(e.getMessage()));
-            }
+            state.fail(e.getMessage());
 
-            onStateUpdated.run();
-
-            // interrupt subjobs
+            // interrupt subjob threads
 
             subjobThreads.forEach(Thread::interrupt);
         }
         finally
         {
-            // await subjobs
+            // wait for subjob threads to die
 
             subjobThreads.forEach(Util::uninterruptibleJoin);
+
+            // update job state
+
+            state.succeed();
         }
     }
 
-    private void runSubPut(
+    private static void runSub(
         JobState state,
         ReliableSocket socket,
         Endpoint peerEndpoint,
-        RandomAccessFile localFile,
-        Runnable onStateUpdated
+        RandomAccessFile localFile
     )
     {
         // connect to peer
 
         try (final var connection = socket.connect(peerEndpoint))
         {
-            final var input =
-                new DataInputStream(connection.getInputStream());
-
-            final var output =
-                new DataOutputStream(connection.getOutputStream());
+            final var input = connection.getInput();
+            final var output = connection.getOutput();
 
             // send subjob info
 
@@ -113,14 +96,7 @@ class PeerRunPutImpl
 
             // receive error message
 
-            final var initialErrorMessage = input.readUTF();
-
-            if (!initialErrorMessage.isEmpty())
-            {
-                throw new Exception(
-                    String.format("%s: %s", peerEndpoint, initialErrorMessage)
-                );
-            }
+            Util.throwIfNotEmpty(input.readUTF());
 
             // send file content
 
@@ -129,45 +105,20 @@ class PeerRunPutImpl
                 0,
                 localFile.length(),
                 Channels.newChannel(output),
-                (deltaTransferred, throughput) ->
-                {
-                    synchronized (state)
-                    {
-                        state.setTransferredBytes(
-                            state.getTransferredBytes() + deltaTransferred
-                        );
-
-                        state.setThroughput(Optional.of(throughput));
-                    }
-
-                    onStateUpdated.run();
-                }
+                state::increaseTransferredBytes
             );
 
             output.flush();
 
             // receive error message
 
-            final var finalErrorMessage = input.readUTF();
-
-            if (!finalErrorMessage.isEmpty())
-            {
-                throw new Exception(
-                    String.format("%s: %s", peerEndpoint, finalErrorMessage)
-                );
-            }
+            Util.throwIfNotEmpty(input.readUTF());
         }
         catch (Exception e)
         {
-            // update state with error message
+            // update job state
 
-            synchronized (state)
-            {
-                if (state.getErrorMessage().isEmpty())
-                    state.setErrorMessage(Optional.of(e.getMessage()));
-            }
-
-            onStateUpdated.run();
+            state.fail(peerEndpoint, e.getMessage());
         }
     }
 }
