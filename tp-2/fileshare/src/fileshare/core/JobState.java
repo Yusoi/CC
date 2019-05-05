@@ -63,12 +63,12 @@ public class JobState
 
     }
 
-    public String getImmediateThroughputString()
+    public long getImmediateThroughput()
     {
 
     }
 
-    public String getOverallThroughputString()
+    public long getOverallThroughput()
     {
 
     }

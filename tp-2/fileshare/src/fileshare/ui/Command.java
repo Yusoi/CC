@@ -346,12 +346,6 @@ public abstract class Command
 
     private static String jobStateToString(JobState state)
     {
-
-
-
-
-
-
         final var numPeers = state.getJob().getPeerEndpoints().size();
         final var peerPlural = (numPeers == 1) ? "" : "s";
 
@@ -374,7 +368,7 @@ public abstract class Command
                             state.getJob().getLocalFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getImmediateThroughput()
+                            throughputToString(state.getImmediateThroughput())
                         );
 
                     case PUT:
@@ -385,11 +379,9 @@ public abstract class Command
                             state.getJob().getRemoteFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getImmediateThroughput()
+                            throughputToString(state.getImmediateThroughput())
                         );
                 }
-
-                break;
 
             case SUCCEEDED:
 
@@ -403,7 +395,7 @@ public abstract class Command
                             state.getJob().getLocalFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getOverallThroughputString()
+                            throughputToString(state.getOverallThroughput())
                         );
 
                     case PUT:
@@ -414,11 +406,9 @@ public abstract class Command
                             state.getJob().getRemoteFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getOverallThroughputString()
+                            throughputToString(state.getOverallThroughput())
                         );
                 }
-
-                break;
 
             case FAILED:
 
@@ -427,24 +417,19 @@ public abstract class Command
                     Color.RED.apply("ERROR!"),
                     state.getErrorMessage()
                 );
-
-                break;
         }
 
         throw new RuntimeException();
+    }
 
-
-
-
-
-        final var throughput = state.getThroughput().get();
-
-        if (throughput < 10 * (1 << 10))
-            throughputString = String.format(" %d B/s", throughput);
-        else if (throughput < 10 * (1 << 20))
-            throughputString = String.format(" %.2f KiB/s", throughput / 1024d);
+    private static String throughputToString(long bytesPerSecond)
+    {
+        if (bytesPerSecond < 10 * (1 << 10))
+            return String.format(" %d B/s", bytesPerSecond);
+        else if (bytesPerSecond < 10 * (1 << 20))
+            return String.format(" %.2f KiB/s", bytesPerSecond / 1024d);
         else
-            throughputString = String.format(" %.2f MiB/s", throughput / 1024d / 1024d);
+            return String.format(" %.2f MiB/s", bytesPerSecond / 1024d / 1024d);
     }
 }
 
