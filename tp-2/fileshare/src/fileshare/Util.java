@@ -4,10 +4,12 @@ package fileshare;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.LongConsumer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -72,6 +74,62 @@ public final class Util
         {
         }
     }
+
+    /**
+     * TODO: document
+     *
+     * @param input TODO: document
+     * @param inputPosition TODO: document
+     * @param inputSize TODO: document
+     * @param output TODO: document
+     * @param onBytesTransferred TODO: document
+     *
+     * @throws NullPointerException if {@code input} or {@code output} are
+     *         {@code null}
+     */
+    public static void transferFromFile(
+        FileChannel input,
+        long inputPosition,
+        long inputSize,
+        WritableByteChannel output,
+        LongConsumer onBytesTransferred
+    )
+    {
+
+    }
+
+    /**
+     * TODO: document
+     *
+     * @param input TODO: document
+     * @param output TODO: document
+     * @param outputPosition TODO: document
+     * @param outputSize TODO: document
+     * @param onBytesTransferred TODO: document
+     *
+     * @throws NullPointerException if {@code input} or {@code output} are
+     *         {@code null}
+     */
+    public static void transferToFile(
+        ReadableByteChannel input,
+        FileChannel output,
+        long outputPosition,
+        long outputSize,
+        LongConsumer onBytesTransferred
+    )
+    {
+
+    }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Transfers data from one channel to another.
