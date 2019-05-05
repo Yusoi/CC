@@ -7,7 +7,6 @@ import fileshare.transport.ReliableSocketConnection;
 
 import java.nio.channels.Channels;
 import java.nio.file.Path;
-import java.util.Optional;
 
 /* -------------------------------------------------------------------------- */
 
@@ -18,19 +17,13 @@ class PeerServePutImpl
         ExportedDirectory exportedDirectory
     ) throws Exception
     {
+        final var input = connection.getInput();
+        final var output = connection.getOutput();
+
         // get job info
 
         final var localFilePath = Path.of(input.readUTF());
         final long fileSize = input.readLong();
-
-        // update state with total bytes
-
-        synchronized (state)
-        {
-            state.setTotalBytes(Optional.of(fileSize));
-        }
-
-        onStateUpdated.run();
 
         // open local file
 
@@ -38,13 +31,11 @@ class PeerServePutImpl
 
         try
         {
-            final var localFile = exportedDirectory.openFileForWriting(
-                localFilePath, fileSize
-            );
+            localFile = exportedDirectory.openFileForWriting(localFilePath);
         }
         catch (Exception e)
         {
-            // write error
+            // send error message
 
             output.writeUTF(e.getMessage());
 
@@ -53,52 +44,44 @@ class PeerServePutImpl
 
         try (localFile)
         {
-            // write success
+            // set file size
+
+            localFile.setLength(fileSize);
+
+            // send success indication
 
             output.writeUTF("");
             output.flush();
 
             // receive file content
 
+            Util.transferToFile(
+                Channels.newChannel(input),
+                localFile.getChannel(),
+                0,
+                fileSize,
+                null
+            );
+
+            // commit changes
+
             try
             {
-                Util.transferToFile(
-                    Channels.newChannel(input),
-                    localFile.getChannel(),
-                    0,
-                    localFile.length(),
-                    (deltaTransferred, throughput) ->
-                    {
-                        synchronized (state)
-                        {
-                            state.setTransferredBytes(
-                                state.getTransferredBytes() + deltaTransferred
-                            );
-
-                            state.setThroughput(Optional.of(throughput));
-                        }
-
-                        onStateUpdated.run();
-                    }
-                );
-
-                // commit changes
-
                 localFile.commitAndClose();
             }
             catch (Exception e)
             {
-                // write error
+                // send error message
 
                 output.writeUTF(e.getMessage());
 
                 throw e;
             }
-
-            // write success
-
-            output.writeUTF("");
         }
+
+        // send success indication
+
+        output.writeUTF("");
     }
 }
 

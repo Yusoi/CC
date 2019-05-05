@@ -310,12 +310,9 @@ public class Peer implements AutoCloseable
     {
         try (connection)
         {
-            final var connectionInput =
-                new DataInputStream(connection.getInputStream());
-
             // get job type
 
-            final byte jobType = connectionInput.readByte();
+            final byte jobType = connection.getInput().readByte();
 
             // serve job
 

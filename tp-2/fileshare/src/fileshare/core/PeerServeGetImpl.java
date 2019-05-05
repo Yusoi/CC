@@ -5,9 +5,9 @@ package fileshare.core;
 import fileshare.Util;
 import fileshare.transport.ReliableSocketConnection;
 
+import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
 import java.nio.file.Path;
-import java.util.Optional;
 
 /* -------------------------------------------------------------------------- */
 
@@ -18,23 +18,24 @@ class PeerServeGetImpl
         ExportedDirectory exportedDirectory
     ) throws Exception
     {
+        final var input = connection.getInput();
+        final var output = connection.getOutput();
+
         // get job info
 
         final var localFilePath = Path.of(input.readUTF());
 
         // open local file
 
-        final ExportedDirectory.TemporaryRandomAccessFile localFile;
+        final RandomAccessFile localFile;
 
         try
         {
-            final var localFile = exportedDirectory.openFileForReading(
-                localFilePath
-            );
+            localFile = exportedDirectory.openFileForReading(localFilePath);
         }
         catch (Exception e)
         {
-            // write error
+            // send error message
 
             output.writeLong(-1);
             output.writeUTF(e.getMessage());
@@ -51,38 +52,17 @@ class PeerServeGetImpl
 
             // get segment info
 
-            final long segmentOffset = input.readLong();
+            final long segmentPosition = input.readLong();
             final long segmentSize = input.readLong();
-
-            // update state with total bytes
-
-            synchronized (state)
-            {
-                state.setTotalBytes(Optional.of(segmentSize));
-            }
-
-            onStateUpdated.run();
 
             // send file content
 
             Util.transferFromFile(
                 localFile.getChannel(),
-                segmentOffset,
+                segmentPosition,
                 segmentSize,
                 Channels.newChannel(output),
-                (deltaTransferred, throughput) ->
-                {
-                    synchronized (state)
-                    {
-                        state.setTransferredBytes(
-                            state.getTransferredBytes() + deltaTransferred
-                        );
-
-                        state.setThroughput(Optional.of(throughput));
-                    }
-
-                    onStateUpdated.run();
-                }
+                null
             );
         }
     }
