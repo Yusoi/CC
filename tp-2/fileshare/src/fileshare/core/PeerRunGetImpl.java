@@ -14,7 +14,6 @@ import java.nio.channels.Channels;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,10 +21,9 @@ class PeerRunGetImpl
 {
     public static void run(
         JobState state,
-        Runnable onStateUpdated,
         ReliableSocket socket,
         ExportedDirectory exportedDirectory
-    )
+    ) throws IOException
     {
         final var connections = new ArrayList< ReliableSocketConnection >();
         final var threads = new ArrayList< Thread >();
@@ -44,16 +42,7 @@ class PeerRunGetImpl
                 connections
             );
 
-            // update job state with total bytes
-
-            synchronized (state)
-            {
-                state.setTotalBytes(Optional.of(fileSize));
-            }
-
-            onStateUpdated.run();
-
-            // partition file
+            // partition file into segments
 
             final int numPeers = state.getJob().getPeerEndpoints().size();
 
@@ -62,33 +51,41 @@ class PeerRunGetImpl
             // open local file
 
             try (final var localFile = exportedDirectory.openFileForWriting(
-                state.getJob().getLocalFilePath(), lastFileSize
+                state.getJob().getLocalFilePath()
             ))
             {
-                long currentOffset = 0;
+                // set file size
 
-                for (final var conn : connections)
+                localFile.setLength(fileSize);
+
+                // update job state
+
+                state.begin(fileSize);
+
+                // request and read segments from peers
+
+                long currentPosition = 0;
+
+                for (final var connection : connections)
                 {
-                    final long thisSegmentOffset = currentOffset;
+                    final long thisSegmentPosition = currentPosition;
 
                     final long thisSegmentSize = Math.min(
-                        lastFileSize - currentOffset,
+                        fileSize - currentPosition,
                         maxSegmentSize
                     );
 
-                    currentOffset += thisSegmentOffset;
+                    currentPosition += thisSegmentSize;
 
-                    final var thread = new Thread(() -> runSubGet(
+                    final var thread = new Thread(() -> readSegment(
                         state,
-                        conn,
+                        connection,
                         localFile,
-                        thisSegmentOffset,
-                        thisSegmentSize,
-                        onStateUpdated
-                    );
+                        thisSegmentPosition,
+                        thisSegmentSize
+                    ));
 
                     threads.add(thread);
-
                     thread.start();
                 }
             }
@@ -97,28 +94,26 @@ class PeerRunGetImpl
         {
             // update state with error message
 
-            synchronized (state)
-            {
-                if (state.getErrorMessage().isEmpty())
-                    state.setErrorMessage(Optional.of(e.getMessage()));
-            }
-
-            onStateUpdated.run();
+            state.fail(e.getMessage());
 
             // close connections
 
-            for (final var conn : connections)
-                conn.close();
+            for (final var connection : connections)
+                connection.close();
 
-            // TODO
+            // interrupt peer threads
 
             threads.forEach(Thread::interrupt);
         }
         finally
         {
-            // TODO
+            // wait for peer threads to die
 
             threads.forEach(Util::uninterruptibleJoin);
+
+            // update job state
+
+            state.finish();
         }
     }
 
@@ -173,48 +168,38 @@ class PeerRunGetImpl
 
     private static void readSegment(
         JobState state,
-        Runnable onStateUpdated,
         ReliableSocketConnection connection,
         RandomAccessFile localFile,
         long segmentPosition,
         long segmentSize
     )
     {
-        final var input =
-            new DataInputStream(conn.getInputStream());
+        try
+        {
+            final var input = new DataInputStream(connection.getInputStream());
+            final var output = new DataOutputStream(connection.getOutputStream());
 
-        final var output =
-            new DataOutputStream(conn.getOutputStream());
+            // write segment info
 
-        // write segment info
+            output.writeLong(segmentPosition);
+            output.writeLong(segmentSize);
+            output.flush();
 
-        output.writeLong(fileSegmentPosition);
-        output.writeLong(fileSegmentSize);
-        output.flush();
+            // receive file segment content
 
-        // receive file segment content
-
-        Util.transferToFile(
-            Channels.newChannel(input),
-            localFile.getChannel(),
-            0,
-            localFile.length(),
-            (deltaTransferred, throughput) ->
-            {
-                synchronized (state)
-                {
-                    state.setTransferredBytes(
-                        state.getTransferredBytes() + deltaTransferred
-                    );
-
-                    state.setThroughput(Optional.of(throughput));
-                }
-
-                onStateUpdated.run();
-            }
-        );
+            Util.transferToFile(
+                Channels.newChannel(input),
+                localFile.getChannel(),
+                segmentPosition,
+                segmentSize,
+                state::increaseTransferredBytes
+            );
+        }
+        catch (Exception e)
+        {
+            state.fail(connection.getRemoteEndpoint(), e.getMessage());
+        }
     }
-
 }
 
 /* -------------------------------------------------------------------------- */

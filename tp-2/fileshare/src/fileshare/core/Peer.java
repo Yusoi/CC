@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -51,7 +50,7 @@ public class Peer implements AutoCloseable
      */
     public static final int DEFAULT_PORT = 7777;
 
-    private static final long STATUS_UPDATE_DELAY = 200; // in milliseconds
+    private static final long JOB_STATE_UPDATE_DELAY = 200; // in milliseconds
 
     private State state;
 
@@ -202,18 +201,11 @@ public class Peer implements AutoCloseable
             .map(JobState::new)
             .collect(Collectors.toUnmodifiableList());
 
-        final var jobStatesUpdated = new AtomicBoolean(false);
-
         final Runnable sendJobStateUpdate =
             () -> onJobStatesUpdated.accept(
                 jobStates
                     .stream()
-                    .map(state -> {
-                        synchronized (state)
-                        {
-                            return state.clone();
-                        }
-                    })
+                    .map(JobState::clone)
                     .collect(Collectors.toUnmodifiableList())
                 );
 
@@ -229,13 +221,8 @@ public class Peer implements AutoCloseable
         {
             for (final var jobState : jobStates)
             {
-                final var thread = new Thread(() -> this.runJob(
-                    jobState,
-                    () -> jobStatesUpdated.set(true)
-                ));
-
+                final var thread = new Thread(() -> this.runJob(jobState));
                 jobThreads.add(thread);
-
                 thread.start();
             }
 
@@ -243,10 +230,8 @@ public class Peer implements AutoCloseable
 
             while (!jobStates.stream().allMatch(JobState::hasFinished))
             {
-                if (jobStatesUpdated.getAndSet(false))
-                    sendJobStateUpdate.run();
-
-                Util.sleepUntilElapsedOrInterrupted(STATUS_UPDATE_DELAY);
+                sendJobStateUpdate.run();
+                Util.sleepUntilElapsedOrInterrupted(JOB_STATE_UPDATE_DELAY);
             }
         }
         catch (Throwable t)
@@ -255,7 +240,7 @@ public class Peer implements AutoCloseable
 
             jobThreads.forEach(Thread::interrupt);
 
-            // rethrow throwable
+            // rethrow
 
             throw t;
         }
@@ -282,7 +267,6 @@ public class Peer implements AutoCloseable
                 case GET:
                     PeerRunGetImpl.run(
                         state,
-                        onStateUpdated,
                         this.socket,
                         this.exportedDirectory
                     );
@@ -291,7 +275,6 @@ public class Peer implements AutoCloseable
                 case PUT:
                     PeerRunPutImpl.run(
                         state,
-                        onStateUpdated,
                         this.socket,
                         this.exportedDirectory
                     );
@@ -302,13 +285,7 @@ public class Peer implements AutoCloseable
         {
             // update state with error
 
-            synchronized (state)
-            {
-                if (state.getErrorMessage().isEmpty())
-                    state.setErrorMessage(Optional.of(e.getMessage()));
-            }
-
-            onStateUpdated.run();
+            state.fail(e.getMessage());
         }
     }
 
@@ -318,7 +295,7 @@ public class Peer implements AutoCloseable
         {
             while (!Thread.interrupted())
             {
-                final var connection = socket.listen(
+                final var connection = this.socket.listen(
                     ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
                     );
 
