@@ -181,7 +181,7 @@ class PeerRunGetImpl
                 localFile.getChannel(),
                 segmentPosition,
                 segmentSize,
-                state::increaseTransferredBytes
+                state::addToTransferredBytes
             );
         }
         catch (Exception e)

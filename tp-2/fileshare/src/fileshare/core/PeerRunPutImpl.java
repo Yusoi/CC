@@ -36,7 +36,7 @@ class PeerRunPutImpl
             );
 
             // concurrently put file to peers
-            
+
             for (final var peerEndpoint : state.getJob().getPeerEndpoints())
             {
                 final var thread = new Thread(() -> runSub(
@@ -105,7 +105,7 @@ class PeerRunPutImpl
                 0,
                 localFile.length(),
                 Channels.newChannel(output),
-                state::increaseTransferredBytes
+                state::addToTransferredBytes
             );
 
             output.flush();

@@ -346,40 +346,18 @@ public abstract class Command
 
     private static String jobStateToString(JobState state)
     {
+
+
+
+
+
+
         final var numPeers = state.getJob().getPeerEndpoints().size();
         final var peerPlural = (numPeers == 1) ? "" : "s";
 
         switch (state.getState())
         {
             case STARTING:
-
-                final var progress = Color.YELLOW.apply("[  0%%]");
-
-                switch (state.getJob().getType())
-                {
-                    case GET:
-                        return String.format(
-                            "%s Getting %s as %s from %d peer%s...",
-                            progress,
-                            state.getJob().getRemoteFilePath(),
-                            state.getJob().getLocalFilePath(),
-                            numPeers,
-                            peerPlural
-                        );
-
-                    case PUT:
-                        return String.format(
-                            "%s Putting %s as %s to %d peer%s...",
-                            progress,
-                            state.getJob().getLocalFilePath(),
-                            state.getJob().getRemoteFilePath(),
-                            numPeers,
-                            peerPlural
-                        );
-                }
-
-                break;
-
             case RUNNING:
 
                 final var progress = Color.YELLOW.apply(
@@ -425,7 +403,7 @@ public abstract class Command
                             state.getJob().getLocalFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getAverageThroughput()
+                            state.getOverallThroughputString()
                         );
 
                     case PUT:
@@ -436,7 +414,7 @@ public abstract class Command
                             state.getJob().getRemoteFilePath(),
                             numPeers,
                             peerPlural,
-                            state.getAverageThroughput()
+                            state.getOverallThroughputString()
                         );
                 }
 

@@ -2,6 +2,10 @@
 
 package fileshare.core;
 
+import fileshare.transport.Endpoint;
+
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,6 +37,72 @@ public class JobState
     {
         this.job = job;
     }
+
+    public Job getJob()
+    {
+
+    }
+
+    public List< Endpoint > getPeerEndpoints()
+    {
+
+    }
+
+    public Path getLocalFilePath()
+    {
+
+    }
+
+    public Path getRemoteFilePath()
+    {
+
+    }
+
+    public int getProgressPercentage()
+    {
+
+    }
+
+    public String getImmediateThroughputString()
+    {
+
+    }
+
+    public String getOverallThroughputString()
+    {
+
+    }
+
+    public void start(long totalBytes)
+    {
+
+    }
+
+    public void addToTransferredBytes(long bytes)
+    {
+
+    }
+
+    public void succeed()
+    {
+
+    }
+
+    public void fail(String errorMessage)
+    {
+
+    }
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * TODO: document
@@ -94,7 +164,7 @@ public class JobState
      *
      * @param increase
      */
-    public synchronized void increaseTransferredBytes(long increase)
+    public synchronized void addToTransferredBytes(long increase)
     {
         if (!this.hasBegun())
             throw new IllegalStateException("job has not begun");
