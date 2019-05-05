@@ -148,8 +148,11 @@ public class JobState
     {
         // validate state
 
-        if (this.phase != Phase.RUNNING)
+        if (this.phase != Phase.STARTING && this.phase != Phase.RUNNING)
             throw new IllegalStateException("job is not running");
+
+        if (this.phase == Phase.STARTING)
+            return 0;
 
         // get current time and transferred bytes
 

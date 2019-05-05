@@ -425,11 +425,11 @@ public abstract class Command
     private static String throughputToString(long bytesPerSecond)
     {
         if (bytesPerSecond < 10 * (1 << 10))
-            return String.format(" %d B/s", bytesPerSecond);
+            return String.format("%d B/s", bytesPerSecond);
         else if (bytesPerSecond < 10 * (1 << 20))
-            return String.format(" %.2f KiB/s", bytesPerSecond / 1024d);
+            return String.format("%.2f KiB/s", bytesPerSecond / 1024d);
         else
-            return String.format(" %.2f MiB/s", bytesPerSecond / 1024d / 1024d);
+            return String.format("%.2f MiB/s", bytesPerSecond / 1024d / 1024d);
     }
 }
 
