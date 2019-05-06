@@ -2,11 +2,11 @@
 
 package fileshare.transport;
 
-/* -------------------------------------------------------------------------- */
-
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
+
+/* -------------------------------------------------------------------------- */
 
 class ReliableSocketConfig
 {
