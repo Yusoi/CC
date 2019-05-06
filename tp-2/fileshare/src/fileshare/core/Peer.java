@@ -159,15 +159,20 @@ public class Peer implements AutoCloseable
 
             this.socket.close();
 
-            // join listening and serving threads
+            // wait for listening thread to finish
 
             Util.uninterruptibleJoin(this.listenThread);
 
+            // wait for serving threads to finish
+
+            final List< Thread > servingThreadsCopy;
+
             synchronized (this.servingThreads)
             {
-                this.servingThreads.forEach(Util::uninterruptibleJoin);
-                this.servingThreads.clear();
+                servingThreadsCopy = new ArrayList<>(this.servingThreads);
             }
+
+            servingThreadsCopy.forEach(Util::uninterruptibleJoin);
 
             // update state
 
