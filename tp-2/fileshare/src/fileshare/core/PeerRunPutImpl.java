@@ -55,6 +55,10 @@ class PeerRunPutImpl
 
                 thread.start();
             }
+
+            // wait for peer threads to finish
+
+            peerThreads.forEach(Util::uninterruptibleJoin);
         }
         catch (Exception e)
         {
@@ -122,6 +126,7 @@ class PeerRunPutImpl
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             // update job state (if not previously failed)
 
             state.fail(connection.getRemoteEndpoint(), e.getMessage());

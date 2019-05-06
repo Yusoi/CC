@@ -96,7 +96,7 @@ class PeerRunGetImpl
 
                 segmentThreads.forEach(Util::uninterruptibleJoin);
 
-                // commit changes to file (if no segment thread failed)
+                // commit changes to local file (if no segment thread failed)
 
                 if (state.getPhase() != JobState.Phase.FAILED)
                     localFile.commitAndClose();

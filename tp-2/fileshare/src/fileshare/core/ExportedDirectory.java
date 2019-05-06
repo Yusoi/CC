@@ -144,7 +144,7 @@ public class ExportedDirectory
             if (mustExist)
             {
                 throw new FileNotFoundException(
-                    String.format("Path \"%s\" does not exist.", path)
+                    String.format("File \"%s\" does not exist.", path)
                 );
             }
         }
