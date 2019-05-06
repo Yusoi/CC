@@ -278,30 +278,33 @@ public class Peer implements AutoCloseable
     {
         try
         {
-            final var connection = this.socket.listen(
-                ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
-                );
-
-            if (connection == null)
-                return; // peer is being closed
-
-            try
+            while (true)
             {
-                final var thread = new Thread(
-                    () -> this.serveJob(connection)
+                final var connection = this.socket.listen(
+                    ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
                 );
 
-                synchronized (this.servingThreads)
+                if (connection == null)
+                    return; // peer is being closed
+
+                try
                 {
-                    this.servingThreads.add(thread);
-                }
+                    final var thread = new Thread(
+                        () -> this.serveJob(connection)
+                    );
 
-                thread.start();
-            }
-            catch (Throwable t)
-            {
-                connection.close();
-                throw t;
+                    synchronized (this.servingThreads)
+                    {
+                        this.servingThreads.add(thread);
+                    }
+
+                    thread.start();
+                }
+                catch (Throwable t)
+                {
+                    connection.close();
+                    throw t;
+                }
             }
         }
         catch (IOException e)

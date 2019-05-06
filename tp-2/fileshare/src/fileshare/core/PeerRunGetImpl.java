@@ -6,6 +6,7 @@ import fileshare.Util;
 import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
+import javax.swing.text.TabableView;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
@@ -45,9 +46,6 @@ class PeerRunGetImpl
             final int numPeers = state.getJob().getPeerEndpoints().size();
 
             final long maxSegmentSize = (fileSize + numPeers - 1) / numPeers;
-
-            System.err.println(fileSize);
-            System.err.println(maxSegmentSize);
 
             // open local file
 
@@ -101,7 +99,8 @@ class PeerRunGetImpl
 
                 // commit changes to file
 
-                localFile.commitAndClose();
+                if (state.getPhase() != JobState.Phase.FAILED)
+                    localFile.commitAndClose();
             }
         }
         catch (Exception e)

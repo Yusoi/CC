@@ -117,7 +117,8 @@ public final class Util
 
             transferredTotal += transferred;
 
-            onBytesTransferred.accept(transferred);
+            if (onBytesTransferred != null)
+                onBytesTransferred.accept(transferred);
         }
     }
 
@@ -163,7 +164,8 @@ public final class Util
 
             transferredTotal += transferred;
 
-            onBytesTransferred.accept(transferred);
+            if (onBytesTransferred != null)
+                onBytesTransferred.accept(transferred);
         }
     }
 
