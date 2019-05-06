@@ -3,10 +3,7 @@
 package fileshare.transport;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,7 +19,10 @@ import java.util.function.Predicate;
  */
 public class ReliableSocket implements AutoCloseable
 {
-    private final ServerSocket tcpServerSocket;
+
+    private final DatagramSocket udpServerSocket;
+    private final int bufferSize = 256;
+    private final int headerSize = 40;
     private final AtomicBoolean isListening;
 
     final List< ReliableSocketConnection > connections;
@@ -47,7 +47,7 @@ public class ReliableSocket implements AutoCloseable
 
         // initialize instance
 
-        this.tcpServerSocket = new ServerSocket(localPort);
+        this.udpServerSocket = new DatagramSocket(localPort);
         this.isListening = new AtomicBoolean(false);
 
         this.connections = new ArrayList<>();
@@ -63,9 +63,8 @@ public class ReliableSocket implements AutoCloseable
      *
      * @return this socket's local UDP port
      */
-    public int getLocalPort()
-    {
-        return this.tcpServerSocket.getLocalPort();
+    public int getLocalPort() {
+        return this.udpServerSocket.getLocalPort();
     }
 
     /**
@@ -102,71 +101,39 @@ public class ReliableSocket implements AutoCloseable
      *         method is invoked
      * @throws IOException if an I/O error occurs
      */
-    public ReliableSocketConnection listen(
-        Predicate< Endpoint > accept
-        ) throws IOException
-    {
+    public ReliableSocketConnection listen(Predicate<Endpoint> accept) throws IOException {
         if (isListening.getAndSet(true))
             throw new IllegalStateException();
 
-        try
-        {
-            while (true)
-            {
-                final Socket tcpSocket;
+        var buf = new byte[bufferSize];
 
-                try
-                {
-                    tcpSocket = this.tcpServerSocket.accept();
-                }
-                catch (SocketException e)
-                {
-                    if (this.tcpServerSocket.isClosed())
-                        return null; // close() was invoked
-                    else
-                        throw e;
-                }
+        try{
+            while(true){
+                var packet = new DatagramPacket(buf, bufferSize);
+                this.udpServerSocket.receive(packet);
 
-                try
-                {
-                    final var remoteEndpoint = new Endpoint(
-                        tcpSocket.getInetAddress(),
-                        tcpSocket.getPort()
-                    );
+                //TODO test if it's a correct connection message
 
-                    if (accept.test(remoteEndpoint))
-                    {
-                        tcpSocket.getOutputStream().write(0);
-                        tcpSocket.getOutputStream().flush();
+                final var remoteEndpoint = new Endpoint(packet.getAddress(), packet.getPort());
 
-                        final var connection = new ReliableSocketConnection(
-                            this,
-                            tcpSocket
-                        );
+                if (accept.test(remoteEndpoint)) {
+                    //udpSocket.getOutputStream().write(0);
 
-                        synchronized (this.connections)
-                        {
-                            this.connections.add(connection);
-                        }
+                    //TODO verify this
+                    final var connection = new ReliableSocketConnection(this,udpServerSocket);
 
-                        return connection;
+                    synchronized (this.connections) {
+                        this.connections.add(connection);
                     }
-                    else
-                    {
-                        tcpSocket.close();
-                    }
-                }
-                catch (Throwable t)
-                {
-                    tcpSocket.close();
-                    throw t;
+
+                } else {
+                    udpServerSocket.close();
                 }
             }
-        }
-        finally
-        {
+        } finally {
             isListening.set(false);
         }
+
     }
 
     /**
@@ -193,39 +160,37 @@ public class ReliableSocket implements AutoCloseable
      * @throws IOException if the connection is rejected by the remote
      * @throws IOException if an I/O error occurs
      */
-    public ReliableSocketConnection connect(
-        Endpoint remoteEndpoint
-        ) throws IOException
-    {
-        final var tcpSocket = new Socket();
+    public ReliableSocketConnection connect(Endpoint remoteEndpoint) throws IOException {
 
-        try
-        {
-            tcpSocket.connect(
-                new InetSocketAddress(
-                    remoteEndpoint.getAddress(),
-                    remoteEndpoint.getPort()
-                ),
-                5000
-            );
+        var udpSocket = new DatagramSocket();
+        var buf = new byte[bufferSize];
 
-            if (tcpSocket.getInputStream().read() == -1)
-            {
-                throw new IOException(
-                    "The remote did not accept the connection."
-                );
+        //TODO Fill with connection message
+        buf = "connect".getBytes();
+
+        //Sends connection message
+        DatagramPacket packet = new DatagramPacket(buf,bufferSize);
+        packet.setSocketAddress(new InetSocketAddress(remoteEndpoint.getAddress(),remoteEndpoint.getPort()));
+        udpSocket.send(packet);
+
+        try {
+
+            //Receives confirmation message
+            udpSocket.receive(packet);
+            if ((new String(packet.getData())).isEmpty())
+                throw new IOException("Connection refused.");
+            else {
+                //TODO testar mensagem
+
             }
-        }
-        catch (Throwable t)
-        {
-            tcpSocket.close();
+        } catch (Throwable t) {
+            udpSocket.close();
             throw t;
         }
 
-        final var connection = new ReliableSocketConnection(this, tcpSocket);
+        final var connection = new ReliableSocketConnection(this, udpSocket);
 
-        synchronized (this.connections)
-        {
+        synchronized (this.connections) {
             this.connections.add(connection);
         }
 
@@ -242,9 +207,8 @@ public class ReliableSocket implements AutoCloseable
      *
      * @return whether this socket has been closed
      */
-    public boolean isClosed()
-    {
-        return this.tcpServerSocket.isClosed();
+    public boolean isClosed() {
+        return this.udpServerSocket.isClosed();
     }
 
     /**
@@ -262,7 +226,6 @@ public class ReliableSocket implements AutoCloseable
      *
      * If this socket is already closed, this method has no effect.
      *
-     * (TODO: would simplify things if this didn't throw checked exceptions)
      * If this method fails, this socket and its associated connections will
      * nevertheless be left in a closed state.
      *
@@ -272,30 +235,23 @@ public class ReliableSocket implements AutoCloseable
      * the same instance will result in an exception).
      */
     @Override
-    public void close()
-    {
-        try
-        {
-            this.tcpServerSocket.close();
-        }
-        catch (IOException ignored)
-        {
-        }
+    public void close() throws IOException {
 
-        synchronized (this.connections)
-        {
-            for (final var connection : this.connections)
-            {
-                try
-                {
-                    connection.tcpSocket.close();
-                }
-                catch (Exception ignored)
-                {
+        synchronized (this.connections) {
+            for (final var connection : this.connections) {
+                try {
+                    //TODO send message confirming the disconnection
+
+
+
+                } catch (Exception ignored) {
                 }
             }
         }
+
+        this.udpServerSocket.close();
     }
 }
 
 /* -------------------------------------------------------------------------- */
+

@@ -95,8 +95,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the input stream for this side of this connection
      */
-    public InputStream getInputStream()
-    {
+    public InputStream getInputStream() {
         return this.inputStream;
     }
 
