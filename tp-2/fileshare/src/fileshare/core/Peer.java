@@ -166,12 +166,6 @@ public class Peer implements AutoCloseable
             synchronized (this.servingThreads)
             {
                 this.servingThreads.forEach(Util::uninterruptibleJoin);
-            }
-
-            // clear serving thread list
-
-            synchronized (this.servingThreads)
-            {
                 this.servingThreads.clear();
             }
 
@@ -237,16 +231,6 @@ public class Peer implements AutoCloseable
                 sendJobStateUpdate.run();
                 Util.sleepUntilElapsedOrInterrupted(JOB_STATE_UPDATE_DELAY);
             }
-        }
-        catch (Throwable t)
-        {
-            // interrupt job threads
-
-            jobThreads.forEach(Thread::interrupt);
-
-            // rethrow
-
-            throw t;
         }
         finally
         {
