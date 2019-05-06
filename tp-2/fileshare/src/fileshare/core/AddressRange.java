@@ -2,6 +2,7 @@
 
 package fileshare.core;
 
+import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
@@ -55,6 +56,17 @@ public class AddressRange
             .toParams();
 
         final var addressString = new IPAddressString(cidrNotation, params);
+
+        try
+        {
+            addressString.validate();
+        }
+        catch (AddressStringException e)
+        {
+            throw new IllegalArgumentException(
+                String.format("Invalid address range \"%s\".", cidrNotation)
+            );
+        }
 
         return new AddressRange(addressString);
     }

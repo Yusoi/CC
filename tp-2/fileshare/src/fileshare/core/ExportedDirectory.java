@@ -100,7 +100,11 @@ public class ExportedDirectory
         Objects.requireNonNull(path);
 
         if (path.isAbsolute())
-            throw new IllegalArgumentException("Path must be relative.");
+        {
+            throw new IllegalArgumentException(
+                String.format("Path \"%s\" is not relative.", path)
+            );
+        }
 
         // resolve file path
 
@@ -114,7 +118,10 @@ public class ExportedDirectory
         if (!resolvedFilePath.startsWith(this.resolvedDirectoryPath))
         {
             throw new IllegalArgumentException(
-                "Path is outside the exported directory."
+                String.format(
+                    "Path \"%s\" points to outside the exported directory.",
+                    path
+                )
                 );
         }
 
@@ -123,12 +130,23 @@ public class ExportedDirectory
         if (Files.exists(resolvedFilePath))
         {
             if (!Files.isRegularFile(resolvedFilePath))
-                throw new FileNotFoundException("Not a regular file.");
+            {
+                throw new FileNotFoundException(
+                    String.format(
+                        "Path \"%s\" does not point to a regular file.",
+                        path
+                    )
+                );
+            }
         }
         else
         {
             if (mustExist)
-                throw new FileNotFoundException("File does not exist");
+            {
+                throw new FileNotFoundException(
+                    String.format("Path \"%s\" does not exist.", path)
+                );
+            }
         }
 
         // return resolved file path
@@ -304,7 +322,11 @@ public class ExportedDirectory
                 );
 
             if (lockValue == -1)
-                throw new IllegalStateException("already locked for writing");
+            {
+                throw new IllegalStateException(
+                    "File is already locked for writing."
+                );
+            }
 
             this.fileLocks.put(resolvedFilePath, lockValue + 1);
         }
@@ -328,7 +350,7 @@ public class ExportedDirectory
         synchronized (this.fileLocks)
         {
             if (this.fileLocks.containsKey(resolvedFilePath))
-                throw new IllegalStateException("already locked");
+                throw new IllegalStateException("File is already locked.");
 
             this.fileLocks.put(resolvedFilePath, -1);
         }
