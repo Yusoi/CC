@@ -3,12 +3,10 @@
 package fileshare;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
-import java.util.function.BiConsumer;
 import java.util.function.LongConsumer;
 
 /* -------------------------------------------------------------------------- */
@@ -19,14 +17,18 @@ import java.util.function.LongConsumer;
 public final class Util
 {
     /**
-     * TODO: document
+     * Throws a {@link RuntimeException} with the specified string as its
+     * message, if the string is not empty.
      *
-     * @param message TODO: document
+     * @param message the exception message
      *
-     * @throws RuntimeException TODO: document
+     * @throws NullPointerException if {@code message} is {@code null}
+     * @throws RuntimeException if message is not empty
      */
     public static void throwIfNotEmpty(String message)
     {
+        Objects.requireNonNull(message);
+
         if (!message.isEmpty())
             throw new RuntimeException(message);
     }
@@ -76,16 +78,21 @@ public final class Util
     }
 
     /**
-     * TODO: document
+     * Transfers data from a file channel to a writable channel.
      *
-     * @param input TODO: document
-     * @param inputPosition TODO: document
-     * @param inputSize TODO: document
-     * @param output TODO: document
-     * @param onBytesTransferred TODO: document
+     * If {@code onBytesTransferred} is not {@code null}, it is invoked
+     * periodically with the amount of bytes transferred since the last time it
+     * was invoked.
+     *
+     * @param input the source file channel channel
+     * @param inputPosition the offset in the file at which to read the data
+     * @param inputSize the number of bytes to be transferred
+     * @param output the destination writable channel
+     * @param onBytesTransferred callback invoked when bytes are transferred
      *
      * @throws NullPointerException if {@code input} or {@code output} are
      *         {@code null}
+     * @throws IOException if an I/O error occurs
      */
     public static void transferFromFile(
         FileChannel input,
@@ -95,6 +102,9 @@ public final class Util
         LongConsumer onBytesTransferred
     ) throws IOException
     {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(output);
+
         long transferredTotal = 0;
 
         while (transferredTotal < inputSize)
@@ -123,16 +133,21 @@ public final class Util
     }
 
     /**
-     * TODO: document
+     * Transfers data from a readable channel to a file channel.
      *
-     * @param input TODO: document
-     * @param output TODO: document
-     * @param outputPosition TODO: document
-     * @param outputSize TODO: document
-     * @param onBytesTransferred TODO: document
+     * If {@code onBytesTransferred} is not {@code null}, it is invoked
+     * periodically with the amount of bytes transferred since the last time it
+     * was invoked.
+     *
+     * @param input the source readable channel
+     * @param output the destination file channel
+     * @param outputPosition the offset in the file at which to write the data
+     * @param outputSize the number of bytes to be transferred
+     * @param onBytesTransferred callback invoked when bytes are transferred
      *
      * @throws NullPointerException if {@code input} or {@code output} are
      *         {@code null}
+     * @throws IOException if an I/O error occurs
      */
     public static void transferToFile(
         ReadableByteChannel input,
@@ -142,6 +157,9 @@ public final class Util
         LongConsumer onBytesTransferred
     ) throws IOException
     {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(output);
+
         long transferredTotal = 0;
 
         while (transferredTotal < outputSize)
@@ -167,89 +185,6 @@ public final class Util
             if (onBytesTransferred != null)
                 onBytesTransferred.accept(transferred);
         }
-    }
-
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Transfers data from one channel to another.
-     *
-     * onBytesTransferred is always called at least once.
-     *
-     * The final call to onBytesTransferred gives the throughput over the whole
-     * transfer (and may report 0 bytes).
-     *
-     * @param input
-     * @param output
-     * @param onBytesTransferred
-     * @return
-     *
-     * @throws IOException
-     */
-    public static long transfer(
-        ReadableByteChannel input,
-        WritableByteChannel output,
-        BiConsumer< Long, Long > onBytesTransferred
-        ) throws IOException
-    {
-        final int  BUFFER_SIZE   = 1  << 13;
-        final long PROGRESS_SIZE = 1L << 14;
-
-        final var buffer = ByteBuffer.allocate(BUFFER_SIZE);
-
-        long transferredTotal         = 0;
-        long transferredSinceProgress = 0;
-
-        final long startNanos  = System.nanoTime();
-        long lastProgressNanos = startNanos;
-
-        while (input.read(buffer) >= 0 || buffer.position() != 0)
-        {
-            buffer.flip();
-            final int written = output.write(buffer);
-            buffer.compact();
-
-            transferredTotal         += written;
-            transferredSinceProgress += written;
-
-            if (transferredSinceProgress >= PROGRESS_SIZE)
-            {
-                final long nowNanos = System.nanoTime();
-
-                onBytesTransferred.accept(
-                    transferredSinceProgress,
-                    (long) (transferredSinceProgress / ((nowNanos - lastProgressNanos) / 1_000_000_000d))
-                    );
-
-                transferredSinceProgress = 0;
-                lastProgressNanos        = nowNanos;
-            }
-        }
-
-        final long endNanos = System.nanoTime();
-
-        if (transferredSinceProgress > 0)
-        {
-            onBytesTransferred.accept(
-                transferredSinceProgress,
-                (long) (transferredSinceProgress / ((endNanos - lastProgressNanos) / 1_000_000_000d))
-                );
-        }
-
-        onBytesTransferred.accept(
-            0L,
-            (long) (transferredTotal / ((endNanos - startNanos) / 1_000_000_000d))
-            );
-
-        return transferredTotal;
     }
 
     // No point in ever instantiating this class.
