@@ -3,7 +3,6 @@
 package fileshare.core;
 
 import fileshare.Util;
-import fileshare.transport.Endpoint;
 import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
