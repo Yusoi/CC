@@ -39,6 +39,7 @@ class PeerServeGetImpl
 
             output.writeLong(-1);
             output.writeUTF(e.getMessage());
+            output.flush();
 
             throw e;
         }
@@ -64,6 +65,8 @@ class PeerServeGetImpl
                 Channels.newChannel(output),
                 null
             );
+
+            output.flush();
         }
     }
 }

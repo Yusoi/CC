@@ -20,7 +20,7 @@ class PeerServePutImpl
         final var input = connection.getInput();
         final var output = connection.getOutput();
 
-        // get job info
+        // get local file path and size
 
         final var localFilePath = Path.of(input.readUTF());
         final long fileSize = input.readLong();
@@ -38,22 +38,23 @@ class PeerServePutImpl
             // send error message
 
             output.writeUTF(e.getMessage());
+            output.flush();
 
             throw e;
         }
 
         try (localFile)
         {
-            // set file size
+            // set local file size
 
             localFile.setLength(fileSize);
 
-            // send success indication
+            // send success message
 
             output.writeUTF("");
             output.flush();
 
-            // receive file content
+            // receive and transfer file content to local file
 
             Util.transferToFile(
                 Channels.newChannel(input),
@@ -63,7 +64,7 @@ class PeerServePutImpl
                 null
             );
 
-            // commit changes
+            // commit changes to local file
 
             try
             {
@@ -74,14 +75,16 @@ class PeerServePutImpl
                 // send error message
 
                 output.writeUTF(e.getMessage());
+                output.flush();
 
                 throw e;
             }
         }
 
-        // send success indication
+        // send success message
 
         output.writeUTF("");
+        output.flush();
     }
 }
 
