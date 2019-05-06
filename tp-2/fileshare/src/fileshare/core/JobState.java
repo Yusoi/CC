@@ -149,12 +149,17 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Computes and returns the throughput attained by the data transfer since
+     * the last time this method was invoked (or since the data transfer began,
+     * if this method was not yet invoked).
      *
      * The overall throughput since the last time this method was invoked (and
      * until the job finished, if that happened).
      *
-     * @return TODO: document
+     * @return the data transfer throughput as defined above
+     *
+     * @throws IllegalStateException if the job's current phase is not {@link
+     *         Phase#STARTING} or {@link Phase#RUNNING}
      */
     public synchronized long getImmediateThroughput()
     {
@@ -188,12 +193,13 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Computes and returns the overall throughput attained by the data
+     * transfer.
      *
-     * The overall throughput since the transfer began (and until the job
-     * finished, if that happened).
+     * @return the overall data transfer throughput
      *
-     * @return TODO: document
+     * @throws IllegalStateException if the job's current phase is not {@link
+     *         Phase#SUCCEEDED}
      */
     public synchronized long getOverallThroughput()
     {
@@ -212,9 +218,12 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Returns a message describing the error that caused the job to fail.
      *
-     * @return TODO: document
+     * @return a message describing the error that caused the job to fail
+     *
+     * @throws IllegalStateException if the job's current phase is not {@link
+     *         Phase#FAILED}
      */
     public synchronized String getErrorMessage()
     {
@@ -225,9 +234,13 @@ public class JobState
     }
 
     /**
-     * Allowed on STARTING and leads to RUNNING.
+     * Sets the job's phase to {@link Phase#RUNNING}, indicating that the data
+     * transfer has begun.
      *
-     * @param totalBytes
+     * @param totalBytes the total number of bytes to be transferred
+     *
+     * @throws IllegalStateException if the job's current phase is not {@link
+     *         Phase#STARTING}
      */
     public synchronized void start(long totalBytes)
     {
@@ -256,11 +269,10 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Adds the specified value to the amount of bytes already transferred.
      *
-     * Allowed on any phase.
-     *
-     * @param bytes TODO: document
+     * @param bytes the value by which to increase the amount of bytes already
+     *        transferred
      *
      * @throws IllegalArgumentException if {@code bytes} is negative
      */
@@ -273,11 +285,14 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Sets the job's phase to {@link Phase#SUCCEEDED}, indicating that the data
+     * transfer has finished successfully.
      *
-     * Allowed on RUNNING, SUCCEEDED, and FAILED, and leads to SUCCEEDED.
+     * If the job's phase is {@link Phase#SUCCEEDED} or {@link Phase#FAILED},
+     * this method has no effect.
      *
-     * Does not replace previous SUCCEEDED or FAILED.
+     * @throws IllegalStateException if the job's current phase is {@link
+     *         Phase#STARTING}
      */
     public synchronized void succeed()
     {
@@ -294,26 +309,18 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Sets the job's phase to {@link Phase#FAILED}, indicating that the data
+     * transfer has failed.
      *
-     * Same as {@code fail(null, errorMessage)}.
+     * If the job's phase is {@link Phase#FAILED}, this method has no effect.
      *
-     * @param errorMessage TODO: document
-     */
-    public void fail(String errorMessage)
-    {
-        this.fail(null, errorMessage);
-    }
-
-    /**
-     * TODO: document
+     * @param peerEndpoint the endpoint of the peer that caused the error, or
+     *        {@code null} if not applicable
+     * @param errorMessage a message describing the error that caused the job to
+     *        fail, or {@code null} if no such message is available
      *
-     * Allowed on STARTING, RUNNING, and FAILED, and leads to FAILED.
-     *
-     * Does not replace previous error message, if any.
-     *
-     * @param peerEndpoint TODO: document
-     * @param errorMessage TODO: document
+     * @throws IllegalStateException if the job's current phase is {@link
+     *         Phase#SUCCEEDED}
      */
     public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
     {
@@ -322,13 +329,14 @@ public class JobState
 
         if (this.phase != Phase.FAILED)
         {
-            if (errorMessage == null)
-                errorMessage = "";
+            final String prefix =
+                (peerEndpoint == null) ?
+                    "" :
+                    peerEndpoint.toString() + ": ";
 
-            if (peerEndpoint == null)
-                this.errorMessage = errorMessage;
-            else
-                this.errorMessage = peerEndpoint.toString() + ": " + errorMessage;
+            final String message = (errorMessage == null) ? "" : errorMessage;
+
+            this.errorMessage = prefix + message;
 
             this.phase = Phase.FAILED;
         }

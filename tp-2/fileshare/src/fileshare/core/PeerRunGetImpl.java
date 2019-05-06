@@ -106,7 +106,7 @@ class PeerRunGetImpl
         {
             // update job state (if not previously failed)
 
-            state.fail(e.getMessage());
+            state.fail(null, e.getMessage());
 
             // close connections to peers
 
