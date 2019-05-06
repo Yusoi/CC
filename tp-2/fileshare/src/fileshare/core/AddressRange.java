@@ -40,7 +40,7 @@ public class AddressRange
      * @return the range specified by {@code cidrNotation}
      *
      * @throws NullPointerException if {@code cidrNotation} is {@code null}
-     * @throws IllegalArgumentException if {@¢ode cidrNotation} is not a valid
+     * @throws IllegalArgumentException if {@code cidrNotation} is not a valid
      *         CIDR-notation string
      */
     public static AddressRange parseCidrNotation(String cidrNotation)

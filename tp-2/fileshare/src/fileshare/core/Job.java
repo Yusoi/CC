@@ -18,14 +18,14 @@ import java.util.Objects;
 public class Job
 {
     private final JobType type;
-    private final List< Endpoint > remoteEndpoints;
+    private final List< Endpoint > peerEndpoints;
     private final Path localFilePath;
     private final Path remoteFilePath;
 
     /**
      * Constructs an instance of {@link Job}.
      *
-     * The manner in which the remotes specified by {@code remoteEndpoints} are
+     * The manner in which the remotes specified by {@code peerEndpoints} are
      * used depends on the job's type:
      *
      * <ul>
@@ -39,63 +39,48 @@ public class Job
      *   </li>
      * </ul>
      *
-     * @param type the job's type
-     * @param remoteEndpoints the remote endpoints to be used by the job
-     * @param localFilePath the local path of the file
-     * @param remoteFilePath the path of the file in the remotes
+     * @param type the type of the job
+     * @param peerEndpoints the endpoints of the peers to be used by the job
+     * @param localFilePath the local path of the job's file
+     * @param remoteFilePath the path of the job's file in the peers
      *
-     * @throws NullPointerException if type, remoteEndpoints, localFilePath, or
-     *         remoteFilePath are null
-     * @throws IllegalArgumentException if remoteEndpoints is empty
+     * @throws NullPointerException if {@code type}, {@code peerEndpoints},
+     *         {@code localFilePath}, or {@code remoteFilePath} are {@code null}
+     * @throws IllegalArgumentException if {@code peerEndpoints} is empty
      */
     public Job(
         JobType type,
-        List< Endpoint > remoteEndpoints,
+        List< Endpoint > peerEndpoints,
         Path localFilePath,
         Path remoteFilePath
         )
     {
         // validate arguments
 
-        Objects.requireNonNull(
-            type,
-            "type must not be null"
-            );
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(peerEndpoints);
+        Objects.requireNonNull(localFilePath);
+        Objects.requireNonNull(remoteFilePath);
 
-        Objects.requireNonNull(
-            remoteEndpoints,
-            "remoteEndpoints must not be null"
-            );
-
-        Objects.requireNonNull(
-            localFilePath,
-            "localFilePath must not be null"
-            );
-
-        Objects.requireNonNull(
-            remoteFilePath,
-            "remoteFilePath must not be null"
-            );
-
-        if (remoteEndpoints.size() == 0)
+        if (peerEndpoints.size() == 0)
         {
             throw new IllegalArgumentException(
-                "remoteEndpoints must not be empty"
+                "peerEndpoints must not be empty"
                 );
         }
 
         // initialize instance
 
-        this.type            = Objects.requireNonNull(type);
-        this.remoteEndpoints = new ArrayList<>(remoteEndpoints);
-        this.localFilePath   = Objects.requireNonNull(localFilePath);
-        this.remoteFilePath  = Objects.requireNonNull(remoteFilePath);
+        this.type = Objects.requireNonNull(type);
+        this.peerEndpoints = new ArrayList<>(peerEndpoints);
+        this.localFilePath = Objects.requireNonNull(localFilePath);
+        this.remoteFilePath = Objects.requireNonNull(remoteFilePath);
     }
 
     /**
-     * Returns the job type.
+     * Returns the type of this job.
      *
-     * @return the job type
+     * @return the type of this job
      */
     public JobType getType()
     {
@@ -103,19 +88,21 @@ public class Job
     }
 
     /**
-     * Returns an unmodifiable list of the remotes to be used by this job.
+     * Returns a list of the endpoints of the peers to be used by this job.
      *
-     * @return TODO: document
+     * The returned list is unmodifiable.
+     *
+     * @return a list of the endpoints of the peers to be used by this job
      */
     public List< Endpoint > getPeerEndpoints()
     {
-        return Collections.unmodifiableList(this.remoteEndpoints);
+        return Collections.unmodifiableList(this.peerEndpoints);
     }
 
     /**
-     * TODO: document
+     * Returns a path to this job's local file.
      *
-     * @return TODO: document
+     * @return a path to this job's local file
      */
     public Path getLocalFilePath()
     {
@@ -123,9 +110,9 @@ public class Job
     }
 
     /**
-     * TODO: document
+     * Returns a path to this job's file in the peers.
      *
-     * @return TODO: document
+     * @return a path to this job's file in the peers
      */
     public Path getRemoteFilePath()
     {
