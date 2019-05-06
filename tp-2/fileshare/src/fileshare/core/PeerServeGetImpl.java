@@ -21,7 +21,7 @@ class PeerServeGetImpl
         final var input = connection.getInput();
         final var output = connection.getOutput();
 
-        // get job info
+        // get local file path
 
         final var localFilePath = Path.of(input.readUTF());
 
@@ -45,17 +45,17 @@ class PeerServeGetImpl
 
         try (localFile)
         {
-            // write file size
+            // send file size
 
             output.writeLong(localFile.length());
             output.flush();
 
-            // get segment info
+            // receive segment position and size
 
             final long segmentPosition = input.readLong();
             final long segmentSize = input.readLong();
 
-            // send file content
+            // send segment content
 
             Util.transferFromFile(
                 localFile.getChannel(),

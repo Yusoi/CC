@@ -179,7 +179,7 @@ class PeerRunGetImpl
             final var input = connection.getInput();
             final var output = connection.getOutput();
 
-            // write segment position and size
+            // send segment position and size
 
             output.writeLong(segmentPosition);
             output.writeLong(segmentSize);

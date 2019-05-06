@@ -264,12 +264,18 @@ public class Peer implements AutoCloseable
         {
             while (true)
             {
+                // listen for connection attempts
+
                 final var connection = this.socket.listen(
                     ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
                 );
 
+                // finish listening thread if local socket was closed
+
                 if (connection == null)
-                    return; // peer is being closed
+                    return;
+
+                // create serving thread
 
                 try
                 {
@@ -277,10 +283,14 @@ public class Peer implements AutoCloseable
                         () -> this.serveJob(connection)
                     );
 
+                    // add thread to serving thread list
+
                     synchronized (this.servingThreads)
                     {
                         this.servingThreads.add(thread);
                     }
+
+                    // start serving thread
 
                     thread.start();
                 }
@@ -301,7 +311,7 @@ public class Peer implements AutoCloseable
     {
         try (connection)
         {
-            // get job type
+            // receive job type
 
             final byte jobType = connection.getInput().readByte();
 
@@ -326,7 +336,8 @@ public class Peer implements AutoCloseable
 
         synchronized (this.servingThreads)
         {
-            this.servingThreads.remove(Thread.currentThread());
+            if (!this.servingThreads.remove(Thread.currentThread()))
+                throw new RuntimeException();
         }
     }
 }
