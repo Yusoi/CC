@@ -263,11 +263,13 @@ public class JobState
     /**
      * TODO: document
      *
-     * Allowed on RUNNING and SUCCEEDED, and leads to SUCCEEDED.
+     * Allowed on RUNNING, SUCCEEDED, and FAILED, and leads to SUCCEEDED.
+     *
+     * Does not replace previous SUCCEEDED or FAILED.
      */
     public synchronized void succeed()
     {
-        if (this.phase != Phase.RUNNING && this.phase != Phase.SUCCEEDED)
+        if (this.phase == Phase.STARTING)
             throw new IllegalStateException("job has not yet started");
 
         if (this.phase == Phase.RUNNING)
@@ -294,7 +296,7 @@ public class JobState
     /**
      * TODO: document
      *
-     * Allowed on RUNNING and FAILED, and leads to FAILED.
+     * Allowed on STARTING, RUNNING, and FAILED, and leads to FAILED.
      *
      * Does not replace previous error message, if any.
      *
@@ -307,12 +309,12 @@ public class JobState
     {
         Objects.requireNonNull(errorMessage);
 
-        if (this.phase != Phase.RUNNING && this.phase != Phase.FAILED)
-            throw new IllegalStateException();
+        if (this.phase == Phase.SUCCEEDED)
+            throw new IllegalStateException("job has succeeded");
 
-        if (this.phase == Phase.RUNNING)
+        if (this.phase != Phase.FAILED)
         {
-            if (peerEndpoint != null)
+            if (peerEndpoint == null)
                 this.errorMessage = errorMessage;
             else
                 this.errorMessage = peerEndpoint.toString() + ": " + errorMessage;
