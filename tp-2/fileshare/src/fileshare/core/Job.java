@@ -23,19 +23,19 @@ public class Job
     private final Path remoteFilePath;
 
     /**
-     * Constructs an instance of {@link Job}.
+     * Creates a {@code Job}.
      *
-     * The manner in which the remotes specified by {@code peerEndpoints} are
-     * used depends on the job's type:
+     * The manner in which the peers specified by {@code peerEndpoints} are used
+     * depends on the job's type:
      *
      * <ul>
      *   <li>
      *     If {@code type} is {@link JobType#GET}, the job will download a file
-     *     by obtaining separate sections from each of the specified remotes.
+     *     by obtaining separate segments from each of the specified peers.
      *   </li>
      *   <li>
      *     If {@code type} is {@link JobType#PUT}, the job will upload a file to
-     *     each of the specified remotes.
+     *     each of the specified peers.
      *   </li>
      * </ul>
      *
@@ -71,10 +71,10 @@ public class Job
 
         // initialize instance
 
-        this.type = Objects.requireNonNull(type);
+        this.type = type;
         this.peerEndpoints = new ArrayList<>(peerEndpoints);
-        this.localFilePath = Objects.requireNonNull(localFilePath);
-        this.remoteFilePath = Objects.requireNonNull(remoteFilePath);
+        this.localFilePath = localFilePath;
+        this.remoteFilePath = remoteFilePath;
     }
 
     /**
