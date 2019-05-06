@@ -91,6 +91,14 @@ class PeerRunGetImpl
 
                     thread.start();
                 }
+
+                // wait for subjob threads to die
+
+                subjobThreads.forEach(Util::uninterruptibleJoin);
+
+                // commit changes to file
+
+                localFile.commitAndClose();
             }
         }
         catch (Exception e)

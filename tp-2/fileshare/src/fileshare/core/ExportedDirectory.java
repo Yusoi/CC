@@ -107,7 +107,6 @@ public class ExportedDirectory
         final var resolvedFilePath =
             this.resolvedDirectoryPath
             .resolve(path)
-            .toRealPath()
             .normalize();
 
         // ensure path is bellow exported directory

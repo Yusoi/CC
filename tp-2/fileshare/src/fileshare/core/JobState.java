@@ -302,18 +302,17 @@ public class JobState
      *
      * @param peerEndpoint TODO: document
      * @param errorMessage TODO: document
-     *
-     * @throws NullPointerException if {@code errorMessage} is {@code null}
      */
     public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
     {
-        Objects.requireNonNull(errorMessage);
-
         if (this.phase == Phase.SUCCEEDED)
             throw new IllegalStateException("job has succeeded");
 
         if (this.phase != Phase.FAILED)
         {
+            if (errorMessage == null)
+                errorMessage = "";
+
             if (peerEndpoint == null)
                 this.errorMessage = errorMessage;
             else
