@@ -137,6 +137,7 @@ public class ReliableSocket implements AutoCloseable
                     if (accept.test(remoteEndpoint))
                     {
                         tcpSocket.getOutputStream().write(0);
+                        tcpSocket.getOutputStream().flush();
 
                         final var connection = new ReliableSocketConnection(
                             this,
