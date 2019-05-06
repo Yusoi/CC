@@ -99,15 +99,11 @@ public final class Util
 
         while (transferredTotal < inputSize)
         {
-            System.err.println(Math.min(inputSize - transferredTotal, 2147483647L));
-
             final long transferred = input.transferTo(
                 inputPosition + transferredTotal,
                 Math.min(inputSize - transferredTotal, 2147483647L),
                 output
             );
-
-            System.err.println(transferred);
 
             if (transferred <= 0)
             {
@@ -149,15 +145,11 @@ public final class Util
 
         while (transferredTotal < outputSize)
         {
-            System.err.println(Math.min(outputSize - transferredTotal, 2147483647L));
-
             final long transferred = output.transferFrom(
                 input,
                 outputPosition + transferredTotal,
                 Math.min(outputSize - transferredTotal, 2147483647L)
             );
-
-            System.err.println(transferred);
 
             if (transferred <= 0)
             {
