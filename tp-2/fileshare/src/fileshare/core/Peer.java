@@ -48,7 +48,7 @@ public class Peer implements AutoCloseable
      */
     public static final int DEFAULT_PORT = 7777;
 
-    private static final long JOB_STATE_UPDATE_DELAY = 200; // in milliseconds
+    private static final long JOB_STATE_UPDATE_DELAY = 500; // in milliseconds
 
     private State state;
 
@@ -155,19 +155,25 @@ public class Peer implements AutoCloseable
     {
         if (this.state == State.RUNNING)
         {
-            // interrupt listening and serving threads
+            // close socket
 
-            this.listenThread.interrupt();
-            this.servingThreads.forEach(Thread::interrupt);
+            this.socket.close();
 
             // join listening and serving threads
 
             Util.uninterruptibleJoin(this.listenThread);
-            this.servingThreads.forEach(Util::uninterruptibleJoin);
+
+            synchronized (this.servingThreads)
+            {
+                this.servingThreads.forEach(Util::uninterruptibleJoin);
+            }
 
             // clear serving thread list
 
-            this.servingThreads.clear();
+            synchronized (this.servingThreads)
+            {
+                this.servingThreads.clear();
+            }
 
             // update state
 
@@ -272,30 +278,30 @@ public class Peer implements AutoCloseable
     {
         try
         {
-            while (!Thread.interrupted())
+            final var connection = this.socket.listen(
+                ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
+                );
+
+            if (connection == null)
+                return; // peer is being closed
+
+            try
             {
-                final var connection = this.socket.listen(
-                    ep -> this.peerWhitelist.isWhitelisted(ep.getAddress())
-                    );
+                final var thread = new Thread(
+                    () -> this.serveJob(connection)
+                );
 
-                try
+                synchronized (this.servingThreads)
                 {
-                    final var thread = new Thread(
-                        () -> this.serveJob(connection)
-                    );
-
-                    synchronized (this.servingThreads)
-                    {
-                        this.servingThreads.add(thread);
-                    }
-
-                    thread.start();
+                    this.servingThreads.add(thread);
                 }
-                catch (Throwable t)
-                {
-                    connection.close();
-                    throw t;
-                }
+
+                thread.start();
+            }
+            catch (Throwable t)
+            {
+                connection.close();
+                throw t;
             }
         }
         catch (IOException e)

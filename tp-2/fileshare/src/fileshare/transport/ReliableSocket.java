@@ -3,8 +3,10 @@
 package fileshare.transport;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,7 +113,19 @@ public class ReliableSocket implements AutoCloseable
         {
             while (true)
             {
-                final var tcpSocket = this.tcpServerSocket.accept();
+                final Socket tcpSocket;
+
+                try
+                {
+                    tcpSocket = this.tcpServerSocket.accept();
+                }
+                catch (SocketException e)
+                {
+                    if (this.tcpServerSocket.isClosed())
+                        return null; // close() was invoked
+                    else
+                        throw e;
+                }
 
                 try
                 {
@@ -182,13 +196,18 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint
         ) throws IOException
     {
-        final var tcpSocket = new Socket(
-            remoteEndpoint.getAddress(),
-            remoteEndpoint.getPort()
-            );
+        final var tcpSocket = new Socket();
 
         try
         {
+            tcpSocket.connect(
+                new InetSocketAddress(
+                    remoteEndpoint.getAddress(),
+                    remoteEndpoint.getPort()
+                ),
+                5000
+            );
+
             if (tcpSocket.getInputStream().read() == -1)
                 throw new IOException("Connection refused.");
         }
@@ -238,6 +257,7 @@ public class ReliableSocket implements AutoCloseable
      *
      * If this socket is already closed, this method has no effect.
      *
+     * (TODO: would simplify things if this didn't throw checked exceptions)
      * If this method fails, this socket and its associated connections will
      * nevertheless be left in a closed state.
      *
@@ -247,11 +267,15 @@ public class ReliableSocket implements AutoCloseable
      * the same instance will result in an exception).
      */
     @Override
-    public void close() throws IOException
+    public void close()
     {
-        // TODO: close connections
-
-        this.tcpServerSocket.close();
+        try
+        {
+            this.tcpServerSocket.close();
+        }
+        catch (IOException ignored)
+        {
+        }
 
         synchronized (this.connections)
         {
