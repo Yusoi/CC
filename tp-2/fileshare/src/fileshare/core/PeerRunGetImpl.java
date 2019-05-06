@@ -97,8 +97,6 @@ class PeerRunGetImpl
         {
             // update job state
 
-            state.fail(e.toString());
-
             state.fail(e.getMessage());
 
             // interrupt subjob threads
