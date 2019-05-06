@@ -10,34 +10,34 @@ import java.util.concurrent.atomic.AtomicLong;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Represents the state of an ongoing job.
  *
  * This class is thread-safe.
  */
 public class JobState
 {
     /**
-     * TODO: document
+     * Defines the possible phases of a job.
      */
     public enum Phase
     {
         /**
-         * TODO: document
+         * Data transfer has not yet begun.
          */
         STARTING,
 
         /**
-         * TODO: document
+         * Data transfer is in progress.
          */
         RUNNING,
 
         /**
-         * TODO: document
+         * The job finished successfully.
          */
         SUCCEEDED,
 
         /**
-         * TODO: document
+         * The job failed.
          */
         FAILED
     }
@@ -60,23 +60,30 @@ public class JobState
     private String errorMessage;
 
     /**
-     * TODO: document
+     * Creates a {@code JobState} in the {@link Phase#STARTING} phase.
      *
-     * @param job TODO: document
+     * @param job the job whose state the created {@code JobState} will
+     *        represent
      *
      * @throws NullPointerException if {@code job} is {@code null}
      */
     public JobState(Job job)
     {
+        // validate arguments
+
+        Objects.requireNonNull(job);
+
+        // initialize instance
+
         this.job = job;
         this.phase = Phase.STARTING;
         this.transferredBytes = new AtomicLong(0);
     }
 
     /**
-     * TODO: document
+     * Returns the job whose state this {@code JobState} represents.
      *
-     * @return TODO: document
+     * @return the job whose state this {@code JobState} represents
      */
     public Job getJob()
     {
@@ -84,9 +91,9 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Returns the phase in which the job currently is.
      *
-     * @return TODO: document
+     * @return the phase in which the job currently is
      */
     public synchronized Phase getPhase()
     {
@@ -94,9 +101,12 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Checks whether the job has finished (successfully or not).
      *
-     * @return TODO: document
+     * A job has finished if its phase is either {@link Phase#SUCCEEDED} or
+     * {@link Phase#FAILED}.
+     *
+     * @return whether the job has finished
      */
     public boolean hasFinished()
     {
@@ -104,11 +114,13 @@ public class JobState
     }
 
     /**
-     * TODO: document
+     * Returns the percentage of data transferred so far, relative to the total
+     * amount of data to be transferred.
      *
-     * Allowed on STARTING, RUNNING, and SUCCEEDED.
+     * @return the percentage of data transferred so far
      *
-     * @return TODO: document
+     * @throws IllegalStateException if the job's current phase is {@link
+     *         Phase#FAILED}
      */
     public synchronized int getProgressPercentage()
     {

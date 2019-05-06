@@ -14,6 +14,8 @@ import java.util.Objects;
 
 /**
  * Describes a job.
+ *
+ * Instances of this class are immutable.
  */
 public class Job
 {
