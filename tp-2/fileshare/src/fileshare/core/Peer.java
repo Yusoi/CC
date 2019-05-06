@@ -48,7 +48,7 @@ public class Peer implements AutoCloseable
      */
     public static final int DEFAULT_PORT = 7777;
 
-    private static final long JOB_STATE_UPDATE_DELAY = 500; // in milliseconds
+    private static final long JOB_STATE_UPDATE_DELAY = 100; // in milliseconds
 
     private State state;
 

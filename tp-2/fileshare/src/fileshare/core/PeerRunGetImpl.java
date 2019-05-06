@@ -6,7 +6,6 @@ import fileshare.Util;
 import fileshare.transport.ReliableSocket;
 import fileshare.transport.ReliableSocketConnection;
 
-import javax.swing.text.TabableView;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
