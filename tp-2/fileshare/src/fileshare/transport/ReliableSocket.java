@@ -3,6 +3,7 @@
 package fileshare.transport;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,10 +23,8 @@ import java.util.function.Predicate;
  */
 public class ReliableSocket implements AutoCloseable
 {
-    private final ServerSocket tcpServerSocket;
+    private final DatagramSocket udpSocket;
     private final AtomicBoolean isListening;
-
-    final List< ReliableSocketConnection > connections;
 
     /**
      * Creates a {@code ReliableSocket} on the specified local UDP port.
@@ -47,10 +46,8 @@ public class ReliableSocket implements AutoCloseable
 
         // initialize instance
 
-        this.tcpServerSocket = new ServerSocket(localPort);
+        this.udpSocket = new DatagramSocket(localPort);
         this.isListening = new AtomicBoolean(false);
-
-        this.connections = new ArrayList<>();
     }
 
     /**
@@ -65,7 +62,7 @@ public class ReliableSocket implements AutoCloseable
      */
     public int getLocalPort()
     {
-        return this.tcpServerSocket.getLocalPort();
+        return this.udpSocket.getLocalPort();
     }
 
     /**
