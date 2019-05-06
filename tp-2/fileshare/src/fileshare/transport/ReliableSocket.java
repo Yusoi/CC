@@ -210,7 +210,11 @@ public class ReliableSocket implements AutoCloseable
             );
 
             if (tcpSocket.getInputStream().read() == -1)
-                throw new IOException("Connection refused.");
+            {
+                throw new IOException(
+                    "The remote did not accept the connection."
+                );
+            }
         }
         catch (Throwable t)
         {

@@ -24,7 +24,7 @@ class PeerRunGetImpl
     )
     {
         final var connections = new ArrayList< ReliableSocketConnection >();
-        final var subjobThreads = new ArrayList< Thread >();
+        final var segmentThreads = new ArrayList< Thread >();
 
         try
         {
@@ -52,7 +52,7 @@ class PeerRunGetImpl
                 state.getJob().getLocalFilePath()
             ))
             {
-                // set file size
+                // set local file size
 
                 localFile.setLength(fileSize);
 
@@ -77,7 +77,7 @@ class PeerRunGetImpl
 
                     currentPosition += thisSegmentSize;
 
-                    // launch subjob thread
+                    // launch segment thread
 
                     final var thread = new Thread(() -> readSegment(
                         state,
@@ -87,16 +87,16 @@ class PeerRunGetImpl
                         thisSegmentSize
                     ));
 
-                    subjobThreads.add(thread);
+                    segmentThreads.add(thread);
 
                     thread.start();
                 }
 
-                // wait for subjob threads to die
+                // wait for segment threads to finish
 
-                subjobThreads.forEach(Util::uninterruptibleJoin);
+                segmentThreads.forEach(Util::uninterruptibleJoin);
 
-                // commit changes to file
+                // commit changes to file (if no segment thread failed)
 
                 if (state.getPhase() != JobState.Phase.FAILED)
                     localFile.commitAndClose();
@@ -104,25 +104,25 @@ class PeerRunGetImpl
         }
         catch (Exception e)
         {
-            // update job state
+            // update job state (if not previously failed)
 
             state.fail(e.getMessage());
 
-            // interrupt subjob threads
+            // close connections to peers
 
-            subjobThreads.forEach(Thread::interrupt);
+            connections.forEach(ReliableSocketConnection::close);
         }
         finally
         {
-            // wait for subjob threads to die
+            // wait for segment threads to finish
 
-            subjobThreads.forEach(Util::uninterruptibleJoin);
+            segmentThreads.forEach(Util::uninterruptibleJoin);
 
             // close connections to peers
 
             connections.forEach(ReliableSocketConnection::close);
 
-            // update job state
+            // update job state (if not previously failed)
 
             state.succeed();
         }
@@ -140,7 +140,7 @@ class PeerRunGetImpl
             final var input = connection.getInput();
             final var output = connection.getOutput();
 
-            // send job info
+            // send job type and remote file path
 
             output.writeByte(0);
             output.writeUTF(remoteFilePath.toString());
@@ -153,13 +153,15 @@ class PeerRunGetImpl
             if (fileSize < 0)
                 throw new RuntimeException(input.readUTF());
 
-            // check file size
+            // check if peer disagrees on file size
 
             if (lastFileSize < 0)
                 lastFileSize = fileSize;
             else if (fileSize != lastFileSize)
                 throw new RuntimeException("Peers disagree on file size.");
         }
+
+        // peers agree on file size, return file size
 
         return lastFileSize;
     }
@@ -177,13 +179,13 @@ class PeerRunGetImpl
             final var input = connection.getInput();
             final var output = connection.getOutput();
 
-            // write segment info
+            // write segment position and size
 
             output.writeLong(segmentPosition);
             output.writeLong(segmentSize);
             output.flush();
 
-            // receive file segment content
+            // receive and transfer segment content to local file
 
             Util.transferToFile(
                 Channels.newChannel(input),
@@ -195,7 +197,7 @@ class PeerRunGetImpl
         }
         catch (Exception e)
         {
-            // update job state
+            // update job state (if not previously failed)
 
             state.fail(connection.getRemoteEndpoint(), e.getMessage());
         }
