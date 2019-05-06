@@ -95,10 +95,34 @@ public final class Util
         LongConsumer onBytesTransferred
     ) throws IOException
     {
-        if (input.transferTo(inputPosition, inputSize, output) != inputSize)
-            throw new IOException(":/");
+        long transferredTotal = 0;
 
-        onBytesTransferred.accept(inputSize);
+        while (transferredTotal < inputSize)
+        {
+            System.err.println(Math.min(inputSize - transferredTotal, 2147483647L));
+
+            final long transferred = input.transferTo(
+                inputPosition + transferredTotal,
+                Math.min(inputSize - transferredTotal, 2147483647L),
+                output
+            );
+
+            System.err.println(transferred);
+
+            if (transferred <= 0)
+            {
+                throw new IOException(
+                    String.format(
+                        "Only transferred %d of %d bytes.",
+                        transferredTotal, inputSize
+                    )
+                );
+            }
+
+            transferredTotal += transferred;
+
+            onBytesTransferred.accept(transferred);
+        }
     }
 
     /**
@@ -121,10 +145,34 @@ public final class Util
         LongConsumer onBytesTransferred
     ) throws IOException
     {
-        if (output.transferFrom(input, outputPosition, outputSize) != outputSize)
-            throw new IOException(":/");
+        long transferredTotal = 0;
 
-        onBytesTransferred.accept(outputSize);
+        while (transferredTotal < outputSize)
+        {
+            System.err.println(Math.min(outputSize - transferredTotal, 2147483647L));
+
+            final long transferred = output.transferFrom(
+                input,
+                outputPosition + transferredTotal,
+                Math.min(outputSize - transferredTotal, 2147483647L)
+            );
+
+            System.err.println(transferred);
+
+            if (transferred <= 0)
+            {
+                throw new IOException(
+                    String.format(
+                        "Only transferred %d of %d bytes.",
+                        transferredTotal, outputSize
+                    )
+                );
+            }
+
+            transferredTotal += transferred;
+
+            onBytesTransferred.accept(transferred);
+        }
     }
 
 
