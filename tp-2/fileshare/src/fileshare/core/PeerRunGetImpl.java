@@ -46,6 +46,9 @@ class PeerRunGetImpl
 
             final long maxSegmentSize = (fileSize + numPeers - 1) / numPeers;
 
+            System.err.println(fileSize);
+            System.err.println(maxSegmentSize);
+
             // open local file
 
             try (final var localFile = exportedDirectory.openFileForWriting(

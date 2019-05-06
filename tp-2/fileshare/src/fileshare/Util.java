@@ -101,7 +101,7 @@ public final class Util
         {
             final long transferred = input.transferTo(
                 inputPosition + transferredTotal,
-                Math.min(inputSize - transferredTotal, 2147483647L),
+                inputSize - transferredTotal,
                 output
             );
 
@@ -148,7 +148,7 @@ public final class Util
             final long transferred = output.transferFrom(
                 input,
                 outputPosition + transferredTotal,
-                Math.min(outputSize - transferredTotal, 2147483647L)
+                outputSize - transferredTotal
             );
 
             if (transferred <= 0)
