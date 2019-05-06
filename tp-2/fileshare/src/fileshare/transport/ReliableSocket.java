@@ -2,16 +2,24 @@
 
 package fileshare.transport;
 
+import javax.xml.crypto.Data;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.zip.CRC32;
 
 /* -------------------------------------------------------------------------- */
 
@@ -24,7 +32,10 @@ import java.util.function.Predicate;
 public class ReliableSocket implements AutoCloseable
 {
     private final DatagramSocket udpSocket;
+
     private final AtomicBoolean isListening;
+
+    private final Thread receiverThread;
 
     /**
      * Creates a {@code ReliableSocket} on the specified local UDP port.
@@ -47,7 +58,10 @@ public class ReliableSocket implements AutoCloseable
         // initialize instance
 
         this.udpSocket = new DatagramSocket(localPort);
+
         this.isListening = new AtomicBoolean(false);
+
+        this.receiverThread = new Thread(this::receiver);
     }
 
     /**
@@ -108,6 +122,8 @@ public class ReliableSocket implements AutoCloseable
 
         try
         {
+            // TODO: implement
+
             while (true)
             {
                 final Socket tcpSocket;
@@ -194,6 +210,8 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint
         ) throws IOException
     {
+        // TODO: implement
+
         final var tcpSocket = new Socket();
 
         try
@@ -241,7 +259,9 @@ public class ReliableSocket implements AutoCloseable
      */
     public boolean isClosed()
     {
-        return this.tcpServerSocket.isClosed();
+        // TODO: implement
+
+        return this.udpSocket.isClosed();
     }
 
     /**
@@ -271,6 +291,8 @@ public class ReliableSocket implements AutoCloseable
     @Override
     public void close()
     {
+        // TODO: implement
+
         try
         {
             this.tcpServerSocket.close();
@@ -291,6 +313,62 @@ public class ReliableSocket implements AutoCloseable
                 {
                 }
             }
+        }
+    }
+
+    private void receiver()
+    {
+        try
+        {
+            final Executor executor = Executors.newCachedThreadPool();
+
+            final DatagramPacket packet = new DatagramPacket(
+                new byte[ReliableSocketConfig.MAX_PACKET_SIZE],
+                ReliableSocketConfig.MAX_PACKET_SIZE
+            );
+
+            while (true)
+            {
+                this.udpSocket.receive(packet);
+
+                final var packetDataCopy = Arrays.copyOfRange(
+                    packet.getData(),
+                    packet.getOffset(),
+                    packet.getOffset() + packet.getLength()
+                );
+
+                executor.execute(() -> this.processPacket(packetDataCopy));
+            }
+        }
+        catch (Exception e)
+        {
+            // TODO: implement
+        }
+    }
+
+    private void processPacket(byte[] packetData)
+    {
+        try
+        {
+            final var packetInput = new DataInputStream(
+                new ByteArrayInputStream(packetData)
+            );
+
+            // verify integrity
+
+            final var checksum = ReliableSocketConfig.CHECKSUM.get();
+            checksum.update(packetData, 4, packetData.length - 4);
+
+            final long receivedChecksum = (long) packetInput.readInt();
+            final long computedChecksum = checksum.getValue();
+
+            if (receivedChecksum != computedChecksum)
+                return; // packet is corrupt
+
+            // TODO: implement
+        }
+        catch (Exception ignored)
+        {
         }
     }
 }
