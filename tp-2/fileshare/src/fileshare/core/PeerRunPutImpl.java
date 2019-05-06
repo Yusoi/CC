@@ -5,6 +5,7 @@ package fileshare.core;
 import fileshare.Util;
 import fileshare.transport.Endpoint;
 import fileshare.transport.ReliableSocket;
+import fileshare.transport.ReliableSocketConnection;
 
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
@@ -20,7 +21,8 @@ class PeerRunPutImpl
         ExportedDirectory exportedDirectory
     )
     {
-        final var subjobThreads = new ArrayList< Thread >();
+        final var connections = new ArrayList< ReliableSocketConnection >();
+        final var peerThreads = new ArrayList< Thread >();
 
         // open local file
 
@@ -28,6 +30,11 @@ class PeerRunPutImpl
             state.getJob().getLocalFilePath()
         ))
         {
+            // connect to peers
+
+            for (final var peerEndpoint : state.getJob().getPeerEndpoints())
+                connections.add(socket.connect(peerEndpoint));
+
             // update job state
 
             state.start(
@@ -35,39 +42,42 @@ class PeerRunPutImpl
                     state.getJob().getPeerEndpoints().size()
             );
 
-            // concurrently put file to peers
+            // concurrently send file to peers
 
-            for (final var peerEndpoint : state.getJob().getPeerEndpoints())
+            for (final var connection : connections)
             {
                 final var thread = new Thread(() -> runSub(
                     state,
-                    socket,
-                    peerEndpoint,
+                    connection,
                     localFile
                 ));
 
-                subjobThreads.add(thread);
+                peerThreads.add(thread);
 
                 thread.start();
             }
         }
         catch (Exception e)
         {
-            // update job state
+            // update job state (if not previously failed)
 
             state.fail(e.getMessage());
 
-            // interrupt subjob threads
+            // close connections to peers
 
-            subjobThreads.forEach(Thread::interrupt);
+            connections.forEach(ReliableSocketConnection::close);
         }
         finally
         {
-            // wait for subjob threads to die
+            // wait for segment threads to finish
 
-            subjobThreads.forEach(Util::uninterruptibleJoin);
+            peerThreads.forEach(Util::uninterruptibleJoin);
 
-            // update job state
+            // close connections to peers
+
+            connections.forEach(ReliableSocketConnection::close);
+
+            // update job state (if not previously failed)
 
             state.succeed();
         }
@@ -75,19 +85,16 @@ class PeerRunPutImpl
 
     private static void runSub(
         JobState state,
-        ReliableSocket socket,
-        Endpoint peerEndpoint,
+        ReliableSocketConnection connection,
         RandomAccessFile localFile
     )
     {
-        // connect to peer
-
-        try (final var connection = socket.connect(peerEndpoint))
+        try
         {
             final var input = connection.getInput();
             final var output = connection.getOutput();
 
-            // send subjob info
+            // send job type and remote file path and size
 
             output.writeByte(1);
             output.writeUTF(state.getJob().getRemoteFilePath().toString());
@@ -116,9 +123,9 @@ class PeerRunPutImpl
         }
         catch (Exception e)
         {
-            // update job state
+            // update job state (if not previously failed)
 
-            state.fail(peerEndpoint, e.getMessage());
+            state.fail(connection.getRemoteEndpoint(), e.getMessage());
         }
     }
 }

@@ -60,7 +60,7 @@ class PeerRunGetImpl
 
                 state.start(fileSize);
 
-                // concurrently get file segments from peers
+                // concurrently receive file segments from peers
 
                 long currentPosition = 0;
 
