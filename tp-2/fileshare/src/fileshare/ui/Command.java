@@ -306,10 +306,17 @@ public abstract class Command
         public void run(Interpreter interpreter, Matcher matcher)
             throws Exception
         {
-            if (!interpreter.getConcurrentJobs().isEmpty())
-                runJobs(interpreter, interpreter.getConcurrentJobs());
-
-            interpreter.leaveConcurrentMode();
+            try
+            {
+                if (interpreter.getConcurrentJobs().isEmpty())
+                    throw new IllegalArgumentException("No jobs specified.");
+                else
+                    runJobs(interpreter, interpreter.getConcurrentJobs());
+            }
+            finally
+            {
+                interpreter.leaveConcurrentMode();
+            }
         }
     }
 

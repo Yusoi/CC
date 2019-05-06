@@ -10,35 +10,36 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Represents a local FileShare peer.
  *
  * This class is thread-safe.
  */
 public class Peer implements AutoCloseable
 {
     /**
-     * TODO: document
+     * Defines the possible states of a peer.
      */
     public enum State
     {
         /**
-         * TODO: document
+         * The peer was not yet started.
          */
         CREATED,
 
         /**
-         * TODO: document
+         * The peer has been started and is running.
          */
         RUNNING,
 
         /**
-         * TODO: document
+         * The peer has been closed.
          */
         CLOSED
     }
@@ -60,13 +61,17 @@ public class Peer implements AutoCloseable
     private final List< Thread > servingThreads;
 
     /**
-     * TODO: document
+     * Initializes a local FileShare peer.
      *
-     * @param localPort the local UDP port
-     * @param exportedDirectoryPath TODO: document
+     * @param localPort the peer's local UDP port
+     * @param exportedDirectoryPath a path to the local directory to be exported
+     *        by the peer
      *
-     * @throws IllegalArgumentException if localPort is non-positive
-     * @throws NullPointerException if exportedDirectoryPath is null
+     * @throws IllegalArgumentException if {@code localPort} is not a valid UDP
+     *         port number
+     * @throws NullPointerException if {@code exportedDirectoryPath} is {@code
+     *         null}
+     * @throws IOException if an I/O error occurs
      */
     public Peer(int localPort, Path exportedDirectoryPath) throws IOException
     {
@@ -81,9 +86,9 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * Returns the peer's current state.
+     * Returns the current state of this peer.
      *
-     * @return the peer's current state
+     * @return the current state of this peer
      */
     public synchronized State getState()
     {
@@ -91,9 +96,9 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the local UDP port used by this peer.
      *
-     * @return TODO: document
+     * @return the local UDP port used by this peer
      */
     public int getLocalPort()
     {
@@ -101,9 +106,9 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns a path to the local directory exported by this peer.
      *
-     * @return TODO: document
+     * @return a path to the local directory exported by this peer
      */
     public Path getExportedDirectoryPath()
     {
@@ -111,9 +116,9 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the addresses whitelist of peersthat may connect to this peer.
      *
-     * @return TODO: document
+     * @return the addresses whitelist of peersthat may connect to this peer
      */
     public AddressWhitelist getPeerWhitelist()
     {
@@ -121,9 +126,10 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Starts this peer, setting its state to {@link State#RUNNING}.
      *
-     * Error if the peer is already running or if it was already closed.
+     * @throws IllegalStateException if this peer is not in state {@link
+     *         State#CREATED}
      */
     public synchronized void start()
     {
@@ -145,10 +151,9 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Closes this peer, setting its state to {@link State#CLOSED}.
      *
-     * Calling this before the peer is started or when the peer is already
-     * closed does nothing.
+     * If this peer is in state {@link State#CLOSED}, this method has no effect.
      */
     @Override
     public synchronized void close()
@@ -173,25 +178,39 @@ public class Peer implements AutoCloseable
             }
 
             servingThreadsCopy.forEach(Util::uninterruptibleJoin);
-
-            // update state
-
-            this.state = State.CLOSED;
         }
+
+        // update state
+
+        this.state = State.CLOSED;
     }
 
     /**
-     * TODO: document
+     * Runs one or more jobs.
      *
-     * @param jobs TODO: document
-     * @param onJobStatesUpdated TODO: document
+     * The {@code onJobStatesUpdated} callback is invoked with a list of one job
+     * state for each of the jobs specified in {@code jobs}, in the same order.
+     *
+     * @param jobs a list of the jobs to be run
+     * @param onJobStatesUpdated callback invoked when the state of the jobs
+     *        being run is updated
+     *
+     * @throws NullPointerException if {@code jobs} or {@code
+     *         onJobStatesUpdated} are {@code null}
+     * @throws IllegalArgumentException if {@code jobs} is empty
      */
     public synchronized void runJobs(
         List< Job > jobs,
         Consumer< List< JobState > > onJobStatesUpdated
         )
     {
-        // validate state
+        // validate arguments and state
+
+        Objects.requireNonNull(jobs);
+        Objects.requireNonNull(onJobStatesUpdated);
+
+        if (jobs.size() == 0)
+            throw new IllegalArgumentException("jobs must not be empty");
 
         if (this.state != State.RUNNING)
             throw new IllegalStateException("Peer is not running.");
