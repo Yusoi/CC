@@ -210,10 +210,12 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
-        // the buffer is cyclic
+        private long receivedBytes = 0;
 
+        // the buffer is cyclic
         private final byte[] buffer = new byte[
-            Config.DATA_PAYLOAD_RECEIVE_WINDOW + Config.MAX_DATA_PAYLOAD_SIZE
+            Config.MAX_DATA_PAYLOAD_RECEIVE_WINDOW +
+                Config.MAX_DATA_PAYLOAD_SIZE
             ];
 
         private int bufferPosition = 0;
@@ -238,6 +240,8 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Output extends OutputStream
     {
+        private long sentBytes = 0;
+
         private final byte[] buffer = new byte[
             Config.MAX_DATA_PAYLOAD_SIZE
             ];
@@ -308,9 +312,9 @@ public class ReliableSocketConnection implements AutoCloseable
             if (this.bufferPosition == 0)
                 return;
 
-            // TODO: implement
+            // send DATA packet
 
-            dataSender.send(this.buffer, this.bufferPosition);
+            dataSender.send(this.buffer, 0, this.bufferPosition);
         }
     }
 }

@@ -81,7 +81,7 @@ class Config
     /**
      * In bytes.
      */
-    public static final int DATA_PAYLOAD_RECEIVE_WINDOW = 1 << 20;
+    public static final int MAX_DATA_PAYLOAD_RECEIVE_WINDOW = 1 << 20;
 
     // No point in ever instantiating this class.
     private Config()
