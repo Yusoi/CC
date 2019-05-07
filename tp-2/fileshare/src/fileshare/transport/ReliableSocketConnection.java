@@ -125,6 +125,8 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * The returned stream's {@link InputStream#close()} method has no effect.
      *
+     * Note that the returned stream is NOT thread-safe.
+     *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method.
      *
@@ -152,6 +154,8 @@ public class ReliableSocketConnection implements AutoCloseable
      * {@link #close()} is invoked on this instance.
      *
      * The returned stream's {@link OutputStream#close()} method has no effect.
+     *
+     * Note that the returned stream is NOT thread-safe.
      *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method.

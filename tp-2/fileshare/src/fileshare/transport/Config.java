@@ -38,8 +38,8 @@ class Config
     // connection establishment
 
     /**
-     * The amount of times that a CONN packet should be sent before failing if
-     * no response is received.
+     * How many times a CONN packet should be sent before failing if no response
+     * is received.
      */
     public static final int MAX_CONNECTION_ATTEMPTS = 5;
 
@@ -52,8 +52,8 @@ class Config
     // connection termination
 
     /**
-     * The amount of times that a DISC packet should be sent if no corresponding
-     * DISC-ACK packet is received.
+     * How many times a DISC packet should be sent if no corresponding DISC-ACK
+     * packet is received.
      */
     public static final int MAX_DISCONNECTION_ATTEMPTS = 5;
 
