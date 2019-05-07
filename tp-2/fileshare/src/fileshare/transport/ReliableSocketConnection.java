@@ -27,6 +27,8 @@ public class ReliableSocketConnection implements AutoCloseable
     private final DataInputStream input;
     private final DataOutputStream output;
 
+    private boolean closed;
+
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
         Endpoint remoteEndpoint,
@@ -42,6 +44,8 @@ public class ReliableSocketConnection implements AutoCloseable
 
         this.input = new DataInputStream(this.new Input());
         this.output = new DataOutputStream(this.new Output());
+
+        this.closed = false;
     }
 
     /**
@@ -144,9 +148,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return whether this side of the connection has been closed
      */
-    public boolean isClosed()
+    public synchronized boolean isClosed()
     {
-        // TODO: implement
+        return this.closed;
     }
 
     /**
@@ -177,9 +181,11 @@ public class ReliableSocketConnection implements AutoCloseable
      * may be called concurrently with any method.
      */
     @Override
-    public void close()
+    public synchronized void close()
     {
         // TODO: implement
+
+        this.closed = true;
     }
 
     void processPacketData(DataInputStream packetInput) throws IOException
@@ -208,12 +214,16 @@ public class ReliableSocketConnection implements AutoCloseable
         public int read() throws IOException
         {
             // TODO: implement
+
+            return -1;
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException
         {
             // TODO: implement
+
+            return 0;
         }
     }
 

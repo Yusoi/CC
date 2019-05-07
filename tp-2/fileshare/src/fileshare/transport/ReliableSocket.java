@@ -730,7 +730,13 @@ public class ReliableSocket implements AutoCloseable
 
         // store connection request (if not already stored)
 
-        this.incomingConnectionRequests.put(connectionId);
+        try
+        {
+            this.incomingConnectionRequests.put(connectionId);
+        }
+        catch (InterruptedException ignored)
+        {
+        }
     }
 
     private void processPacketConnAccept(
