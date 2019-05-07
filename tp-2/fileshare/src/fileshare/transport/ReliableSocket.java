@@ -476,11 +476,11 @@ public class ReliableSocket implements AutoCloseable
 
             case OPEN:
 
-                // abort any ongoing listen or connect calls
+                // abort any ongoing listen() invocation
 
                 // TODO: implement
 
-                // abort any ongoing connect calls
+                // abort any ongoing connect() invocations
 
                 // close all open connections
 
