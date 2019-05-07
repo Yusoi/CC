@@ -21,7 +21,7 @@ class Config
     public static final byte TYPE_ID_DISC            = 6;
     public static final byte TYPE_ID_DISC_ACK        = 7;
 
-    // sizes
+    // packet size
 
     /**
      * The maximum size of any packet, including checksum and type identifier,

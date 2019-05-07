@@ -198,7 +198,13 @@ public class ReliableSocket implements AutoCloseable
 
         final var connectionAttempt = new OutgoingConnectionAttempt();
 
-        this.outgoingConnectionAttempts.put(connectionId, connectionAttempt);
+        synchronized (this)
+        {
+            this.outgoingConnectionAttempts.put(
+                connectionId,
+                connectionAttempt
+            );
+        }
 
         try
         {
@@ -206,7 +212,7 @@ public class ReliableSocket implements AutoCloseable
             {
                 // send connection request
 
-                this.sendConn(
+                this.sendPacketConn(
                     packetBuffer, remoteEndpoint, localConnectionId
                 );
 
@@ -238,30 +244,33 @@ public class ReliableSocket implements AutoCloseable
                 {
                     // connection accepted, send acknowledgment
 
-                    this.sendConnAcceptAck(
+                    this.sendPacketConnAcceptAck(
                         packetBuffer,
                         remoteEndpoint,
                         remoteConnectionId.getAsInt()
                     );
 
-                    // unregister connection attempt
+                    synchronized (this)
+                    {
+                        // unregister connection attempt
 
-                    this.outgoingConnectionAttempts.remove(connectionId);
+                        this.outgoingConnectionAttempts.remove(connectionId);
 
-                    // register connection
+                        // register connection
 
-                    final var connection = new ReliableSocketConnection(
-                        this,
-                        remoteEndpoint,
-                        localConnectionId,
-                        remoteConnectionId.getAsInt()
-                    );
+                        final var connection = new ReliableSocketConnection(
+                            this,
+                            remoteEndpoint,
+                            localConnectionId,
+                            remoteConnectionId.getAsInt()
+                        );
 
-                    this.openConnections.put(connectionId, connection);
+                        this.openConnections.put(connectionId, connection);
 
-                    // return connection
+                        // return connection
 
-                    return connection;
+                        return connection;
+                    }
                 }
             }
 
@@ -271,11 +280,16 @@ public class ReliableSocket implements AutoCloseable
                 "The peer did not respond to the connection request."
             );
         }
-        finally
+        catch (Throwable t)
         {
-            // unregister connection attempt
+            synchronized (this)
+            {
+                // unregister connection attempt
 
-            this.outgoingConnectionAttempts.remove(connectionId);
+                this.outgoingConnectionAttempts.remove(connectionId);
+            }
+
+            throw t;
         }
     }
 
