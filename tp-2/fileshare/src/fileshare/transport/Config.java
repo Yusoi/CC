@@ -37,7 +37,7 @@ class Config
      */
     public static final int MAX_PACKET_SIZE = 1500 - 60 - 8;
 
-    public static final int MAX_DATA_PACKET_PAYLOAD_SIZE =
+    public static final int MAX_DATA_PAYLOAD_SIZE =
         MAX_PACKET_SIZE - 4 - 1 - 4 - 4;
 
     // packet integrity
@@ -75,6 +75,13 @@ class Config
      * corresponding DISC-ACK packet is received.
      */
     public static final int DISCONNECTION_RETRY_DELAY = 200;
+
+    // receive window
+
+    /**
+     * In bytes.
+     */
+    public static final int DATA_PAYLOAD_RECEIVE_WINDOW = 1 << 20;
 
     // No point in ever instantiating this class.
     private Config()

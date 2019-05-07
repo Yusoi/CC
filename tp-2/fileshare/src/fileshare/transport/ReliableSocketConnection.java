@@ -7,7 +7,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 /* -------------------------------------------------------------------------- */
 
@@ -211,6 +210,15 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
+        // the buffer is cyclic
+
+        private final byte[] buffer = new byte[
+            Config.DATA_PAYLOAD_RECEIVE_WINDOW + Config.MAX_DATA_PAYLOAD_SIZE
+            ];
+
+        private int bufferPosition = 0;
+        private int bufferLength = 0;
+
         @Override
         public int read() throws IOException
         {
@@ -231,7 +239,7 @@ public class ReliableSocketConnection implements AutoCloseable
     private class Output extends OutputStream
     {
         private final byte[] buffer = new byte[
-            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+            Config.MAX_DATA_PAYLOAD_SIZE
             ];
 
         private int bufferPosition = 0;
@@ -300,7 +308,9 @@ public class ReliableSocketConnection implements AutoCloseable
             if (this.bufferPosition == 0)
                 return;
 
-            
+            // TODO: implement
+
+            dataSender.send(this.buffer, this.bufferPosition);
         }
     }
 }
