@@ -180,12 +180,14 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint
         ) throws IOException
     {
+        // allocate buffer for holding data for packets to be sent
+
         final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
 
         // generate local connection id
 
         final var localConnectionId =
-            (short) this.lastLocalConnectionSeqnum.incrementAndGet();
+            this.lastLocalConnectionSeqnum.incrementAndGet();
 
         // register connection attempt
 
@@ -204,7 +206,7 @@ public class ReliableSocket implements AutoCloseable
             {
                 // send connection request
 
-                Segments.sendConn(
+                this.sendConn(
                     packetBuffer, remoteEndpoint, localConnectionId
                 );
 
@@ -236,7 +238,7 @@ public class ReliableSocket implements AutoCloseable
                 {
                     // connection accepted, send acknowledgment
 
-                    Segments.sendConnAcceptAck(
+                    this.sendConnAcceptAck(
                         packetBuffer,
                         remoteEndpoint,
                         remoteConnectionId.getAsInt()
