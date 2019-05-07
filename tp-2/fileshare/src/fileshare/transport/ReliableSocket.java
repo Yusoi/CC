@@ -2,14 +2,11 @@
 
 package fileshare.transport;
 
-import fileshare.core.AddressRange;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -555,6 +552,38 @@ public class ReliableSocket implements AutoCloseable
     }
 
     private void processPacketConnAcceptAck(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
+    }
+
+    private void processPacketData(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
+    }
+
+    private void processPacketDataAck(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
+    }
+
+    private void processPacketDisc(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
+    }
+
+    private void processPacketDiscAck(
         Endpoint remoteEndpoint,
         DataInputStream packetInput
     ) throws IOException

@@ -182,23 +182,21 @@ public class ReliableSocketConnection implements AutoCloseable
      * Any unread data in the input stream is lost.
      *
      * Any unsent data in the output stream is lost. Use {@code
-     * getOutputStream().flush()} before invoking this method to ensure that all
+     * getOutput().flush()} before invoking this method to ensure that all
      * unsent data is sent.
      *
      * Any active calls on this side's input or output streams will throw an
-     * exception when this method is called.
+     * {@link InterruptedException} when this method is called.
      *
-     * Reading from {@link #getInputStream()} and writing to {@link
-     * #getOutputStream()} after invoking this method will throw {@link
-     * IllegalStateException}.
+     * Reading from {@link #getInput()} and writing to {@link #getOutput()}
+     * after invoking this method will throw {@link IllegalStateException}.
      *
-     * See {@link #getInputStream()} and {@link #getOutputStream()} for more
-     * information on the effects of this method on this side's streams.
+     * See {@link #getInput()} and {@link #getOutput()} for more information on
+     * the effects of this method on this side's streams.
      *
      * If this end of the connection is already closed, this method has no
      * effect.
      *
-     * (TODO: would simplify things if this didn't throw checked exceptions)
      * If this method fails, this end of the connection will nevertheless be
      * left in a closed state.
      *
