@@ -8,7 +8,7 @@ import java.util.zip.Checksum;
 
 /* -------------------------------------------------------------------------- */
 
-class ReliableSocketConfig
+class Config
 {
     // connection establishment
 

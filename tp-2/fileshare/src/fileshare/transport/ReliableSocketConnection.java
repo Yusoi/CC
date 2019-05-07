@@ -63,7 +63,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
-        Endpoint remoteEndpoint
+        Endpoint remoteEndpoint,
+        int localConnectionId,
+        int remoteConnectionId
     )
     {
         this.reliableSocket = reliableSocket;
