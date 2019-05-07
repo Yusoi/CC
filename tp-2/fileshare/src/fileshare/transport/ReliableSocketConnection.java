@@ -7,7 +7,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 /* -------------------------------------------------------------------------- */
 
@@ -20,21 +23,69 @@ import java.net.Socket;
 public class ReliableSocketConnection implements AutoCloseable
 {
     private final ReliableSocket reliableSocket;
-
-    final Socket tcpSocket;
+    private final DatagramSocket udpSocket;
+    private final Endpoint endpoint;
     private final InputStream inputStream;
     private final OutputStream outputStream;
 
     ReliableSocketConnection(
         ReliableSocket mySocket,
-        Socket tcpSocket
+        DatagramSocket udpSocket,
+        Endpoint endpoint
         ) throws IOException
     {
         this.reliableSocket = mySocket;
+        this.udpSocket = udpSocket;
+        this.endpoint = endpoint;
 
-        this.tcpSocket    = tcpSocket;
-        this.inputStream  = tcpSocket.getInputStream();
-        this.outputStream = tcpSocket.getOutputStream();
+        class PacketInputStream extends InputStream{
+
+            private Endpoint endpoint;
+            private final int bufferSize = 256;
+            private byte[] buf = new byte[bufferSize];
+            private int curPos = 0; //Assuming it begins at the beggining of the array
+
+            public PacketInputStream(Endpoint endpoint){
+                this.endpoint = endpoint;
+            }
+
+            @Override
+            public int read(){
+                //TODO
+                return 1;
+            }
+
+        }
+
+        this.inputStream  = new PacketInputStream(endpoint);
+
+        class PacketOutputStream extends OutputStream{
+
+            private Endpoint endpoint;
+            private final int bufferSize = 256;
+            private byte[] buf = new byte[bufferSize];
+            private int curPos = 0; //Assuming it begins at the beggining of the array
+
+            public PacketOutputStream(Endpoint endpoint){
+                this.endpoint = endpoint;
+            }
+
+            @Override
+            public void write(int b){
+                //TODO
+            }
+
+            @Override
+            public void flush(){
+                DatagramPacket packet = new DatagramPacket(buf,bufferSize,endpoint.getAddress(),endpoint.getPort());
+
+
+            }
+        }
+
+        this.outputStream = new PacketOutputStream(endpoint);
+
+
     }
 
     /**
@@ -65,10 +116,7 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     public Endpoint getRemoteEndpoint()
     {
-        return new Endpoint(
-            this.tcpSocket.getInetAddress(),
-            this.tcpSocket.getPort()
-            );
+        return endpoint;
     }
 
     /**
@@ -137,7 +185,7 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     public boolean isClosed()
     {
-        return this.tcpSocket.isClosed();
+        return this.udpSocket.isClosed();
     }
 
     /**
@@ -174,11 +222,13 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         try
         {
-            this.tcpSocket.close();
+            this.udpSocket.close();
         }
-        catch (IOException ignored)
+        catch (Exception ignored)
         {
         }
+
+        //TODO: Tell connected peers that this socket closed?
 
         synchronized (reliableSocket.connections)
         {

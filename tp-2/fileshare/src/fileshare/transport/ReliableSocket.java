@@ -2,7 +2,9 @@
 
 package fileshare.transport;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,7 +122,7 @@ public class ReliableSocket implements AutoCloseable
                     //udpSocket.getOutputStream().write(0);
 
                     //TODO verify this
-                    final var connection = new ReliableSocketConnection(this,udpServerSocket);
+                    final var connection = new ReliableSocketConnection(this,udpServerSocket,remoteEndpoint);
 
                     synchronized (this.connections) {
                         this.connections.add(connection);
@@ -188,7 +190,7 @@ public class ReliableSocket implements AutoCloseable
             throw t;
         }
 
-        final var connection = new ReliableSocketConnection(this, udpSocket);
+        final var connection = new ReliableSocketConnection(this, udpSocket, remoteEndpoint);
 
         synchronized (this.connections) {
             this.connections.add(connection);
