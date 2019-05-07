@@ -7,16 +7,14 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,7 +60,7 @@ public class ReliableSocket implements AutoCloseable
 
     private final AtomicBoolean isListening;
 
-    // key's connection seqnum is remote
+    // connection seqnum is remote
     private final BlockingQueue< ConnectionIdentifier >
         incomingConnectionRequests;
 
@@ -197,6 +195,8 @@ public class ReliableSocket implements AutoCloseable
 
         try
         {
+            final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
+
             while (true)
             {
                 final var connectionId = this.incomingConnectionRequests.take();
@@ -602,7 +602,7 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionSeqnum
         );
 
-        // TODO: implement
+        this.openConnections.get(connectionId).processPacketData(packetInput);
     }
 
     private void processPacketDataAck(
@@ -617,7 +617,7 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionSeqnum
         );
 
-        // TODO: implement
+        this.openConnections.get(connectionId).processPacketDataAck(packetInput);
     }
 
     private void processPacketDisc(
@@ -632,7 +632,7 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionSeqnum
         );
 
-        // TODO: implement
+        this.openConnections.get(connectionId).processPacketDisc(packetInput);
     }
 
     private void processPacketDiscAck(
@@ -647,16 +647,54 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionSeqnum
         );
 
-        // TODO: implement
+        this.openConnections.get(connectionId).processPacketDiscAck(packetInput);
+    }
+
+    private ByteBuffer createByteBufferForSending(byte[] packetBuffer)
+    {
+        return ByteBuffer.wrap(packetBuffer, 4, packetBuffer.length - 4);
+    }
+
+    private void sendPacket(
+        ByteBuffer byteBuffer,
+        Endpoint remoteEndpoint
+    ) throws IOException
+    {
+        // compute checksum
+
+        final var checksum = Config.CHECKSUM.get();
+        checksum.update(byteBuffer.array(), 4, byteBuffer.position() - 4);
+
+        // insert checksum into buffer
+
+        byteBuffer.putInt(0, (int)checksum.getValue());
+
+        // create packet
+
+        final var packet = new DatagramPacket(
+            byteBuffer.array(),
+            byteBuffer.position(),
+            remoteEndpoint.getAddress(),
+            remoteEndpoint.getPort()
+        );
+
+        // send packet
+
+        this.udpSocket.send(packet);
     }
 
     private void sendPacketConn(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
         int localConnectionSeqnum
-    )
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_CONN);
+        b.putInt(localConnectionSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
     private void sendPacketConnAccept(
@@ -664,58 +702,92 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint,
         int remoteConnectionSeqnum,
         int localConnectionSeqnum
-    )
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_CONN_ACCEPT);
+        b.putInt(remoteConnectionSeqnum);
+        b.putInt(localConnectionSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
     private void sendPacketConnReject(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
         int remoteConnectionSeqnum
-    )
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_CONN_REJECT);
+        b.putInt(remoteConnectionSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
-    private void sendPacketData(
+    void sendPacketData(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
-        int remoteConnectionSeqnum,
+        int localConnectionSeqnum,
         int payloadSeqnum,
         byte[] payloadBuffer,
         int payloadLength
-    )
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_DATA);
+        b.putInt(localConnectionSeqnum);
+        b.putInt(payloadSeqnum);
+        b.put(payloadBuffer, 0, payloadLength);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
-    private void sendPacketDataAck(
+    void sendPacketDataAck(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
-        int remoteConnectionSeqnum,
+        int localConnectionSeqnum,
         int payloadSeqnum
-    )
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_DATA_ACK);
+        b.putInt(localConnectionSeqnum);
+        b.putInt(payloadSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
-    private void sendPacketDisc(
+    void sendPacketDisc(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
-        int remoteConnectionSeqnum
-    )
+        int localConnectionSeqnum
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_DISC);
+        b.putInt(localConnectionSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 
-    private void sendPacketDiscAck(
+    void sendPacketDiscAck(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
-        int remoteConnectionSeqnum
-    )
+        int localConnectionSeqnum
+    ) throws IOException
     {
-        // TODO: implement
+        final var b = this.createByteBufferForSending(packetBuffer);
+
+        b.put(Config.TYPE_ID_DISC_ACK);
+        b.putInt(localConnectionSeqnum);
+
+        this.sendPacket(b, remoteEndpoint);
     }
 }
 

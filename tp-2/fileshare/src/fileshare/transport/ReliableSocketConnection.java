@@ -7,7 +7,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
 
 /* -------------------------------------------------------------------------- */
 
@@ -56,7 +55,10 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     private final ReliableSocket reliableSocket;
+
     private final Endpoint remoteEndpoint;
+    private final int localConnectionId;
+    private final int remoteConnectionId;
 
     private final DataInputStream input;
     private final DataOutputStream output;
@@ -69,7 +71,10 @@ public class ReliableSocketConnection implements AutoCloseable
     )
     {
         this.reliableSocket = reliableSocket;
+
         this.remoteEndpoint = remoteEndpoint;
+        this.localConnectionId = localConnectionId;
+        this.remoteConnectionId = remoteConnectionId;
 
         this.input = new DataInputStream(this.new Input());
         this.output = new DataOutputStream(this.new Output());
@@ -209,6 +214,26 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     @Override
     public void close()
+    {
+        // TODO: implement
+    }
+
+    void processPacketData(DataInputStream packetInput) throws IOException
+    {
+        // TODO: implement
+    }
+
+    void processPacketDataAck(DataInputStream packetInput) throws IOException
+    {
+        // TODO: implement
+    }
+
+    void processPacketDisc(DataInputStream packetInput) throws IOException
+    {
+        // TODO: implement
+    }
+
+    void processPacketDiscAck(DataInputStream packetInput) throws IOException
     {
         // TODO: implement
     }
