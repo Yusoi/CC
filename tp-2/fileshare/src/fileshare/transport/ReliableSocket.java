@@ -2,6 +2,8 @@
 
 package fileshare.transport;
 
+import fileshare.Util;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -20,12 +22,13 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /* -------------------------------------------------------------------------- */
 
 /**
  * A UDP-backed socket from which reliable data transfer channels (termed
- * *connections*) between this and other sockets can be obtained.
+ * *connections*) between this and other similar sockets can be obtained.
  *
  * This class is thread-safe.
  */
@@ -184,28 +187,64 @@ public class ReliableSocket implements AutoCloseable
         Predicate< Endpoint > accept
         ) throws IOException
     {
-        if (this.state == State.CREATED)
-            throw new IllegalStateException();
+        // check state
 
-        if (this.state == State.CLOSED)
-            return null;
+        switch (this.state.get())
+        {
+            case CREATED:
+                throw new IllegalStateException();
+
+            case OPEN:
+                break;
+
+            case CLOSED:
+                return null;
+        }
+
+        // check if already listening and set listening flag
 
         if (isListening.getAndSet(true))
             throw new IllegalStateException();
 
         try
         {
+            // create buffer for packets to be sent
+
             final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
 
             while (true)
             {
-                final var connectionId = this.incomingConnectionRequests.take();
+                // return if socket was closed
+
+                if (this.state == State.CLOSED)
+                    return null;
+
+                // wait for request to arrive
+
+                final ConnectionIdentifier connectionId;
+
+                try
+                {
+                    connectionId = this.incomingConnectionRequests.take();
+                }
+                catch (InterruptedException ignored)
+                {
+                    // interrupted, retry
+
+                    continue;
+                }
+
+                // check if connection was already accepted
 
                 if (this.openConnections.containsKey(connectionId))
-                    continue;
+                    continue; // previously accepted connection, skip
+
+                // determine whether to accept or reject connection
 
                 if (accept.test(connectionId.getRemoteEndpoint()))
                 {
+                    // accept connection, send CONN-ACCEPT
+
                     final var localConnectionId =
                         this.nextLocalConnectionSeqnum.getAndIncrement();
 
@@ -233,6 +272,8 @@ public class ReliableSocket implements AutoCloseable
                 }
                 else
                 {
+                    // reject connection, send CONN-REJECT
+
                     this.sendPacketConnReject(
                         packetBuffer,
                         connectionId.getRemoteEndpoint(),
@@ -243,6 +284,8 @@ public class ReliableSocket implements AutoCloseable
         }
         finally
         {
+            // clear listening flag
+
             isListening.set(false);
         }
     }
@@ -422,10 +465,24 @@ public class ReliableSocket implements AutoCloseable
     {
         if (this.state != State.CLOSED)
         {
-            // TODO: implement
-        }
+            this.state = State.CLOSED;
 
-        this.state = State.CLOSED;
+            // abort any ongoing listen or connect calls
+
+            // close all open connections
+
+            this.openConnections.values().forEach(
+                ReliableSocketConnection::close
+            );
+
+            // close UDP socket
+
+            this.udpSocket.close();
+
+            // wait for receiver thread to finish
+
+            Util.uninterruptibleJoin(this.receiverThread);
+        }
     }
 
     private void receiver()
