@@ -476,7 +476,10 @@ public class ReliableSocket implements AutoCloseable
                 final var localConnectionNumber = packetInput.readInt();
 
                 final var attempt = this.outgoingConnectionAttempts.get(
-                    new ConnectionId(remoteEndpoint, localConnectionNumber)
+                    new ConnectionIdentifier(
+                        remoteEndpoint,
+                        localConnectionNumber
+                    )
                 );
 
                 attempt.rejected();
@@ -490,7 +493,7 @@ public class ReliableSocket implements AutoCloseable
                 final var attempt = this.outgoingConnectionAttempts.get(
                     new ConnectionIdentifier(
                         remoteEndpoint,
-                        remoteConnectionNumber
+                        localConnectionNumber
                     )
                 );
 
