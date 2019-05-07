@@ -7,6 +7,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 /* -------------------------------------------------------------------------- */
 
@@ -229,31 +230,77 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Output extends OutputStream
     {
+        private final byte[] buffer = new byte[
+            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+            ];
+
+        private int bufferPosition = 0;
+
         @Override
         public void write(int b) throws IOException
         {
+            // validate state
+
             if (ReliableSocketConnection.this.isClosed())
                 throw new IllegalStateException();
 
-            // TODO: implement
+            // copy byte to buffer
+
+            this.buffer[this.bufferPosition++] = (byte)b;
+
+            // flush if buffer is full
+
+            if (this.bufferPosition == this.buffer.length)
+                this.flush();
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException
         {
+            // validate state
+
             if (ReliableSocketConnection.this.isClosed())
                 throw new IllegalStateException();
 
-            // TODO: implement
+            // copy bytes to buffer
+
+            final var end = off + len;
+
+            while (off < end)
+            {
+                final var lenToCopy = Math.min(
+                    this.buffer.length - this.bufferPosition,
+                    end - off
+                );
+
+                System.arraycopy(
+                    b, off, this.buffer, this.bufferPosition, lenToCopy
+                );
+
+                this.bufferPosition += lenToCopy;
+                off += lenToCopy;
+
+                // flush if buffer is full
+
+                if (this.bufferPosition == this.buffer.length)
+                    this.flush();
+            }
         }
 
         @Override
         public void flush() throws IOException
         {
+            // validate state
+
             if (ReliableSocketConnection.this.isClosed())
                 throw new IllegalStateException();
 
-            // TODO: implement
+            // check if there is data to flush
+
+            if (this.bufferPosition == 0)
+                return;
+
+            
         }
     }
 }

@@ -37,6 +37,17 @@ class Config
      */
     public static final int MAX_PACKET_SIZE = 1500 - 60 - 8;
 
+    public static final int MAX_DATA_PACKET_PAYLOAD_SIZE =
+        MAX_PACKET_SIZE - 4 - 1 - 4 - 4;
+
+    // packet integrity
+
+    /**
+     * Factory of checksum computing objects to be used to verify packet
+     * integrity.
+     */
+    public static final Supplier< Checksum > CHECKSUM = CRC32::new;
+
     // connection establishment
 
     /**
@@ -64,14 +75,6 @@ class Config
      * corresponding DISC-ACK packet is received.
      */
     public static final int DISCONNECTION_RETRY_DELAY = 200;
-
-    // integrity verification
-
-    /**
-     * Factory of checksum computing objects to be used to verify packet
-     * integrity.
-     */
-    public static final Supplier< Checksum > CHECKSUM = CRC32::new;
 
     // No point in ever instantiating this class.
     private Config()
