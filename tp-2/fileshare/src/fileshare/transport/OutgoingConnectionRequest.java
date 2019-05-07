@@ -7,11 +7,17 @@ import java.util.concurrent.TimeoutException;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * TODO: document
+ */
 class OutgoingConnectionRequest
 {
     private OptionalInt remoteConnectionSeqnum;
     private boolean interrupted;
 
+    /**
+     * TODO: document
+     */
     public OutgoingConnectionRequest()
     {
         remoteConnectionSeqnum = null;
@@ -19,6 +25,8 @@ class OutgoingConnectionRequest
     }
 
     /**
+     * TODO: document
+     *
      * Waits for a response from the remote regarding the connection
      * attempt.
      *
@@ -26,6 +34,7 @@ class OutgoingConnectionRequest
      * @return an empty optional if the connection was rejected, otherwise
      *         an optional whose value is the remote connection seqnum
      *
+     * @throws InterruptedException if {@link #interrupt()} is or was invoked
      * @throws TimeoutException if the timeout duration elapsed and no
      *         response was received
      */
@@ -64,6 +73,9 @@ class OutgoingConnectionRequest
         }
     }
 
+    /**
+     * TODO: document
+     */
     public synchronized void rejected()
     {
         this.remoteConnectionSeqnum = OptionalInt.empty();
@@ -71,6 +83,9 @@ class OutgoingConnectionRequest
         this.notifyAll();
     }
 
+    /**
+     * TODO: document
+     */
     public synchronized void accepted(int remoteConnectionSeqnum)
     {
         this.remoteConnectionSeqnum = OptionalInt.of(remoteConnectionSeqnum);
@@ -78,6 +93,9 @@ class OutgoingConnectionRequest
         this.notifyAll();
     }
 
+    /**
+     * TODO: document
+     */
     public synchronized void interrupt()
     {
         this.interrupted = true;

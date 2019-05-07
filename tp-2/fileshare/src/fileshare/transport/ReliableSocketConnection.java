@@ -232,18 +232,27 @@ public class ReliableSocketConnection implements AutoCloseable
         @Override
         public void write(int b) throws IOException
         {
+            if (ReliableSocketConnection.this.isClosed())
+                throw new IllegalStateException();
+
             // TODO: implement
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException
         {
+            if (ReliableSocketConnection.this.isClosed())
+                throw new IllegalStateException();
+
             // TODO: implement
         }
 
         @Override
         public void flush() throws IOException
         {
+            if (ReliableSocketConnection.this.isClosed())
+                throw new IllegalStateException();
+
             // TODO: implement
         }
     }
