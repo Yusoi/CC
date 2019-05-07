@@ -36,7 +36,7 @@ public class Peer implements AutoCloseable
         /**
          * The peer has been started and is running.
          */
-        RUNNING,
+        OPEN,
 
         /**
          * The peer has been closed.
@@ -126,20 +126,24 @@ public class Peer implements AutoCloseable
     }
 
     /**
-     * Starts this peer, setting its state to {@link State#RUNNING}.
+     * Opens this peer, setting its state to {@link State#OPEN}.
      *
      * @throws IllegalStateException if this peer is not in state {@link
      *         State#CREATED}
      */
-    public synchronized void start()
+    public synchronized void open()
     {
         // validate state
 
-        if (this.state == State.RUNNING)
+        if (this.state == State.OPEN)
             throw new IllegalStateException("Peer is already running.");
 
         if (this.state == State.CLOSED)
             throw new IllegalStateException("Peer is closed.");
+
+        // open socket
+
+        this.socket.open();
 
         // start listening thread
 
@@ -147,7 +151,7 @@ public class Peer implements AutoCloseable
 
         // update state
 
-        this.state = State.RUNNING;
+        this.state = State.OPEN;
     }
 
     /**
@@ -158,7 +162,7 @@ public class Peer implements AutoCloseable
     @Override
     public synchronized void close()
     {
-        if (this.state == State.RUNNING)
+        if (this.state == State.OPEN)
         {
             // close socket
 
@@ -212,7 +216,7 @@ public class Peer implements AutoCloseable
         if (jobs.size() == 0)
             throw new IllegalArgumentException("jobs must not be empty");
 
-        if (this.state != State.RUNNING)
+        if (this.state != State.OPEN)
             throw new IllegalStateException("Peer is not running.");
 
         // initialize job states

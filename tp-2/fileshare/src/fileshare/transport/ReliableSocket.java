@@ -2,24 +2,17 @@
 
 package fileshare.transport;
 
-import javax.xml.crypto.Data;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.zip.CRC32;
 
 /* -------------------------------------------------------------------------- */
 
@@ -80,6 +73,14 @@ public class ReliableSocket implements AutoCloseable
     public int getLocalPort()
     {
         return this.udpSocket.getLocalPort();
+    }
+
+    /**
+     * TODO: document
+     */
+    public void open()
+    {
+        this.receiverThread.start();
     }
 
     /**

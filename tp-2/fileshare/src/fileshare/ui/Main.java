@@ -68,9 +68,9 @@ public final class Main
                     );
             }
 
-            // start peer
+            // open peer
 
-            peer.start();
+            peer.open();
 
             // run interpreter input loop
 
