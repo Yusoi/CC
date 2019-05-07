@@ -2,14 +2,18 @@
 
 package fileshare.transport;
 
+import fileshare.core.AddressRange;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
@@ -49,6 +53,25 @@ public class ReliableSocket implements AutoCloseable
         public int getLocalConnectionSeqnum()
         {
             return this.localConnectionSeqnum;
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (obj == null || obj.getClass() != ConnectionIdentifier.class)
+                return false;
+
+            final var other = (ConnectionIdentifier) obj;
+
+            return
+                Objects.equals(this.remoteEndpoint, other.remoteEndpoint) &&
+                Objects.equals(this.localConnectionSeqnum, other.localConnectionSeqnum);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(this.remoteEndpoint, this.localConnectionSeqnum);
         }
     }
 
@@ -467,43 +490,76 @@ public class ReliableSocket implements AutoCloseable
 
             // get packet type
 
-            final var packetType = SegmentType.ofValue(packetInput.readByte());
+            final var packetType = packetInput.readByte();
 
-            // TODO: implement
-
-            if (packetType == SegmentType.CONN_REJECT)
+            switch (packetType)
             {
-                final var localConnectionNumber = packetInput.readInt();
+                case Config.TYPE_ID_CONN:
+                    processPacketConn(remoteEndpoint, packetInput);
+                    return;
 
-                final var attempt = this.outgoingConnectionAttempts.get(
-                    new ConnectionIdentifier(
-                        remoteEndpoint,
-                        localConnectionNumber
-                    )
-                );
+                case Config.TYPE_ID_CONN_REJECT:
+                    processPacketConnReject(remoteEndpoint, packetInput);
+                    return;
 
-                attempt.rejected();
-            }
+                case Config.TYPE_ID_CONN_ACCEPT:
+                    processPacketConnAccept(remoteEndpoint, packetInput);
+                    return;
 
-            if (packetType == SegmentType.CONN_ACCEPT)
-            {
-                final var localConnectionNumber = packetInput.readInt();
-                final var remoteConnectionNumber = packetInput.readInt();
-
-                final var attempt = this.outgoingConnectionAttempts.get(
-                    new ConnectionIdentifier(
-                        remoteEndpoint,
-                        localConnectionNumber
-                    )
-                );
-
-                attempt.accepted(remoteConnectionNumber);
+                case Config.TYPE_ID_CONN_ACCEPT_ACK:
+                    processPacketConnAcceptAck(remoteEndpoint, packetInput);
+                    return;
             }
         }
         catch (Exception ignored)
         {
             // drop malformed packet
         }
+    }
+
+    private void processPacketConn(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
+    }
+
+    private void processPacketConnReject(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+        final var localConnectionNumber = packetInput.readInt();
+
+        final var attempt = this.outgoingConnectionAttempts.get(
+            new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
+        );
+
+        attempt.rejected();
+    }
+
+    private void processPacketConnAccept(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+        final var localConnectionNumber = packetInput.readInt();
+        final var remoteConnectionNumber = packetInput.readInt();
+
+        final var attempt = this.outgoingConnectionAttempts.get(
+            new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
+        );
+
+        attempt.accepted(remoteConnectionNumber);
+    }
+
+    private void processPacketConnAcceptAck(
+        Endpoint remoteEndpoint,
+        DataInputStream packetInput
+    ) throws IOException
+    {
+
     }
 }
 
