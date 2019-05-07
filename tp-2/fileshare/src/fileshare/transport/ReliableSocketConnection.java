@@ -43,6 +43,7 @@ public class ReliableSocketConnection implements AutoCloseable
             private Endpoint endpoint;
             private final int bufferSize = 256;
             private byte[] buf = new byte[bufferSize];
+            private int headerSize = 40;
             private int curPos = 0; //Assuming it begins at the beggining of the array
 
             public PacketInputStream(Endpoint endpoint){
@@ -64,22 +65,49 @@ public class ReliableSocketConnection implements AutoCloseable
             private Endpoint endpoint;
             private final int bufferSize = 256;
             private byte[] buf = new byte[bufferSize];
-            private int curPos = 0; //Assuming it begins at the beggining of the array
+            private int headerSize = 40;
+            private int curPos = 40; //Assuming it begins at the beggining of the array
 
             public PacketOutputStream(Endpoint endpoint){
                 this.endpoint = endpoint;
+
+                //TODO Initialize header
             }
 
             @Override
             public void write(int b){
-                //TODO
+                //TODO: Decide what to do when the buffer is full
+                if(curPos < 256){
+                    buf[curPos++] = (byte) b;
+                }
+            }
+
+            @Override
+            public void write(byte[] b){
+
+                for(byte curB : b){
+                    //TODO: Decide what to do when the buffer is full
+                    if(curPos < 256){
+                        buf[curPos++] = curB;
+                    }
+                }
             }
 
             @Override
             public void flush(){
+                //TODO: Update header with message size
                 DatagramPacket packet = new DatagramPacket(buf,bufferSize,endpoint.getAddress(),endpoint.getPort());
 
+                try {
+                    udpSocket.send(packet);
+                }catch(IOException e){
+                    //TODO: Decide what to do when the package fails to be sent
+                }
 
+
+
+                //Reset values after sending packet
+                curPos = 40;
             }
         }
 
