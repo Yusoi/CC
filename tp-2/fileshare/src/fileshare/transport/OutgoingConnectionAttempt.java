@@ -23,6 +23,7 @@ class OutgoingConnectionAttempt
      * @param timeoutMilliseconds the timeout duration in milliseconds
      * @return an empty optional if the connection was rejected, otherwise
      *         an optional whose value is the remote connection seqnum
+     *
      * @throws TimeoutException if the timeout duration elapsed and no
      *         response was received
      */

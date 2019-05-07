@@ -390,24 +390,40 @@ public class ReliableSocket implements AutoCloseable
             {
                 case Config.TYPE_ID_CONN:
                     processPacketConn(remoteEndpoint, packetInput);
-                    return;
+                    break;
 
                 case Config.TYPE_ID_CONN_REJECT:
                     processPacketConnReject(remoteEndpoint, packetInput);
-                    return;
+                    break;
 
                 case Config.TYPE_ID_CONN_ACCEPT:
                     processPacketConnAccept(remoteEndpoint, packetInput);
-                    return;
+                    break;
 
                 case Config.TYPE_ID_CONN_ACCEPT_ACK:
                     processPacketConnAcceptAck(remoteEndpoint, packetInput);
-                    return;
+                    break;
+
+                case Config.TYPE_ID_DATA:
+                    processPacketData(remoteEndpoint, packetInput);
+                    break;
+
+                case Config.TYPE_ID_DATA_ACK:
+                    processPacketDataAck(remoteEndpoint, packetInput);
+                    break;
+
+                case Config.TYPE_ID_DISC:
+                    processPacketDisc(remoteEndpoint, packetInput);
+                    break;
+
+                case Config.TYPE_ID_DISC_ACK:
+                    processPacketDiscAck(remoteEndpoint, packetInput);
+                    break;
             }
         }
         catch (Exception ignored)
         {
-            // drop malformed packet
+            // drop packet
         }
     }
 

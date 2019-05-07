@@ -16,6 +16,10 @@ class Config
     public static final byte TYPE_ID_CONN_REJECT     = 1;
     public static final byte TYPE_ID_CONN_ACCEPT     = 2;
     public static final byte TYPE_ID_CONN_ACCEPT_ACK = 3;
+    public static final byte TYPE_ID_DATA            = 4;
+    public static final byte TYPE_ID_DATA_ACK        = 5;
+    public static final byte TYPE_ID_DISC            = 6;
+    public static final byte TYPE_ID_DISC_ACK        = 7;
 
     // connection establishment
 
