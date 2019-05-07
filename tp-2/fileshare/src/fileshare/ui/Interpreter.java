@@ -131,6 +131,16 @@ public class Interpreter
     {
         final var input = new BufferedReader(new InputStreamReader(System.in));
 
+        // print intro message
+
+        this.printer.printLines(
+            String.format(
+                "Exporting directory \"%s\" through UDP port %d.",
+                this.peer.getExportedDirectoryPath(),
+                this.peer.getLocalPort()
+            )
+        );
+
         while (true)
         {
             // print prompt

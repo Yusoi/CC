@@ -631,6 +631,8 @@ public class ReliableSocket implements AutoCloseable
         {
             // wait for ongoing packet processing to finish
 
+            executor.shutdown();
+
             while (true)
             {
                 try
@@ -646,8 +648,6 @@ public class ReliableSocket implements AutoCloseable
                 {
                 }
             }
-
-            executor.shutdown();
         }
     }
 
