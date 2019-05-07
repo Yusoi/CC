@@ -55,13 +55,13 @@ class Config
      * How many times a DISC packet should be sent if no corresponding DISC-ACK
      * packet is received.
      */
-    public static final int MAX_DISCONNECTION_ATTEMPTS = 5;
+    public static final int MAX_DISCONNECTION_ATTEMPTS = 3;
 
     /**
      * How many milliseconds to wait before resending a DISC packet if no
      * corresponding DISC-ACK packet is received.
      */
-    public static final int DISCONNECTION_RETRY_DELAY = 500;
+    public static final int DISCONNECTION_RETRY_DELAY = 200;
 
     // integrity verification
 

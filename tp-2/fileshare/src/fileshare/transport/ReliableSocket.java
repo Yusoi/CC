@@ -11,7 +11,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -342,10 +345,10 @@ public class ReliableSocket implements AutoCloseable
 
     private void receiver()
     {
+        final var executor = Executors.newCachedThreadPool();
+
         try
         {
-            final var executor = Executors.newCachedThreadPool();
-
             final DatagramPacket packet = new DatagramPacket(
                 new byte[Config.MAX_PACKET_SIZE],
                 Config.MAX_PACKET_SIZE
@@ -371,11 +374,14 @@ public class ReliableSocket implements AutoCloseable
                 );
             }
         }
-        catch (Exception e)
+        finally
         {
-            // close this socket (and all its connections)
+            // wait for ongoing packet processing to finish
 
-            this.close();
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            executor.shutdown();
+
+            // TODO: implement
         }
     }
 
