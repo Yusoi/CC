@@ -10,8 +10,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
@@ -62,7 +64,11 @@ public class ReliableSocket implements AutoCloseable
     private final Thread receiverThread;
     private final AtomicInteger nextLocalConnectionSeqnum;
 
-    private final AtomicReference< Thread > listeningThread;
+    private final Object listenCallThreadMonitor;
+    private Thread listenCallThread;
+
+    private final Object connectCallThreadCountMonitor;
+    private int connectCallThreadCount;
 
     // connection seqnum is remote
     private final BlockingQueue< ConnectionIdentifier >
@@ -102,7 +108,11 @@ public class ReliableSocket implements AutoCloseable
         this.receiverThread = new Thread(this::receiver);
         this.nextLocalConnectionSeqnum = new AtomicInteger(0);
 
-        this.listeningThread = new AtomicReference<>(null);
+        this.listenCallThreadMonitor = new Object();
+        this.listenCallThread = null;
+
+        this.connectCallThreadCountMonitor = new Object();
+        this.connectCallThreadCount = 0;
 
         this.incomingConnectionRequests = new LinkedBlockingQueue<>();
         this.outgoingConnectionRequests = new HashMap<>();
@@ -186,24 +196,31 @@ public class ReliableSocket implements AutoCloseable
         Predicate< Endpoint > accept
         ) throws IOException
     {
-        // check state
-
-        switch (this.state.get())
+        synchronized (this.listenCallThreadMonitor)
         {
-            case CREATED:
+            // check state
+
+            switch (this.state.get())
+            {
+                case CREATED:
+                    throw new IllegalStateException();
+
+                case OPEN:
+                    break;
+
+                case CLOSED:
+                    return null;
+            }
+
+            // check that no invocation of listen() is ongoing
+
+            if (this.listenCallThread != null)
                 throw new IllegalStateException();
 
-            case OPEN:
-                break;
+            // store current thread (to later be interrupted if necessary)
 
-            case CLOSED:
-                return null;
+            this.listenCallThread = Thread.currentThread();
         }
-
-        // check if already listening and set listening flag
-
-        if (!this.listeningThread.compareAndSet(null, Thread.currentThread()))
-            throw new IllegalStateException();
 
         try
         {
@@ -284,7 +301,11 @@ public class ReliableSocket implements AutoCloseable
         {
             // clear listening flag
 
-            this.listeningThread.set(null);
+            synchronized (this.listenCallThreadMonitor)
+            {
+                this.listenCallThread = null;
+                this.listenCallThreadMonitor.notifyAll();
+            }
         }
     }
 
@@ -316,139 +337,153 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint
         ) throws InterruptedException, IOException
     {
-        // validate state
-
-        if (this.state.get() != State.OPEN)
-            throw new IllegalStateException();
-
-        // increment active invocation count
-
-        // TODO: implement
-
-        // allocate buffer for holding data of packets to be sent
-
-        final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
-
-        // generate local connection id
-
-        final var localConnectionId =
-            this.nextLocalConnectionSeqnum.getAndIncrement();
-
-        // register connection request
-
-        final var connectionRequest = new OutgoingConnectionRequest();
-
-        synchronized (this)
+        synchronized (this.connectCallThreadCountMonitor)
         {
-            this.outgoingConnectionRequests.put(
-                new ConnectionIdentifier(
-                    remoteEndpoint,
-                    localConnectionId
-                ),
-                connectionRequest
-            );
+            // validate state
+
+            if (this.state.get() != State.OPEN)
+                throw new IllegalStateException();
+
+            // increment active invocation count
+
+            this.connectCallThreadCount += 1;
         }
 
         try
         {
-            for (int i = 0; i < Config.MAX_CONNECTION_ATTEMPTS; ++i)
-            {
-                // send connection request
+            // allocate buffer for holding data of packets to be sent
 
-                this.sendPacketConn(
-                    packetBuffer, remoteEndpoint, localConnectionId
-                );
+            final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
 
-                // wait for response
+            // generate local connection id
 
-                final OptionalInt remoteConnectionId;
+            final var localConnectionId =
+                this.nextLocalConnectionSeqnum.getAndIncrement();
 
-                try
-                {
-                    remoteConnectionId = connectionRequest.waitForResponse(
-                        Config.CONNECTION_RETRY_DELAY
-                    );
-                }
-                catch (TimeoutException ignored)
-                {
-                    // no response received, retry
-                    continue;
-                }
+            // register connection request
 
-                if (remoteConnectionId.isEmpty())
-                {
-                    // connection refused
+            final var connectionRequest = new OutgoingConnectionRequest();
 
-                    throw new IOException(
-                        "The peer refused to establish a connection."
-                    );
-                }
-                else
-                {
-                    // connection accepted
-
-                    synchronized (this)
-                    {
-                        // unregister connection attempt
-
-                        this.outgoingConnectionRequests.remove(
-                            new ConnectionIdentifier(
-                                remoteEndpoint,
-                                localConnectionId
-                            )
-                        );
-
-                        // register connection
-
-                        final var connection = new ReliableSocketConnection(
-                            this,
-                            remoteEndpoint,
-                            localConnectionId,
-                            remoteConnectionId.getAsInt()
-                        );
-
-                        this.openConnections.put(
-                            new ConnectionIdentifier(
-                                remoteEndpoint,
-                                remoteConnectionId.getAsInt()
-                            ),
-                            connection
-                        );
-
-                        // return connection
-
-                        return connection;
-                    }
-                }
-            }
-
-            // reached maximum number of retries and received no response, fail
-
-            throw new IOException(
-                "The peer did not respond to the connection request."
-            );
-        }
-        catch (Throwable t)
-        {
             synchronized (this)
             {
-                // unregister connection attempt
-
-                this.outgoingConnectionRequests.remove(
+                this.outgoingConnectionRequests.put(
                     new ConnectionIdentifier(
                         remoteEndpoint,
                         localConnectionId
-                    )
+                    ),
+                    connectionRequest
                 );
             }
 
+            try
+            {
+                for (int i = 0; i < Config.MAX_CONNECTION_ATTEMPTS; ++i)
+                {
+                    // send connection request
+
+                    this.sendPacketConn(
+                        packetBuffer, remoteEndpoint, localConnectionId
+                    );
+
+                    // wait for response
+
+                    final OptionalInt remoteConnectionId;
+
+                    try
+                    {
+                        remoteConnectionId = connectionRequest.waitForResponse(
+                            Config.CONNECTION_RETRY_DELAY
+                        );
+                    }
+                    catch (TimeoutException ignored)
+                    {
+                        // no response received, retry
+                        continue;
+                    }
+
+                    if (remoteConnectionId.isEmpty())
+                    {
+                        // connection refused
+
+                        throw new IOException(
+                            "The peer refused to establish a connection."
+                        );
+                    }
+                    else
+                    {
+                        // connection accepted
+
+                        synchronized (this)
+                        {
+                            // unregister connection attempt
+
+                            this.outgoingConnectionRequests.remove(
+                                new ConnectionIdentifier(
+                                    remoteEndpoint,
+                                    localConnectionId
+                                )
+                            );
+
+                            // register connection
+
+                            final var connection = new ReliableSocketConnection(
+                                this,
+                                remoteEndpoint,
+                                localConnectionId,
+                                remoteConnectionId.getAsInt()
+                            );
+
+                            this.openConnections.put(
+                                new ConnectionIdentifier(
+                                    remoteEndpoint,
+                                    remoteConnectionId.getAsInt()
+                                ),
+                                connection
+                            );
+
+                            // return connection
+
+                            return connection;
+                        }
+                    }
+                }
+
+                // reached maximum number of retries and received no response
+
+                throw new IOException(
+                    "The peer did not respond to the connection request."
+                );
+            }
+            catch (Throwable t)
+            {
+                synchronized (this)
+                {
+                    // unregister connection attempt
+
+                    this.outgoingConnectionRequests.remove(
+                        new ConnectionIdentifier(
+                            remoteEndpoint,
+                            localConnectionId
+                        )
+                    );
+                }
+
+                // rethrow
+
+                throw t;
+            }
+        }
+        finally
+        {
             // decrement active invocation count
 
-            // TODO: implement
+            synchronized (this.connectCallThreadCountMonitor)
+            {
+                this.connectCallThreadCount -= 1;
 
-            // rethrow
-
-            throw t;
+                if (this.connectCallThreadCount == 0)
+                    this.connectCallThreadCountMonitor.notifyAll();
+            }
         }
     }
 
@@ -492,11 +527,50 @@ public class ReliableSocket implements AutoCloseable
 
             case OPEN:
 
-                // abort any ongoing listen() invocation
+                // abort ongoing listen() invocation
 
-                // TODO: implement
+                synchronized (this.listenCallThreadMonitor)
+                {
+                    if (this.listenCallThread != null)
+                        this.listenCallThread.interrupt();
+                }
 
-                // abort any ongoing connect() invocations
+                // abort all ongoing connect() invocations
+
+                for (final var request : this.outgoingConnectionRequests.values())
+                    request.interrupt();
+
+                // wait for ongoing listen() invocation to finish
+
+                synchronized (this.listenCallThreadMonitor)
+                {
+                    while (this.listenCallThread != null)
+                    {
+                        try
+                        {
+                            this.listenCallThreadMonitor.wait();
+                        }
+                        catch (InterruptedException ignored)
+                        {
+                        }
+                    }
+                }
+
+                // wait for all ongoing connect() invocations to finish
+
+                synchronized (this.connectCallThreadCountMonitor)
+                {
+                    while (this.connectCallThreadCount > 0)
+                    {
+                        try
+                        {
+                            this.connectCallThreadCountMonitor.wait();
+                        }
+                        catch (InterruptedException ignored)
+                        {
+                        }
+                    }
+                }
 
                 // close all open connections
 
@@ -557,10 +631,23 @@ public class ReliableSocket implements AutoCloseable
         {
             // wait for ongoing packet processing to finish
 
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-            executor.shutdown();
+            while (true)
+            {
+                try
+                {
+                    executor.awaitTermination(
+                        Long.MAX_VALUE,
+                        TimeUnit.NANOSECONDS
+                    );
 
-            // TODO: implement
+                    break;
+                }
+                catch (InterruptedException ignored)
+                {
+                }
+            }
+
+            executor.shutdown();
         }
     }
 

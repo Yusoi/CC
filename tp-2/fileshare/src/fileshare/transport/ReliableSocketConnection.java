@@ -18,42 +18,6 @@ import java.io.OutputStream;
  */
 public class ReliableSocketConnection implements AutoCloseable
 {
-    private class Input extends InputStream
-    {
-        @Override
-        public int read() throws IOException
-        {
-            // TODO: implement
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException
-        {
-            // TODO: implement
-        }
-    }
-
-    private class Output extends OutputStream
-    {
-        @Override
-        public void write(int b) throws IOException
-        {
-            // TODO: implement
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException
-        {
-            // TODO: implement
-        }
-
-        @Override
-        public void flush() throws IOException
-        {
-            // TODO: implement
-        }
-    }
-
     private final ReliableSocket reliableSocket;
 
     private final Endpoint remoteEndpoint;
@@ -236,6 +200,42 @@ public class ReliableSocketConnection implements AutoCloseable
     void processPacketDiscAck(DataInputStream packetInput) throws IOException
     {
         // TODO: implement
+    }
+
+    private class Input extends InputStream
+    {
+        @Override
+        public int read() throws IOException
+        {
+            // TODO: implement
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException
+        {
+            // TODO: implement
+        }
+    }
+
+    private class Output extends OutputStream
+    {
+        @Override
+        public void write(int b) throws IOException
+        {
+            // TODO: implement
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException
+        {
+            // TODO: implement
+        }
+
+        @Override
+        public void flush() throws IOException
+        {
+            // TODO: implement
+        }
     }
 }
 
