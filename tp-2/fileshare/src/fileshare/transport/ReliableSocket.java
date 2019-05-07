@@ -62,7 +62,7 @@ public class ReliableSocket implements AutoCloseable
     private final Thread receiverThread;
     private final AtomicInteger nextLocalConnectionSeqnum;
 
-    private final AtomicBoolean isListening;
+    private final AtomicReference< Thread > listeningThread;
 
     // connection seqnum is remote
     private final BlockingQueue< ConnectionIdentifier >
@@ -102,7 +102,7 @@ public class ReliableSocket implements AutoCloseable
         this.receiverThread = new Thread(this::receiver);
         this.nextLocalConnectionSeqnum = new AtomicInteger(0);
 
-        this.isListening = new AtomicBoolean(false);
+        this.listeningThread = new AtomicReference<>(null);
 
         this.incomingConnectionRequests = new LinkedBlockingQueue<>();
         this.outgoingConnectionRequests = new HashMap<>();
@@ -202,7 +202,7 @@ public class ReliableSocket implements AutoCloseable
 
         // check if already listening and set listening flag
 
-        if (isListening.getAndSet(true))
+        if (!this.listeningThread.compareAndSet(null, Thread.currentThread()))
             throw new IllegalStateException();
 
         try
@@ -285,7 +285,7 @@ public class ReliableSocket implements AutoCloseable
         {
             // clear listening flag
 
-            isListening.set(false);
+            this.listeningThread.set(null);
         }
     }
 
@@ -477,6 +477,10 @@ public class ReliableSocket implements AutoCloseable
             case OPEN:
 
                 // abort any ongoing listen or connect calls
+
+                // TODO: implement
+
+                // abort any ongoing connect calls
 
                 // close all open connections
 
