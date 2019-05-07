@@ -229,7 +229,6 @@ public class ReliableSocket implements AutoCloseable
                 catch (InterruptedException ignored)
                 {
                     // interrupted, retry
-
                     continue;
                 }
 
@@ -298,8 +297,8 @@ public class ReliableSocket implements AutoCloseable
      * If this socket is closed, invoking this method will result in {@link
      * IllegalStateException} being thrown.
      *
-     * Any active calls of this method will throw an exception when {@link
-     * #close()} is invoked on this instance.
+     * Any active calls of this method will throw an {@link
+     * InterruptedException} when {@link #close()} is invoked on this instance.
      *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method (with the exception that
@@ -315,10 +314,16 @@ public class ReliableSocket implements AutoCloseable
      */
     public ReliableSocketConnection connect(
         Endpoint remoteEndpoint
-        ) throws IOException
+        ) throws InterruptedException, IOException
     {
-        if (this.state != State.OPEN)
+        // validate state
+
+        if (this.state.get() != State.OPEN)
             throw new IllegalStateException();
+
+        // increment active invocation count
+
+        // TODO: implement
 
         // allocate buffer for holding data of packets to be sent
 
@@ -429,8 +434,19 @@ public class ReliableSocket implements AutoCloseable
             {
                 // unregister connection attempt
 
-                this.outgoingConnectionRequests.remove(connectionId);
+                this.outgoingConnectionRequests.remove(
+                    new ConnectionIdentifier(
+                        remoteEndpoint,
+                        localConnectionId
+                    )
+                );
             }
+
+            // decrement active invocation count
+
+            // TODO: implement
+
+            // rethrow
 
             throw t;
         }

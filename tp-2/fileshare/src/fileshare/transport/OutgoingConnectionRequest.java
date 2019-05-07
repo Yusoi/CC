@@ -10,10 +10,12 @@ import java.util.concurrent.TimeoutException;
 class OutgoingConnectionRequest
 {
     private OptionalInt remoteConnectionSeqnum;
+    private boolean interrupted;
 
     public OutgoingConnectionRequest()
     {
         remoteConnectionSeqnum = null;
+        interrupted = false;
     }
 
     /**
@@ -29,7 +31,7 @@ class OutgoingConnectionRequest
      */
     public OptionalInt waitForResponse(
         long timeoutMilliseconds
-    ) throws TimeoutException
+    ) throws InterruptedException, TimeoutException
     {
         final var nanosStart = System.nanoTime();
         var nanosNow = nanosStart;
@@ -41,6 +43,9 @@ class OutgoingConnectionRequest
 
             synchronized (this)
             {
+                if (this.interrupted)
+                    throw new InterruptedException();
+
                 if (this.remoteConnectionSeqnum != null)
                     return this.remoteConnectionSeqnum;
 
@@ -63,15 +68,21 @@ class OutgoingConnectionRequest
     {
         this.remoteConnectionSeqnum = OptionalInt.empty();
 
-        this.notify();
+        this.notifyAll();
     }
 
     public synchronized void accepted(int remoteConnectionSeqnum)
     {
-        this.remoteConnectionSeqnum =
-            OptionalInt.of(remoteConnectionSeqnum);
+        this.remoteConnectionSeqnum = OptionalInt.of(remoteConnectionSeqnum);
 
-        this.notify();
+        this.notifyAll();
+    }
+
+    public synchronized void interrupt()
+    {
+        this.interrupted = true;
+
+        this.notifyAll();
     }
 }
 
