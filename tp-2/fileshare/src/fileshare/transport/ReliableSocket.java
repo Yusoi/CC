@@ -147,7 +147,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.receiverThread.start();
     }
-\
+
     /**
      * Listen for incoming connection requests.
      *
@@ -215,7 +215,7 @@ public class ReliableSocket implements AutoCloseable
             {
                 // return if socket was closed
 
-                if (this.state == State.CLOSED)
+                if (this.state.get() == State.CLOSED)
                     return null;
 
                 // wait for request to arrive
