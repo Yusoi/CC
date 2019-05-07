@@ -10,10 +10,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
@@ -21,11 +19,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /* -------------------------------------------------------------------------- */
 
@@ -38,22 +34,22 @@ import java.util.stream.Collectors;
 public class ReliableSocket implements AutoCloseable
 {
     /**
-     * TODO: document
+     * Defines the possible states of a {@code ReliableSocket}.
      */
     public enum State
     {
         /**
-         * TODO: document
+         * The socket was created but not opened.
          */
         CREATED,
 
         /**
-         * TODO: document
+         * The socket is open.
          */
         OPEN,
 
         /**
-         * TODO: document
+         * The socket is closed.
          */
         CLOSED
     }
