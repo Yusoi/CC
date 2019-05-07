@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,7 @@ public class ReliableSocket implements AutoCloseable
         CLOSED
     }
 
-    private State state;
+    private final AtomicReference< State > state;
 
     private final DatagramSocket udpSocket;
     private final Thread receiverThread;
@@ -95,7 +96,7 @@ public class ReliableSocket implements AutoCloseable
 
         // initialize instance
 
-        this.state = State.CREATED;
+        this.state = new AtomicReference<>(State.CREATED);
 
         this.udpSocket = new DatagramSocket(localPort);
         this.receiverThread = new Thread(this::receiver);
@@ -128,9 +129,9 @@ public class ReliableSocket implements AutoCloseable
      *
      * @return the socket's state
      */
-    public synchronized State getState()
+    public State getState()
     {
-        return state;
+        return state.get();
     }
 
     /**
@@ -139,16 +140,14 @@ public class ReliableSocket implements AutoCloseable
      * @throws IllegalStateException if the socket's state is not {@link
      *         State#CREATED}
      */
-    public synchronized void open()
+    public void open()
     {
-        if (this.state != State.CREATED)
+        if (!this.state.compareAndSet(State.CREATED, State.OPEN))
             throw new IllegalStateException();
-
-        this.state = State.OPEN;
 
         this.receiverThread.start();
     }
-
+\
     /**
      * Listen for incoming connection requests.
      *
