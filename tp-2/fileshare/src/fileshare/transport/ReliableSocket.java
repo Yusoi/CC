@@ -28,6 +28,29 @@ import java.util.function.Predicate;
  */
 public class ReliableSocket implements AutoCloseable
 {
+    /**
+     * TODO: document
+     */
+    public enum State
+    {
+        /**
+         * TODO: document
+         */
+        CREATED,
+
+        /**
+         * TODO: document
+         */
+        OPEN,
+
+        /**
+         * TODO: document
+         */
+        CLOSED
+    }
+
+    private State state;
+
     private final DatagramSocket udpSocket;
     private final Thread receiverThread;
 
@@ -67,6 +90,8 @@ public class ReliableSocket implements AutoCloseable
 
         // initialize instance
 
+        this.state = State.CREATED;
+
         this.udpSocket = new DatagramSocket(localPort);
         this.receiverThread = new Thread(this::receiver);
 
@@ -95,10 +120,28 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * TODO: document
+     * Returns the socket's state.
+     *
+     * @return the socket's state
      */
-    public void open()
+    public synchronized State getState()
     {
+        return state;
+    }
+
+    /**
+     * Opens the socket.
+     *
+     * @throws IllegalStateException if the socket's state is not {@link
+     *         State#CREATED}
+     */
+    public synchronized void open()
+    {
+        if (this.state != State.CREATED)
+            throw new IllegalStateException();
+
+        this.state = State.OPEN;
+
         this.receiverThread.start();
     }
 
@@ -140,6 +183,12 @@ public class ReliableSocket implements AutoCloseable
         Predicate< Endpoint > accept
         ) throws IOException
     {
+        if (this.state == State.CREATED)
+            throw new IllegalStateException();
+
+        if (this.state == State.CLOSED)
+            return null;
+
         if (isListening.getAndSet(true))
             throw new IllegalStateException();
 
@@ -181,6 +230,9 @@ public class ReliableSocket implements AutoCloseable
         Endpoint remoteEndpoint
         ) throws IOException
     {
+        if (this.state != State.OPEN)
+            throw new IllegalStateException();
+
         // allocate buffer for holding data of packets to be sent
 
         final var packetBuffer = new byte[Config.MAX_PACKET_SIZE];
@@ -295,21 +347,6 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Checks whether this socket has been closed.
-     *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that
-     * invoking {@link #listen(Predicate)} while another invocation is active on
-     * the same instance will result in an exception).
-     *
-     * @return whether this socket has been closed
-     */
-    public boolean isClosed()
-    {
-        // TODO: implement
-    }
-
-    /**
      * Closes this socket and any open connection previously obtained from it
      * (as if by invoking {@link ReliableSocketConnection#close()} on each of
      * them).
@@ -336,9 +373,12 @@ public class ReliableSocket implements AutoCloseable
     @Override
     public void close()
     {
-        // TODO: implement
+        if (this.state != State.CLOSED)
+        {
+            // TODO: implement
+        }
 
-        this.connections.forEach(ReliableSocketConnection::close);
+        this.state = State.CLOSED;
     }
 
     private void receiver()
@@ -454,7 +494,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void processPacketConnReject(
@@ -464,11 +504,14 @@ public class ReliableSocket implements AutoCloseable
     {
         final var localConnectionNumber = packetInput.readInt();
 
-        final var attempt = this.outgoingConnectionAttempts.get(
-            new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
-        );
+        synchronized (this)
+        {
+            final var attempt = this.outgoingConnectionAttempts.get(
+                new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
+            );
 
-        attempt.rejected();
+            attempt.rejected();
+        }
     }
 
     private void processPacketConnAccept(
@@ -479,11 +522,14 @@ public class ReliableSocket implements AutoCloseable
         final var localConnectionNumber = packetInput.readInt();
         final var remoteConnectionNumber = packetInput.readInt();
 
-        final var attempt = this.outgoingConnectionAttempts.get(
-            new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
-        );
+        synchronized (this)
+        {
+            final var attempt = this.outgoingConnectionAttempts.get(
+                new ConnectionIdentifier(remoteEndpoint, localConnectionNumber)
+            );
 
-        attempt.accepted(remoteConnectionNumber);
+            attempt.accepted(remoteConnectionNumber);
+        }
     }
 
     private void processPacketConnAcceptAck(
@@ -491,7 +537,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void processPacketData(
@@ -499,7 +545,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void processPacketDataAck(
@@ -507,7 +553,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void processPacketDisc(
@@ -515,7 +561,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void processPacketDiscAck(
@@ -523,7 +569,7 @@ public class ReliableSocket implements AutoCloseable
         DataInputStream packetInput
     ) throws IOException
     {
-
+        // TODO: implement
     }
 
     private void sendPacketConn(
