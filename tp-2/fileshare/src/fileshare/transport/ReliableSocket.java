@@ -200,7 +200,7 @@ public class ReliableSocket implements AutoCloseable
 
         try
         {
-            for (int i = 0; i < Config.MAX_CONNECTION_RETRIES; ++i)
+            for (int i = 0; i < Config.MAX_CONNECTION_ATTEMPTS; ++i)
             {
                 // send connection request
 
