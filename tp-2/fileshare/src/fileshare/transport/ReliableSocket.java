@@ -213,7 +213,7 @@ public class ReliableSocket implements AutoCloseable
 
             while (true)
             {
-                // return if socket was closed
+                // return null if socket is now closed
 
                 if (this.state.get() == State.CLOSED)
                     return null;
@@ -462,25 +462,40 @@ public class ReliableSocket implements AutoCloseable
     @Override
     public void close()
     {
-        if (this.state != State.CLOSED)
+        final var previousState = this.state.getAndSet(State.CLOSED);
+
+        switch (previousState)
         {
-            this.state = State.CLOSED;
+            case CREATED:
 
-            // abort any ongoing listen or connect calls
+                // close UDP socket
 
-            // close all open connections
+                this.udpSocket.close();
 
-            this.openConnections.values().forEach(
-                ReliableSocketConnection::close
-            );
+                break;
 
-            // close UDP socket
+            case OPEN:
 
-            this.udpSocket.close();
+                // abort any ongoing listen or connect calls
 
-            // wait for receiver thread to finish
+                // close all open connections
 
-            Util.uninterruptibleJoin(this.receiverThread);
+                this.openConnections.values().forEach(
+                    ReliableSocketConnection::close
+                );
+
+                // close UDP socket
+
+                this.udpSocket.close();
+
+                // wait for receiver thread to finish
+
+                Util.uninterruptibleJoin(this.receiverThread);
+
+                break;
+
+            case CLOSED:
+                break;
         }
     }
 
