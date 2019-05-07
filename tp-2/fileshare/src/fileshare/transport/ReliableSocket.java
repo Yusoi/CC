@@ -10,8 +10,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
@@ -247,8 +249,11 @@ public class ReliableSocket implements AutoCloseable
 
                 // check if connection was already accepted
 
-                if (this.openConnections.containsKey(connectionId))
-                    continue; // previously accepted connection, skip
+                synchronized (this)
+                {
+                    if (this.openConnections.containsKey(connectionId))
+                        continue; // previously accepted connection, skip
+                }
 
                 // determine whether to accept or reject connection
 
@@ -275,7 +280,10 @@ public class ReliableSocket implements AutoCloseable
                         connectionId.getConnectionSeqnum()
                     );
 
-                    this.openConnections.put(connectionId, connection);
+                    synchronized (this)
+                    {
+                        this.openConnections.put(connectionId, connection);
+                    }
 
                     // return connection
 
@@ -533,8 +541,11 @@ public class ReliableSocket implements AutoCloseable
 
                 // abort all ongoing connect() invocations
 
-                for (final var request : this.outgoingConnectionRequests.values())
-                    request.interrupt();
+                synchronized (this.outgoingConnectionRequests)
+                {
+                    for (final var r : this.outgoingConnectionRequests.values())
+                        r.interrupt();
+                }
 
                 // wait for ongoing listen() invocation to finish
 
@@ -570,9 +581,16 @@ public class ReliableSocket implements AutoCloseable
 
                 // close all open connections
 
-                this.openConnections.values().forEach(
-                    ReliableSocketConnection::close
-                );
+                final List< ReliableSocketConnection > openConnectionsCopy;
+
+                synchronized (this)
+                {
+                    openConnectionsCopy = new ArrayList<>(
+                        this.openConnections.values()
+                    );
+                }
+
+                openConnectionsCopy.forEach(ReliableSocketConnection::close);
 
                 // close UDP socket
 
