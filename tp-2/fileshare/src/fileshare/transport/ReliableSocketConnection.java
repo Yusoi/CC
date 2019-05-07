@@ -19,22 +19,58 @@ import java.net.Socket;
  */
 public class ReliableSocketConnection implements AutoCloseable
 {
-    private final ReliableSocket reliableSocket;
+    private class Input extends InputStream
+    {
+        @Override
+        public int read() throws IOException
+        {
+            // TODO: implement
+        }
 
-    final Socket tcpSocket;
-    private final InputStream inputStream;
-    private final OutputStream outputStream;
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException
+        {
+            // TODO: implement
+        }
+    }
+
+    private class Output extends OutputStream
+    {
+        @Override
+        public void write(int b) throws IOException
+        {
+            // TODO: implement
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException
+        {
+            // TODO: implement
+        }
+
+        @Override
+        public void flush() throws IOException
+        {
+            // TODO: implement
+        }
+    }
+
+    private final ReliableSocket reliableSocket;
+    private final Endpoint remoteEndpoint;
+
+    private final DataInputStream input;
+    private final DataOutputStream output;
 
     ReliableSocketConnection(
-        ReliableSocket mySocket,
-        Socket tcpSocket
-        ) throws IOException
+        ReliableSocket reliableSocket,
+        Endpoint remoteEndpoint
+    )
     {
-        this.reliableSocket = mySocket;
+        this.reliableSocket = reliableSocket;
+        this.remoteEndpoint = remoteEndpoint;
 
-        this.tcpSocket    = tcpSocket;
-        this.inputStream  = tcpSocket.getInputStream();
-        this.outputStream = tcpSocket.getOutputStream();
+        this.input = new DataInputStream(this.new Input());
+        this.output = new DataOutputStream(this.new Output());
     }
 
     /**
@@ -65,14 +101,11 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     public Endpoint getRemoteEndpoint()
     {
-        return new Endpoint(
-            this.tcpSocket.getInetAddress(),
-            this.tcpSocket.getPort()
-            );
+        return this.remoteEndpoint;
     }
 
     /**
-     * Returns the input stream for this side of this connection.
+     * Returns the unique input stream for this side of this connection.
      *
      * This method always succeeds, even if this connection is closed.
      *
@@ -95,13 +128,13 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the input stream for this side of this connection
      */
-    public InputStream getInputStream()
+    public DataInputStream getInput()
     {
-        return this.inputStream;
+        return this.input;
     }
 
     /**
-     * Returns the output stream for this side of this connection.
+     * Returns the unique output stream for this side of this connection.
      *
      * The returned stream's data is buffered (to a certain unspecified size).
      * In order to force-send buffered data, use the returned stream's
@@ -123,9 +156,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the output stream for this side of this connection
      */
-    public OutputStream getOutputStream()
+    public DataOutputStream getOutput()
     {
-        return this.outputStream;
+        return this.output;
     }
 
     /**
@@ -138,7 +171,7 @@ public class ReliableSocketConnection implements AutoCloseable
      */
     public boolean isClosed()
     {
-        return this.tcpSocket.isClosed();
+        // TODO: implement
     }
 
     /**
@@ -173,30 +206,7 @@ public class ReliableSocketConnection implements AutoCloseable
     @Override
     public void close()
     {
-        try
-        {
-            this.tcpSocket.close();
-        }
-        catch (IOException ignored)
-        {
-        }
-
-        synchronized (reliableSocket.connections)
-        {
-            reliableSocket.connections.remove(this);
-        }
-    }
-
-    // TODO: decide what to do with this
-    public DataInputStream getInput()
-    {
-        return new DataInputStream(this.getInputStream());
-    }
-
-    // TODO: decide what to do with this
-    public DataOutputStream getOutput()
-    {
-        return new DataOutputStream(this.getOutputStream());
+        // TODO: implement
     }
 }
 

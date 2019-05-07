@@ -37,6 +37,9 @@ public class ReliableSocket implements AutoCloseable
 
     private final Thread receiverThread;
 
+    private final List< IncomingConnectionAttempt > incomingConnectionAttempts;
+    private final List< OutgoingConnectionAttempt > outgoingConnectionAttempts;
+
     /**
      * Creates a {@code ReliableSocket} on the specified local UDP port.
      *
@@ -123,58 +126,6 @@ public class ReliableSocket implements AutoCloseable
         try
         {
             // TODO: implement
-
-            while (true)
-            {
-                final Socket tcpSocket;
-
-                try
-                {
-                    tcpSocket = this.tcpServerSocket.accept();
-                }
-                catch (SocketException e)
-                {
-                    if (this.tcpServerSocket.isClosed())
-                        return null; // close() was invoked
-                    else
-                        throw e;
-                }
-
-                try
-                {
-                    final var remoteEndpoint = new Endpoint(
-                        tcpSocket.getInetAddress(),
-                        tcpSocket.getPort()
-                    );
-
-                    if (accept.test(remoteEndpoint))
-                    {
-                        tcpSocket.getOutputStream().write(0);
-                        tcpSocket.getOutputStream().flush();
-
-                        final var connection = new ReliableSocketConnection(
-                            this,
-                            tcpSocket
-                        );
-
-                        synchronized (this.connections)
-                        {
-                            this.connections.add(connection);
-                        }
-
-                        return connection;
-                    }
-                    else
-                    {
-                        tcpSocket.close();
-                    }
-                }
-                catch (Throwable t)
-                {
-                    tcpSocket.close();
-                    throw t;
-                }
-            }
         }
         finally
         {
@@ -212,39 +163,14 @@ public class ReliableSocket implements AutoCloseable
     {
         // TODO: implement
 
-        final var tcpSocket = new Socket();
+        final var packet = new DatagramPacket(
+            new byte[ReliableSocketConfig.MAX_PACKET_SIZE],
+            ReliableSocketConfig.MAX_PACKET_SIZE,
+            remoteEndpoint.getAddress(),
+            remoteEndpoint.getPort()
+        );
 
-        try
-        {
-            tcpSocket.connect(
-                new InetSocketAddress(
-                    remoteEndpoint.getAddress(),
-                    remoteEndpoint.getPort()
-                ),
-                5000
-            );
-
-            if (tcpSocket.getInputStream().read() == -1)
-            {
-                throw new IOException(
-                    "The remote did not accept the connection."
-                );
-            }
-        }
-        catch (Throwable t)
-        {
-            tcpSocket.close();
-            throw t;
-        }
-
-        final var connection = new ReliableSocketConnection(this, tcpSocket);
-
-        synchronized (this.connections)
-        {
-            this.connections.add(connection);
-        }
-
-        return connection;
+        this.udpSocket.send(packet);
     }
 
     /**
@@ -260,8 +186,6 @@ public class ReliableSocket implements AutoCloseable
     public boolean isClosed()
     {
         // TODO: implement
-
-        return this.udpSocket.isClosed();
     }
 
     /**
@@ -293,27 +217,7 @@ public class ReliableSocket implements AutoCloseable
     {
         // TODO: implement
 
-        try
-        {
-            this.tcpServerSocket.close();
-        }
-        catch (IOException ignored)
-        {
-        }
-
-        synchronized (this.connections)
-        {
-            for (final var connection : this.connections)
-            {
-                try
-                {
-                    connection.tcpSocket.close();
-                }
-                catch (Exception ignored)
-                {
-                }
-            }
-        }
+        this.connections.forEach(ReliableSocketConnection::close);
     }
 
     private void receiver()
@@ -342,7 +246,9 @@ public class ReliableSocket implements AutoCloseable
         }
         catch (Exception e)
         {
-            // TODO: implement
+            // close this socket (and all its connections)
+
+            this.close();
         }
     }
 
@@ -354,16 +260,16 @@ public class ReliableSocket implements AutoCloseable
                 new ByteArrayInputStream(packetData)
             );
 
-            // verify integrity
+            // verify packet integrity
 
             final var checksum = ReliableSocketConfig.CHECKSUM.get();
             checksum.update(packetData, 4, packetData.length - 4);
 
-            final long receivedChecksum = (long) packetInput.readInt();
-            final long computedChecksum = checksum.getValue();
+            final int receivedChecksum = packetInput.readInt();
+            final int computedChecksum = (int)checksum.getValue();
 
             if (receivedChecksum != computedChecksum)
-                return; // packet is corrupt
+                return; // drop corrupt packet
 
             // TODO: implement
         }
