@@ -7,11 +7,11 @@ import java.util.concurrent.TimeoutException;
 
 /* -------------------------------------------------------------------------- */
 
-class OutgoingConnectionAttempt
+class OutgoingConnectionRequest
 {
     private OptionalInt remoteConnectionSeqnum;
 
-    public OutgoingConnectionAttempt()
+    public OutgoingConnectionRequest()
     {
         remoteConnectionSeqnum = null;
     }

@@ -9,15 +9,15 @@ import java.util.Objects;
 class ConnectionIdentifier
 {
     private final Endpoint remoteEndpoint;
-    private final int localConnectionSeqnum;
+    private final int connectionSeqnum;
 
     public ConnectionIdentifier(
         Endpoint remoteEndpoint,
-        int localConnectionSeqnum
+        int connectionSeqnum
     )
     {
         this.remoteEndpoint = Objects.requireNonNull(remoteEndpoint);
-        this.localConnectionSeqnum = localConnectionSeqnum;
+        this.connectionSeqnum = connectionSeqnum;
     }
 
     public Endpoint getRemoteEndpoint()
@@ -25,9 +25,9 @@ class ConnectionIdentifier
         return this.remoteEndpoint;
     }
 
-    public int getLocalConnectionSeqnum()
+    public int getConnectionSeqnum()
     {
-        return this.localConnectionSeqnum;
+        return this.connectionSeqnum;
     }
 
     @Override
@@ -39,14 +39,14 @@ class ConnectionIdentifier
         final var other = (ConnectionIdentifier) obj;
 
         return
-            Objects.equals(this.remoteEndpoint, other.remoteEndpoint) &&
-                Objects.equals(this.localConnectionSeqnum, other.localConnectionSeqnum);
+            this.remoteEndpoint.equals(other.remoteEndpoint) &&
+                this.connectionSeqnum == other.connectionSeqnum;
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(this.remoteEndpoint, this.localConnectionSeqnum);
+        return Objects.hash(this.remoteEndpoint, this.connectionSeqnum);
     }
 }
 
