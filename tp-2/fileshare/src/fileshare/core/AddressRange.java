@@ -45,6 +45,8 @@ public class AddressRange
      */
     public static AddressRange parseCidrNotation(String cidrNotation)
     {
+        Objects.requireNonNull(cidrNotation);
+
         final var params = new IPAddressStringParameters.Builder()
             .allowAll(false)
             .allowEmpty(false)
@@ -64,7 +66,10 @@ public class AddressRange
         catch (AddressStringException e)
         {
             throw new IllegalArgumentException(
-                String.format("Invalid address range \"%s\".", cidrNotation)
+                String.format(
+                    "Invalid CIDR-notation string \"%s\".",
+                    cidrNotation
+                )
             );
         }
 

@@ -81,7 +81,7 @@ public class ExportedDirectory
      * non-existing entry, a {@link FileNotFoundException} exception is thrown.
      *
      * @param path the path to be resolved
-     * @return the resolved paht
+     * @return the resolved path
      *
      * @throws NullPointerException if {@code path} is {@code null}
      * @throws IllegalArgumentException if {@code path} is absolute
@@ -324,7 +324,7 @@ public class ExportedDirectory
             if (lockValue == -1)
             {
                 throw new IllegalStateException(
-                    "File is already locked for writing."
+                    "The file is locked for writing."
                 );
             }
 
@@ -350,7 +350,7 @@ public class ExportedDirectory
         synchronized (this.fileLocks)
         {
             if (this.fileLocks.containsKey(resolvedFilePath))
-                throw new IllegalStateException("File is already locked.");
+                throw new IllegalStateException("The file is locked.");
 
             this.fileLocks.put(resolvedFilePath, -1);
         }
