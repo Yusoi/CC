@@ -231,7 +231,7 @@ public class Peer implements AutoCloseable
             () -> onJobStatesUpdated.accept(
                 jobStates
                     .stream()
-                    .map(JobState::clone)
+                    .map(JobState::copy)
                     .collect(Collectors.toUnmodifiableList())
                 );
 

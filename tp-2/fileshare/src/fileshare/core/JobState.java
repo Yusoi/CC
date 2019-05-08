@@ -342,8 +342,7 @@ public class JobState
         }
     }
 
-    @Override
-    public synchronized JobState clone()
+    public synchronized JobState copy()
     {
         final var other = new JobState(job);
 
