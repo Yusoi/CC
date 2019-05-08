@@ -11,8 +11,20 @@ import java.nio.file.Path;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Utility class for {@link Peer} containing the logic for serving jobs of type
+ * {@link JobType#GET}.
+ *
+ * Note that this class is package-private.
+ */
 class PeerServeGetImpl
 {
+    /**
+     * Serves a job of type {@link JobType#GET}.
+     *
+     * @param connection the connection to the remote peer
+     * @param exportedDirectory the local peer's exported directory
+     */
     public static void serve(
         ReliableSocketConnection connection,
         ExportedDirectory exportedDirectory

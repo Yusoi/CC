@@ -10,8 +10,20 @@ import java.nio.file.Path;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Utility class for {@link Peer} containing the logic for serving jobs of type
+ * {@link JobType#PUT}.
+ *
+ * Note that this class is package-private.
+ */
 class PeerServePutImpl
 {
+    /**
+     * Serves a job of type {@link JobType#PUT}.
+     *
+     * @param connection the connection to the remote peer
+     * @param exportedDirectory the local peer's exported directory
+     */
     public static void serve(
         ReliableSocketConnection connection,
         ExportedDirectory exportedDirectory
