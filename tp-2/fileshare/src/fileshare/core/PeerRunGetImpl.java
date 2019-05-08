@@ -15,8 +15,21 @@ import java.util.List;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Utility class for {@link Peer} containing the logic for running jobs of type
+ * {@link JobType#GET}.
+ *
+ * Note that this class is package-private.
+ */
 class PeerRunGetImpl
 {
+    /**
+     * Runs a job of type {@link JobType#GET}.
+     *
+     * @param state the state of the job
+     * @param socket the local peer's socket
+     * @param exportedDirectory the local peer's exported directory
+     */
     public static void run(
         JobState state,
         ReliableSocket socket,

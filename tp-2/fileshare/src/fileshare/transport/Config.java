@@ -37,8 +37,17 @@ class Config
      */
     public static final int MAX_PACKET_SIZE = 1500 - 60 - 8;
 
-    public static final int MAX_DATA_PAYLOAD_SIZE =
-        MAX_PACKET_SIZE - 4 - 1 - 4 - 4;
+    /**
+     * TODO: document
+     *
+     * = MAX_PACKET_SIZE
+     * - checksum size (4 bytes)
+     * - packet type identifier size (1 byte)
+     * - sender-side connection identifier (4 bytes)
+     * - data offset (8 bytes)
+     */
+    public static final int MAX_DATA_PACKET_PAYLOAD_SIZE =
+        MAX_PACKET_SIZE - 4 - 1 - 4 - 8;
 
     // packet integrity
 
@@ -62,6 +71,13 @@ class Config
      */
     public static final int CONNECTION_RETRY_DELAY = 500;
 
+    // data transfer
+
+    /**
+     * In bytes.
+     */
+    public static final int MAX_DATA_PAYLOAD_BYTES_IN_TRANSIT = 1 << 20;
+
     // connection termination
 
     /**
@@ -75,13 +91,6 @@ class Config
      * corresponding DISC-ACK packet is received.
      */
     public static final int DISCONNECTION_RETRY_DELAY = 200;
-
-    // receive window
-
-    /**
-     * In bytes.
-     */
-    public static final int MAX_DATA_PAYLOAD_BYTES_IN_TRANSIT = 1 << 20;
 
     // No point in ever instantiating this class.
     private Config()

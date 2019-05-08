@@ -242,7 +242,7 @@ public class ReliableSocketConnection implements AutoCloseable
         private long sentBytes = 0;
 
         private final byte[] buffer = new byte[
-            Config.MAX_DATA_PAYLOAD_SIZE
+            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
             ];
 
         private int bufferPosition = 0;
