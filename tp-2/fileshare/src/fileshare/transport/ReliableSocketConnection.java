@@ -214,8 +214,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
         // the buffer is cyclic
         private final byte[] buffer = new byte[
-            Config.MAX_DATA_PAYLOAD_RECEIVE_WINDOW +
-                Config.MAX_DATA_PAYLOAD_SIZE
+            Config.MAX_DATA_PAYLOAD_BYTES_IN_TRANSIT
             ];
 
         private int bufferPosition = 0;
