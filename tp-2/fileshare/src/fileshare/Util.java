@@ -23,7 +23,7 @@ public final class Util
      * @param message the exception message
      *
      * @throws NullPointerException if {@code message} is {@code null}
-     * @throws RuntimeException if message is not empty
+     * @throws RuntimeException if {@code message} is not empty
      */
     public static void throwIfNotEmpty(String message)
     {
