@@ -104,7 +104,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             interpreter.setShouldExit(true);
         }
@@ -119,7 +118,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             interpreter.getPeer().getPeerWhitelist().add(
                 AddressRange.parseCidrNotation("0.0.0.0/0")
@@ -144,7 +142,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             final var ranges = new ArrayList< AddressRange >();
 
@@ -168,7 +165,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             final var ranges = new ArrayList< AddressRange >();
 
@@ -188,7 +184,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             interpreter.getPeer().getPeerWhitelist().clear();
         }
@@ -214,7 +209,11 @@ public abstract class Command
             final var remoteEndpoints = new ArrayList< Endpoint >();
 
             for (final var endpoint : matcher.group("from").split("\\s+"))
-                remoteEndpoints.add(Endpoint.parse(endpoint, Peer.DEFAULT_PORT));
+            {
+                remoteEndpoints.add(
+                    Endpoint.parse(endpoint, Peer.DEFAULT_PORT)
+                );
+            }
 
             final var remoteFilePath = Path.of(matcher.group("get"));
 
@@ -257,7 +256,11 @@ public abstract class Command
             final var remoteEndpoints = new ArrayList< Endpoint >();
 
             for (final var endpoint : matcher.group("to").split("\\s+"))
-                remoteEndpoints.add(Endpoint.parse(endpoint, Peer.DEFAULT_PORT));
+            {
+                remoteEndpoints.add(
+                    Endpoint.parse(endpoint, Peer.DEFAULT_PORT)
+                );
+            }
 
             final var localFilePath = Path.of(matcher.group("put"));
 
@@ -289,7 +292,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             interpreter.enterConcurrentMode();
         }
@@ -304,7 +306,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             try
             {
@@ -329,7 +330,6 @@ public abstract class Command
 
         @Override
         public void run(Interpreter interpreter, Matcher matcher)
-            throws Exception
         {
             interpreter.leaveConcurrentMode();
         }
@@ -354,8 +354,12 @@ public abstract class Command
 
     private static String jobStateToString(JobState state)
     {
-        final var numPeers = state.getJob().getPeerEndpoints().size();
+        final var job = state.getJob();
+
+        final var numPeers = job.getPeerEndpoints().size();
         final var peerPlural = (numPeers == 1) ? "" : "s";
+
+        String file;
 
         switch (state.getPhase())
         {
@@ -366,24 +370,22 @@ public abstract class Command
                     String.format("[%3d%%]", state.getProgressPercentage())
                 );
 
-                switch (state.getJob().getType())
+                switch (job.getType())
                 {
                     case GET:
 
-                        String file1 = state.getJob().getRemoteFilePath().toString();
+                        file = job.getRemoteFilePath().toString();
 
-                        if (!state.getJob().getLocalFilePath().equals(
-                            state.getJob().getRemoteFilePath()
-                        ))
+                        if (!job.getLocalFilePath().equals(
+                            job.getRemoteFilePath()))
                         {
-                            file1 += " as ";
-                            file1 += state.getJob().getLocalFilePath().toString();
+                            file += " as " + job.getLocalFilePath().toString();
                         }
 
                         return String.format(
                             "%s Getting %s from %d peer%s... (%s)",
                             progress,
-                            file1,
+                            file,
                             numPeers,
                             peerPlural,
                             throughputToString(state.getImmediateThroughput())
@@ -391,20 +393,18 @@ public abstract class Command
 
                     case PUT:
 
-                        String file2 = state.getJob().getLocalFilePath().toString();
+                        file = job.getLocalFilePath().toString();
 
-                        if (!state.getJob().getRemoteFilePath().equals(
-                            state.getJob().getLocalFilePath()
-                        ))
+                        if (!job.getRemoteFilePath().equals(
+                            job.getLocalFilePath()))
                         {
-                            file2 += " as ";
-                            file2 += state.getJob().getRemoteFilePath().toString();
+                            file += " as " + job.getRemoteFilePath().toString();
                         }
 
                         return String.format(
                             "%s Putting %s to %d peer%s... (%s)",
                             progress,
-                            file2,
+                            file,
                             numPeers,
                             peerPlural,
                             throughputToString(state.getImmediateThroughput())
@@ -413,24 +413,22 @@ public abstract class Command
 
             case SUCCEEDED:
 
-                switch (state.getJob().getType())
+                switch (job.getType())
                 {
                     case GET:
 
-                        String file1 = state.getJob().getRemoteFilePath().toString();
+                        file = job.getRemoteFilePath().toString();
 
-                        if (!state.getJob().getLocalFilePath().equals(
-                            state.getJob().getRemoteFilePath()
-                        ))
+                        if (!job.getLocalFilePath().equals(
+                            job.getRemoteFilePath()))
                         {
-                            file1 += " as ";
-                            file1 += state.getJob().getLocalFilePath().toString();
+                            file += " as " + job.getLocalFilePath().toString();
                         }
 
                         return String.format(
                             "%s Got %s from %d peer%s. (%s)",
                             Color.GREEN.apply("[100%]"),
-                            file1,
+                            file,
                             numPeers,
                             peerPlural,
                             throughputToString(state.getOverallThroughput())
@@ -438,20 +436,18 @@ public abstract class Command
 
                     case PUT:
 
-                        String file2 = state.getJob().getLocalFilePath().toString();
+                        file = job.getLocalFilePath().toString();
 
-                        if (!state.getJob().getRemoteFilePath().equals(
-                            state.getJob().getLocalFilePath()
-                        ))
+                        if (!job.getRemoteFilePath().equals(
+                            job.getLocalFilePath()))
                         {
-                            file2 += " as ";
-                            file2 += state.getJob().getRemoteFilePath().toString();
+                            file += " as " + job.getRemoteFilePath().toString();
                         }
 
                         return String.format(
                             "%s Put %s to %d peer%s. (%s)",
                             Color.GREEN.apply("[100%]"),
-                            file2,
+                            file,
                             numPeers,
                             peerPlural,
                             throughputToString(state.getOverallThroughput())
@@ -472,12 +468,14 @@ public abstract class Command
 
     private static String throughputToString(long bytesPerSecond)
     {
+        final var bps = bytesPerSecond;
+
         if (bytesPerSecond < 10 * (1 << 10))
-            return String.format(Locale.US, "%d B/s", bytesPerSecond);
+            return String.format(Locale.US, "%d B/s", bps);
         else if (bytesPerSecond < 10 * (1 << 20))
-            return String.format(Locale.US, "%.2f KiB/s", bytesPerSecond / 1024d);
+            return String.format(Locale.US, "%.2f KiB/s", bps / 1024d);
         else
-            return String.format(Locale.US, "%.2f MiB/s", bytesPerSecond / 1024d / 1024d);
+            return String.format(Locale.US, "%.2f MiB/s", bps / 1024d / 1024d);
     }
 }
 
