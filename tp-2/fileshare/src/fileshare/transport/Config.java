@@ -38,7 +38,7 @@ class Config
     public static final int MAX_PACKET_SIZE = 1500 - 60 - 8;
 
     /**
-     * TODO: document
+     * The maximum size of the payload in a DATA packet.
      *
      * = MAX_PACKET_SIZE
      * - checksum size (4 bytes)
