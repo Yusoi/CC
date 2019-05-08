@@ -119,7 +119,6 @@ public class ReliableSocket implements AutoCloseable
                 final var remoteEndpoint = new Endpoint(packet.getAddress(), packet.getPort());
 
                 if (accept.test(remoteEndpoint)) {
-                    //udpSocket.getOutputStream().write(0);
 
                     //TODO verify this
                     final var connection = new ReliableSocketConnection(this,udpServerSocket,remoteEndpoint);
@@ -242,7 +241,7 @@ public class ReliableSocket implements AutoCloseable
         synchronized (this.connections) {
             for (final var connection : this.connections) {
                 try {
-                    //TODO send message confirming the disconnection
+                    //TODO send message warning the disconnection
 
 
 

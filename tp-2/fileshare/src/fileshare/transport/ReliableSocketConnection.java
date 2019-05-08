@@ -43,8 +43,8 @@ public class ReliableSocketConnection implements AutoCloseable
             private Endpoint endpoint;
             private final int bufferSize = 256;
             private byte[] buf = new byte[bufferSize];
-            private int headerSize = 40;
-            private int curPos = 0; //Assuming it begins at the beggining of the array
+            private int headerSize = 5; //TODO: At the moment
+            private int curPos = 5; //Assuming it begins at the beggining of the array
 
             public PacketInputStream(Endpoint endpoint){
                 this.endpoint = endpoint;
@@ -52,6 +52,12 @@ public class ReliableSocketConnection implements AutoCloseable
 
             @Override
             public int read(){
+                //TODO
+                return 1;
+            }
+
+            @Override
+            public int read(byte[] b){
                 //TODO
                 return 1;
             }
@@ -65,8 +71,8 @@ public class ReliableSocketConnection implements AutoCloseable
             private Endpoint endpoint;
             private final int bufferSize = 256;
             private byte[] buf = new byte[bufferSize];
-            private int headerSize = 40;
-            private int curPos = 40; //Assuming it begins at the beggining of the array
+            private int headerSize = 5; //TODO: At the moment
+            private int curPos = 5; //Assuming it begins at the beggining of the array
 
             public PacketOutputStream(Endpoint endpoint){
                 this.endpoint = endpoint;
@@ -142,8 +148,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the endpoint of the host on the other side of this connection
      */
-    public Endpoint getRemoteEndpoint()
-    {
+    public Endpoint getRemoteEndpoint(){
         return endpoint;
     }
 
@@ -198,8 +203,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return the output stream for this side of this connection
      */
-    public OutputStream getOutputStream()
-    {
+    public OutputStream getOutputStream() {
         return this.outputStream;
     }
 
@@ -211,8 +215,7 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return whether this side of the connection has been closed
      */
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         return this.udpSocket.isClosed();
     }
 
