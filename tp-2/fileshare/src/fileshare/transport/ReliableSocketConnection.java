@@ -329,6 +329,11 @@ public class ReliableSocketConnection implements AutoCloseable
         {
             try
             {
+                // ignore data if disconnected
+
+                if (ReliableSocketConnection.this.isDisconnected())
+                    return;
+
                 // ignore data if empty
 
                 if (dataSize == 0)
