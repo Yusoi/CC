@@ -324,8 +324,6 @@ public class JobState
      */
     public synchronized void fail(Endpoint peerEndpoint, Throwable error)
     {
-        error.printStackTrace();
-
         if (this.phase == Phase.SUCCEEDED)
             throw new IllegalStateException("job has succeeded");
 
