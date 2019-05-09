@@ -2,23 +2,37 @@
 
 package fileshare.transport;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /* -------------------------------------------------------------------------- */
 
 class Timeout
 {
-    void scheduleIfNotScheduled(Runnable action, long delayNanos)
-    {
+    private final ScheduledExecutorService executor =
+        Executors.newSingleThreadScheduledExecutor();
 
+    synchronized void scheduleIfNotScheduled(Runnable action, long delayNanos)
+    {
+        executor.schedule(
+            action,
+            delayNanos,
+            TimeUnit.NANOSECONDS
+        );
     }
 
-    void scheduleReplace(Runnable action, long delayNanos)
+    synchronized void scheduleReplace(Runnable action, long delayNanos)
     {
-
+        executor.schedule(
+            action,
+            delayNanos,
+            TimeUnit.NANOSECONDS
+        );
     }
 
-    void cancelIfScheduled()
+    synchronized void cancelIfScheduled()
     {
-
     }
 }
 

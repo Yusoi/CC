@@ -667,6 +667,10 @@ public class ReliableSocketConnection implements AutoCloseable
                         this.rttEstimator.computeTimeoutNanos()
                     );
                 }
+                else
+                {
+                    this.ackTimeout.cancelIfScheduled();
+                }
             }
         }
 
