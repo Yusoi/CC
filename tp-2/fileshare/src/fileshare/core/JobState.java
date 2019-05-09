@@ -316,8 +316,8 @@ public class JobState
      *
      * @param peerEndpoint the endpoint of the peer that caused the error, or
      *        {@code null} if not applicable
-     * @param errorMessage a message describing the error that caused the job to
-     *        fail, or {@code null} if no such message is available
+     * @param error the error that caused the job to fail, or {@code null} if no
+     *        such error is available
      *
      * @throws IllegalStateException if the job's current phase is {@link
      *         Phase#SUCCEEDED}

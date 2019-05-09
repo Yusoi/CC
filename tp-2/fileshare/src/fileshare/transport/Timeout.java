@@ -10,29 +10,35 @@ import java.util.concurrent.TimeUnit;
 
 class Timeout
 {
-    private final ScheduledExecutorService executor =
-        Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService executor = null;
 
     synchronized void scheduleIfNotScheduled(Runnable action, long delayNanos)
     {
-        executor.schedule(
-            action,
-            delayNanos,
-            TimeUnit.NANOSECONDS
-        );
+        if (executor == null)
+        {
+            executor = Executors.newSingleThreadScheduledExecutor();
+
+            executor.schedule(
+                action,
+                delayNanos,
+                TimeUnit.NANOSECONDS
+            );
+        }
     }
 
     synchronized void scheduleReplace(Runnable action, long delayNanos)
     {
-        executor.schedule(
-            action,
-            delayNanos,
-            TimeUnit.NANOSECONDS
-        );
+        cancelIfScheduled();
+        scheduleIfNotScheduled(action, delayNanos);
     }
 
     synchronized void cancelIfScheduled()
     {
+        if (executor != null)
+        {
+            executor.shutdownNow();
+            executor = null;
+        }
     }
 }
 

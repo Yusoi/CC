@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -104,7 +105,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.udpSocket = new DatagramSocket(localPort);
         this.receiverThread = new Thread(this::receiver);
-        this.nextLocalConnectionId = new AtomicInteger(0);
+        this.nextLocalConnectionId = new AtomicInteger(new Random().nextInt());
 
         this.listenCallThreadMonitor = new Object();
         this.listenCallThread = null;
@@ -933,6 +934,13 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent CONN: localId = %d",
+                localConnectionId
+            )
+        );
     }
 
     private void sendPacketConnAccept(
@@ -949,6 +957,14 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent CONN-ACCEPT: remoteId = %d, localId = %d",
+                remoteConnectionId,
+                localConnectionId
+            )
+        );
     }
 
     private void sendPacketConnReject(
@@ -963,6 +979,13 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(remoteConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent CONN-REJECT: remoteId = %d",
+                remoteConnectionId
+            )
+        );
     }
 
     // payloadBuffer may be circular
@@ -996,12 +1019,12 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
-            String.format(
-                "Sent DATA: offset = %d, length = %d",
-                payloadPosition, payloadBufferLength
-            )
-        );
+        // System.err.println(
+        //     String.format(
+        //         "Sent DATA: offset = %d, length = %d",
+        //        payloadPosition, payloadBufferLength
+        //     )
+        // );
     }
 
     void sendPacketDataAck(
@@ -1019,12 +1042,12 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
-            String.format(
-                "Sent DATA-ACK: ack-up-to = %d",
-                ackUpTo
-            )
-        );
+        // System.err.println(
+        //     String.format(
+        //         "Sent DATA-ACK: ack-up-to = %d",
+        //         ackUpTo
+        //     )
+        // );
     }
 
     void sendPacketDisc(
@@ -1039,6 +1062,13 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent DISC: localId = %d",
+                localConnectionId
+            )
+        );
     }
 
     void sendPacketDiscAck(
@@ -1053,6 +1083,13 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent DISC: localId = %d",
+                localConnectionId
+            )
+        );
     }
 }
 

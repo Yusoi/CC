@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /* -------------------------------------------------------------------------- */
 
@@ -33,8 +34,8 @@ public class ReliableSocketConnection implements AutoCloseable
     private final DataInputStream dataInputStream;
     private final DataOutputStream dataOutputStream;
 
-    private boolean disconnected;
-    private boolean closed;
+    private AtomicBoolean disconnected;
+    private AtomicBoolean closed;
 
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
@@ -55,8 +56,8 @@ public class ReliableSocketConnection implements AutoCloseable
         this.dataInputStream = new DataInputStream(this.input);
         this.dataOutputStream = new DataOutputStream(this.output);
 
-        this.disconnected = false;
-        this.closed = false;
+        this.disconnected = new AtomicBoolean(false);
+        this.closed = new AtomicBoolean(false);
     }
 
     /**
@@ -164,9 +165,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return whether this side of the connection has been closed
      */
-    public synchronized boolean isDisconnected()
+    public boolean isDisconnected()
     {
-        return this.disconnected;
+        return this.disconnected.get();
     }
 
     /**
@@ -177,9 +178,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * @return whether this side of the connection has been closed
      */
-    public synchronized boolean isClosed()
+    public boolean isClosed()
     {
-        return this.closed;
+        return this.closed.get();
     }
 
     /**
@@ -212,7 +213,7 @@ public class ReliableSocketConnection implements AutoCloseable
     @Override
     public synchronized void close()
     {
-        if (!this.disconnected)
+        if (!this.disconnected.get())
         {
             // try to inform remote of close
 
@@ -245,12 +246,12 @@ public class ReliableSocketConnection implements AutoCloseable
 
             // set disconnected flag
 
-            this.disconnected = true;
+            this.disconnected.set(true);
         }
 
         // remove connection from parent socket
 
-        synchronized (this.reliableSocket.openConnections)
+        synchronized (this.reliableSocket)
         {
             this.reliableSocket.openConnections.remove(
                 new ConnectionIdentifier(
@@ -262,11 +263,19 @@ public class ReliableSocketConnection implements AutoCloseable
 
         // set closed flag
 
-        this.closed = true;
+        this.closed.set(true);
 
         // notify waiters
 
-        this.notifyAll();
+        synchronized (this.input)
+        {
+            this.input.notifyAll();
+        }
+
+        synchronized (this.output)
+        {
+            this.output.notifyAll();
+        }
     }
 
     void processPacketData(
@@ -302,7 +311,29 @@ public class ReliableSocketConnection implements AutoCloseable
 
     synchronized void processPacketDisc() throws IOException
     {
-        // this.disconnected = true;
+        // set disconnected flag
+
+        this.disconnected.set(true);
+
+        // send DISC-ACK
+
+        this.reliableSocket.sendPacketDiscAck(
+            new byte[Config.MAX_PACKET_SIZE],
+            this.remoteEndpoint,
+            this.localConnectionId
+        );
+
+        // notify waiters
+
+        synchronized (this.input)
+        {
+            this.input.notifyAll();
+        }
+
+        synchronized (this.output)
+        {
+            this.output.notifyAll();
+        }
     }
 
     void processPacketDiscAck() throws IOException
@@ -312,7 +343,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
-        // the buffer is circular
+        // circular buffer
         private final byte[] receiveBuffer = new byte[
             Config.MAX_DATA_PACKET_PAYLOAD_SIZE
             ];
@@ -322,82 +353,33 @@ public class ReliableSocketConnection implements AutoCloseable
 
         private long nextByteToBeRead = 0;
 
-        private void onDataReceived(
+        private synchronized void onDataReceived(
             long dataOffset,
             DataInputStream dataInput,
             int dataSize
         )
         {
-            synchronized (ReliableSocketConnection.this)
+            try
             {
-                try
+                // ignore data if disconnected
+
+                if (ReliableSocketConnection.this.isDisconnected())
+                    return;
+
+                // ignore data if empty
+
+                if (dataSize == 0)
+                    return;
+
+                // ignore data if offset is higher than expected (hole)
+
+                if (dataOffset > this.nextByteToBeRead)
+                    return;
+
+                // send acknowledgment and ignore data if already received
+
+                if (dataOffset < this.nextByteToBeRead)
                 {
-                    // ignore data if disconnected
-
-                    if (ReliableSocketConnection.this.isDisconnected())
-                        return;
-
-                    // ignore data if empty
-
-                    if (dataSize == 0)
-                        return;
-
-                    // ignore data if offset is higher than expected (hole)
-
-                    if (dataOffset > this.nextByteToBeRead)
-                        return;
-
-                    // simply send acknowledgment if data was already received
-
-                    if (dataOffset < this.nextByteToBeRead)
-                    {
-                        ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
-                            new byte[Config.MAX_PACKET_SIZE],
-                            ReliableSocketConnection.this.remoteEndpoint,
-                            ReliableSocketConnection.this.localConnectionId,
-                            this.nextByteToBeRead
-                        );
-
-                        return;
-                    }
-
-                    // ignore data if not enough space in receive buffer
-
-                    if (this.receiveBuffer.length - this.receiveBufferLen < dataSize)
-                        return;
-
-                    // copy data to receive buffer
-
-                    final var firstSize = Math.min(
-                        dataSize,
-                        this.receiveBuffer.length - this.receiveBufferStart
-                    );
-
-                    final var secondSize = dataSize - firstSize;
-
-                    if (firstSize > 0)
-                    {
-                        dataInput.readFully(
-                            this.receiveBuffer,
-                            this.receiveBufferStart,
-                            firstSize
-                        );
-                    }
-
-                    if (secondSize > 0)
-                    {
-                        dataInput.readFully(
-                            this.receiveBuffer,
-                            0,
-                            secondSize
-                        );
-                    }
-
-                    this.receiveBufferLen += dataSize;
-                    this.nextByteToBeRead += dataSize;
-
-                    // send acknowledgment
-
                     ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
                         new byte[Config.MAX_PACKET_SIZE],
                         ReliableSocketConnection.this.remoteEndpoint,
@@ -405,17 +387,49 @@ public class ReliableSocketConnection implements AutoCloseable
                         this.nextByteToBeRead
                     );
 
-                    // notify waiters if buffer was previously empty
-
-                    if (this.receiveBufferLen == dataSize)
-                        ReliableSocketConnection.this.notifyAll();
+                    return;
                 }
-                catch (IOException ignored)
-                {
-                    // I/O error, close connection
 
-                    ReliableSocketConnection.this.close();
-                }
+                // ignore data if not enough space in receive buffer
+
+                if (this.receiveBuffer.length - this.receiveBufferLen < dataSize)
+                    return;
+
+                // copy data to receive buffer
+
+                final var data = new byte[dataSize];
+                dataInput.readFully(data);
+
+                Util.circularCopy(
+                    data,
+                    0,
+                    this.receiveBuffer,
+                    this.receiveBufferStart + this.receiveBufferLen,
+                    dataSize
+                );
+
+                this.receiveBufferLen += dataSize;
+                this.nextByteToBeRead += dataSize;
+
+                // send acknowledgment
+
+                ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
+                    new byte[Config.MAX_PACKET_SIZE],
+                    ReliableSocketConnection.this.remoteEndpoint,
+                    ReliableSocketConnection.this.localConnectionId,
+                    this.nextByteToBeRead
+                );
+
+                // notify waiters if buffer was previously empty
+
+                if (this.receiveBufferLen == dataSize)
+                    this.notifyAll();
+            }
+            catch (IOException ignored)
+            {
+                // I/O error, close connection
+
+                ReliableSocketConnection.this.close();
             }
         }
 
@@ -431,80 +445,77 @@ public class ReliableSocketConnection implements AutoCloseable
         }
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException
+        public synchronized int read(byte[] b, int off, int len) throws IOException
         {
-            synchronized (ReliableSocketConnection.this)
+            // validate arguments
+
+            Objects.checkFromIndexSize(off, len, b.length);
+
+            // validate state
+
+            if (ReliableSocketConnection.this.isClosed())
+                throw new IllegalStateException("closed");
+
+            // read data
+
+            final var end = off + len;
+
+            int readBytes = 0;
+
+            while (off < end)
             {
-                // validate arguments
+                // wait until data is ready to be read or EOF was reached
 
-                Objects.checkFromIndexSize(off, len, b.length);
+                Util.waitUntil(this, () ->
+                    this.receiveBufferLen > 0 ||
+                    ReliableSocketConnection.this.isDisconnected()
+                );
 
-                // validate state
+                // fail if this side of the connection is closed
 
                 if (ReliableSocketConnection.this.isClosed())
                     throw new IllegalStateException("closed");
 
-                // read data
+                // break if EOF was reached
 
-                final var end = off + len;
+                if (this.receiveBufferLen == 0)
+                    break;
 
-                int readBytes = 0;
+                // compute number of bytes to be copied
 
-                while (off < end)
-                {
-                    // wait until data is ready to be read or EOF was reached
+                final var bytesToBeCopied = Math.min(
+                    this.receiveBufferLen,
+                    end - off
+                );
 
-                    Util.waitUntil(ReliableSocketConnection.this, () ->
-                        this.receiveBufferLen > 0 ||
-                        ReliableSocketConnection.this.isDisconnected()
-                    );
+                // copy data to user receiveBuffer
 
-                    // fail if this side of the connection is closed
+                Util.circularCopy(
+                    this.receiveBuffer,
+                    this.receiveBufferStart,
+                    b,
+                    off,
+                    bytesToBeCopied
+                );
 
-                    if (ReliableSocketConnection.this.isClosed())
-                        throw new IllegalStateException("closed");
+                // update offset into user buffer
 
-                    // break if EOF was reached
+                off += bytesToBeCopied;
 
-                    if (this.receiveBufferLen == 0)
-                        break;
+                // remove data from receive buffer
 
-                    // compute number of bytes to be copied
+                this.receiveBufferStart =
+                    (this.receiveBufferStart + bytesToBeCopied)
+                        % this.receiveBuffer.length;
 
-                    final var bytesToBeCopied = Math.min(
-                        this.receiveBufferLen,
-                        end - off
-                    );
+                this.receiveBufferLen -= bytesToBeCopied;
 
-                    // copy data to user receiveBuffer
+                // update number of read bytes
 
-                    Util.circularCopy(
-                        this.receiveBuffer,
-                        this.receiveBufferStart,
-                        b,
-                        off,
-                        bytesToBeCopied
-                    );
-
-                    // update offset into user buffer
-
-                    off += bytesToBeCopied;
-
-                    // remove data from receive buffer
-
-                    this.receiveBufferStart =
-                        (this.receiveBufferStart + bytesToBeCopied)
-                            % this.receiveBuffer.length;
-
-                    this.receiveBufferLen -= bytesToBeCopied;
-
-                    // update number of read bytes
-
-                    readBytes += bytesToBeCopied;
-                }
-
-                return (readBytes > 0) ? readBytes : -1;
+                readBytes += bytesToBeCopied;
             }
+
+            return (readBytes > 0) ? readBytes : -1;
         }
     }
 
@@ -545,169 +556,175 @@ public class ReliableSocketConnection implements AutoCloseable
 
         private int ackTimeoutCounter = 0;
 
-        private void sendUnsentData() throws IOException
+        private synchronized void sendUnsentData() throws IOException
         {
-            synchronized (ReliableSocketConnection.this)
+            // TODO: close connection on error
+
+            if (this.unsentBytes > 0)
             {
-                // TODO: close connection on error
+                // wait until there is enough space in unacked buffer
 
-                if (this.unsentBytes > 0)
+                Util.waitUntil(this, () ->
+                    this.unackedBuffer.length - this.unackedBufferLen
+                        >= this.unsentBytes
+                    || ReliableSocketConnection.this.isDisconnected()
+                );
+
+                // fail if the connection disconnected
+
+                if (ReliableSocketConnection.this.isDisconnected())
+                    throw new IllegalStateException("disconnected");
+
+                // send packet
+
+                ReliableSocketConnection.this.reliableSocket.sendPacketData(
+                    this.outgoingPacketBuffer,
+                    ReliableSocketConnection.this.remoteEndpoint,
+                    ReliableSocketConnection.this.localConnectionId,
+                    this.ackedBytes,
+                    this.unsentBuffer,
+                    0,
+                    this.unsentBytes
+                );
+
+                // copy data to unacknowledged data buffer
+
+                Util.circularCopy(
+                    this.unsentBuffer,
+                    0,
+                    this.unackedBuffer,
+                    this.unackedBufferStart + this.unackedBufferLen,
+                    this.unsentBytes
+                );
+
+                this.unackedBufferLen += this.unsentBytes;
+
+                this.unsentBytes = 0;
+
+                // start acknowledgement timeout timer if not already running
+
+                this.ackTimeout.scheduleIfNotScheduled(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos()
+                );
+            }
+        }
+
+        private synchronized void onAcknowledgmentTimeout()
+        {
+            // if there is still unacknowledged data
+
+            if (this.unackedBufferLen > 0 &&
+                !ReliableSocketConnection.this.isDisconnected())
+            {
+                if (this.ackTimeoutCounter >= Config.MAX_RETRANSMISSIONS)
                 {
-                    // wait until there is enough space in unacked buffer
+                    ReliableSocketConnection.this.close();
+                    return;
+                }
 
-                    Util.waitUntil(ReliableSocketConnection.this, () ->
-                        this.unackedBuffer.length - this.unackedBufferLen
-                            >= this.unsentBytes
-                                   || ReliableSocketConnection.this.isDisconnected()
+                // resend unacknowledged data
+
+                for (int off = 0; off < this.unackedBufferLen; )
+                {
+                    final var bytesToSend = Math.min(
+                        this.unackedBufferLen - off,
+                        Config.MAX_DATA_PACKET_PAYLOAD_SIZE
                     );
 
-                    // fail if the connection disconnected
-
-                    if (ReliableSocketConnection.this.isDisconnected())
-                        throw new IllegalStateException("disconnected");
-
-                    // send packet
-
-                    ReliableSocketConnection.this.reliableSocket.sendPacketData(
-                        outgoingPacketBuffer,
-                        ReliableSocketConnection.this.remoteEndpoint,
-                        ReliableSocketConnection.this.localConnectionId,
-                        ackedBytes,
-                        unsentBuffer,
-                        0,
-                        unsentBytes
-                    );
-
-                    // copy data to unacknowledged data buffer
+                    final var dataToSend = new byte[bytesToSend];
 
                     Util.circularCopy(
-                        unsentBuffer,
+                        this.unackedBuffer,
+                        this.unackedBufferStart + off,
+                        dataToSend,
                         0,
-                        unackedBuffer,
-                        (unackedBufferStart + unackedBufferLen) % unackedBuffer.length,
-                        unsentBytes
+                        bytesToSend
                     );
 
-                    unackedBufferLen += unsentBytes;
-
-                    unsentBytes = 0;
-
-                    // start acknowledgement timeout timer if not already running
-
-                    ackTimeout.scheduleIfNotScheduled(
-                        this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos()
-                    );
-                }
-            }
-        }
-
-        private void onAcknowledgmentTimeout()
-        {
-            synchronized (ReliableSocketConnection.this)
-            {
-                // if there is still unacknowledged data
-
-                if (this.unackedBufferLen > 0)
-                {
-                    if (this.ackTimeoutCounter >= Config.MAX_RETRANSMISSIONS)
+                    try
                     {
-                        ReliableSocketConnection.this.close();
-                        return;
-                    }
-
-                    // resend unacknowledged data
-
-                    for (int off = 0; off < this.unackedBufferLen; )
-                    {
-                        final var bytesToSend = Math.min(
-                            this.unackedBufferLen - off,
-                            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+                        ReliableSocketConnection.this.reliableSocket.sendPacketData(
+                            this.outgoingPacketBuffer,
+                            ReliableSocketConnection.this.remoteEndpoint,
+                            ReliableSocketConnection.this.localConnectionId,
+                            this.ackedBytes + off,
+                            dataToSend,
+                            0,
+                            bytesToSend
                         );
-
-                        try
-                        {
-                            ReliableSocketConnection.this.reliableSocket.sendPacketData(
-                                this.outgoingPacketBuffer,
-                                ReliableSocketConnection.this.remoteEndpoint,
-                                ReliableSocketConnection.this.localConnectionId,
-                                this.ackedBytes + off,
-                                this.unackedBuffer,
-                                this.unackedBufferStart + off,
-                                bytesToSend
-                            );
-                        }
-                        catch (IOException ignored)
-                        {
-                        }
-
-                        off += bytesToSend;
+                    }
+                    catch (IOException ignored)
+                    {
                     }
 
-                    // increment ack timout counter
-
-                    this.ackTimeoutCounter += 1;
-
-                    // reset acknowledgement timeout timer
-
-                    this.ackTimeout.scheduleReplace(
-                        this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos()
-                    );
+                    off += bytesToSend;
                 }
+
+                // increment ack timout counter
+
+                this.ackTimeoutCounter += 1;
+
+                // reset acknowledgement timeout timer
+
+                this.ackTimeout.scheduleReplace(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos()
+                );
             }
         }
 
-        private void onAcknowledgmentReceived(long ackUpTo)
+        private synchronized void onAcknowledgmentReceived(long ackUpTo)
             throws IOException
         {
-            synchronized (ReliableSocketConnection.this)
+            // ignore if data is already acknowledged
+
+            if (ackUpTo <= this.ackedBytes)
+                return;
+
+            // update acked and unacked byte counters
+
+            final var ackedDelta = (int)(ackUpTo - this.ackedBytes);
+
+            if (ackedDelta > this.unackedBufferLen)
             {
-                // ignore if data is already acknowledged
+                // received acknowledgement for unsent data, close connection
 
-                if (ackUpTo <= this.ackedBytes)
-                    return;
+                ReliableSocketConnection.this.close();
 
-                // update acked and unacked byte counters
+                throw new IOException(
+                    "received acknowledgement for unsent data"
+                );
+            }
 
-                final var ackedDelta = ackUpTo - this.ackedBytes;
+            this.ackedBytes += ackedDelta;
 
-                if (ackedDelta > this.unackedBufferLen)
-                {
-                    // received acknowledgement for unsent data, close connection
+            this.unackedBufferStart =
+                (unackedBufferStart + ackedDelta)
+                    % this.unackedBuffer.length;
 
-                    ReliableSocketConnection.this.close();
+            this.unackedBufferLen -= ackedDelta;
 
-                    throw new IOException(
-                        "received acknowledgement for unsent data"
-                    );
-                }
+            // reset ack timeout counter
 
-                this.ackedBytes += ackedDelta;
-                this.unackedBufferStart += ackedDelta;
-                this.unackedBufferLen -= ackedDelta;
+            this.ackTimeoutCounter = 0;
 
-                // reset ack timeout counter
+            // notify waiters
 
-                this.ackTimeoutCounter = 0;
+            this.notifyAll();
 
-                // notify waiters
+            // schedule acknowledgement timeout if data is still unacknowledged
 
-                ReliableSocketConnection.this.notifyAll();
-
-                // schedule acknowledgement timeout if data is still unacknowledged
-
-                if (this.unackedBufferLen > 0)
-                {
-                    this.ackTimeout.scheduleReplace(
-                        this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos()
-                    );
-                }
-                else
-                {
-                    this.ackTimeout.cancelIfScheduled();
-                }
+            if (this.unackedBufferLen > 0)
+            {
+                this.ackTimeout.scheduleReplace(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos()
+                );
+            }
+            else
+            {
+                this.ackTimeout.cancelIfScheduled();
             }
         }
 
@@ -718,80 +735,73 @@ public class ReliableSocketConnection implements AutoCloseable
         }
 
         @Override
-        public void write(byte[] b, int off, int len)
+        public synchronized void write(byte[] b, int off, int len)
             throws IOException
         {
-            synchronized (ReliableSocketConnection.this)
+            // validate arguments
+
+            Objects.checkFromIndexSize(off, len, b.length);
+
+            // validate state
+
+            if (ReliableSocketConnection.this.isDisconnected())
+                throw new IllegalStateException("disconnected");
+
+            // while not all data in b has been written
+
+            final var end = off + len;
+
+            while (off < end)
             {
-                // validate arguments
+                // compute number of bytes to be written
+                // = min(bytes left in b, space left in unsent receiveBuffer)
 
-                Objects.checkFromIndexSize(off, len, b.length);
+                final var lenToWrite = Math.min(
+                    end - off,
+                    this.unsentBuffer.length - this.unsentBytes
+                );
 
-                // validate state
+                // write bytes to unsent receiveBuffer
 
-                if (ReliableSocketConnection.this.isDisconnected())
-                    throw new IllegalStateException("disconnected");
+                System.arraycopy(
+                    b, off, this.unsentBuffer, this.unsentBytes, lenToWrite
+                );
 
-                // while not all data in b has been written
+                // update number of unsent bytes and offset
 
-                final var end = off + len;
+                this.unsentBytes += lenToWrite;
+                off += lenToWrite;
 
-                while (off < end)
-                {
-                    // compute number of bytes to be written
-                    // = min(bytes left in b, space left in unsent receiveBuffer)
+                // send unsent data if unsent receiveBuffer is full
 
-                    final var lenToWrite = Math.min(
-                        end - off,
-                        this.unsentBuffer.length - this.unsentBytes
-                    );
-
-                    // write bytes to unsent receiveBuffer
-
-                    System.arraycopy(
-                        b, off, this.unsentBuffer, this.unsentBytes, lenToWrite
-                    );
-
-                    // update number of unsent bytes and offset
-
-                    this.unsentBytes += lenToWrite;
-                    off += lenToWrite;
-
-                    // send unsent data if unsent receiveBuffer is full
-
-                    if (this.unsentBytes == this.unsentBuffer.length)
-                        this.sendUnsentData();
-                }
+                if (this.unsentBytes == this.unsentBuffer.length)
+                    this.sendUnsentData();
             }
         }
 
         @Override
-        public void flush() throws IOException
+        public synchronized void flush() throws IOException
         {
-            synchronized (ReliableSocketConnection.this)
-            {
-                // validate state
+            // validate state
 
-                if (ReliableSocketConnection.this.isDisconnected())
-                    throw new IllegalStateException("disconnected");
+            if (ReliableSocketConnection.this.isDisconnected())
+                throw new IllegalStateException("disconnected");
 
-                // send unsent data
+            // send unsent data
 
-                this.sendUnsentData();
+            this.sendUnsentData();
 
-                // wait until there is no more unacknowledged data
+            // wait until there is no more unacknowledged data
 
-                Util.waitUntil(
-                    ReliableSocketConnection.this,
-                    () -> this.unackedBufferLen == 0 ||
-                              ReliableSocketConnection.this.isDisconnected()
-                );
+            Util.waitUntil(this, () ->
+                this.unackedBufferLen == 0 ||
+                ReliableSocketConnection.this.isDisconnected()
+            );
 
-                // fail if the connection disconnected
+            // fail if the connection disconnected
 
-                if (ReliableSocketConnection.this.isDisconnected())
-                    throw new IllegalStateException("disconnected");
-            }
+            if (ReliableSocketConnection.this.isDisconnected())
+                throw new IllegalStateException("disconnected");
         }
     }
 }
