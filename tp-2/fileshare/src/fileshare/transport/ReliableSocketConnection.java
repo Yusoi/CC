@@ -28,6 +28,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private final Endpoint remoteEndpoint;
     private final short localConnectionId;
+    private final short remoteConnectionId;
 
     private final Input input;
     private final Output output;
@@ -41,13 +42,15 @@ public class ReliableSocketConnection implements AutoCloseable
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
         Endpoint remoteEndpoint,
-        short localConnectionId
+        short localConnectionId,
+        short remoteConnectionId
     )
     {
         this.reliableSocket = reliableSocket;
 
         this.remoteEndpoint = remoteEndpoint;
         this.localConnectionId = localConnectionId;
+        this.remoteConnectionId = remoteConnectionId;
 
         this.input = this.new Input();
         this.output = this.new Output();
@@ -200,6 +203,59 @@ public class ReliableSocketConnection implements AutoCloseable
 
         this.closed = true;
         this.closedByThisSide = true;
+
+        // try to inform remote of close
+
+        final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
+
+        for (int i = 0; i < Config.MAX_DISCONNECT_ATTEMPTS; ++i)
+        {
+            // send DISC packet
+
+            try
+            {
+                this.reliableSocket.sendPacketDisc(
+                    packetBuffer,
+                    this.remoteEndpoint,
+                    this.localConnectionId
+                );
+            }
+            catch (IOException ignored)
+            {
+                // error sending DISC packet, give up trying to inform remote
+                break;
+            }
+
+            // TODO: wait for response or timeout
+
+            // TODO: if responded, return
+
+            // TODO: if didn't respond, try again
+        }
+
+        // remove connection from parent socket
+
+        synchronized (this.reliableSocket)
+        {
+            this.reliableSocket.openConnections.remove(
+                new ConnectionIdentifier(
+                    this.remoteEndpoint,
+                    this.remoteConnectionId
+                )
+            );
+        }
+
+        // notify waiters in input and output streams
+
+        synchronized (this.input)
+        {
+            this.input.notifyAll();
+        }
+
+        synchronized (this.output)
+        {
+            this.output.notifyAll();
+        }
     }
 
     void processPacketData(
@@ -207,12 +263,15 @@ public class ReliableSocketConnection implements AutoCloseable
         int remainingBytes
     ) throws IOException
     {
-        final var dataOffset = packetInput.readLong();
+        // TODO: implement
 
+        final var dataOffset = packetInput.readLong();
     }
 
     void processPacketDataAck(DataInputStream packetInput) throws IOException
     {
+        // TODO: implement
+
         final var ackUpTo = packetInput.readLong();
 
         this.output.onAcknowledgmentReceived(ackUpTo);

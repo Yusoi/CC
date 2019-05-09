@@ -77,7 +77,7 @@ public class ReliableSocket implements AutoCloseable
         outgoingConnectionRequests;
 
     // key's connection seqnum is remote
-    private final Map< ConnectionIdentifier, ReliableSocketConnection >
+    final Map< ConnectionIdentifier, ReliableSocketConnection >
         openConnections;
 
     /**
