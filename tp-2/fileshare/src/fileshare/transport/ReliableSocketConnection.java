@@ -36,8 +36,8 @@ public class ReliableSocketConnection implements AutoCloseable
     private final DataInputStream dataInputStream;
     private final DataOutputStream dataOutputStream;
 
+    private boolean disconnected;
     private boolean closed;
-    private boolean closedByThisSide;
 
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
@@ -58,6 +58,7 @@ public class ReliableSocketConnection implements AutoCloseable
         this.dataInputStream = new DataInputStream(this.input);
         this.dataOutputStream = new DataOutputStream(this.output);
 
+        this.disconnected = false;
         this.closed = false;
     }
 
@@ -157,6 +158,21 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
+     * Checks whether the connection is no longer established, either because
+     * this side of the connection was closed, or because the remote side of
+     * this connection was closed.
+     *
+     * This class' API (including this method) is fully thread-safe: all methods
+     * may be called concurrently with any method.
+     *
+     * @return whether this side of the connection has been closed
+     */
+    public synchronized boolean isDisconnected()
+    {
+        return this.disconnected;
+    }
+
+    /**
      * Checks whether this side of the connection has been closed.
      *
      * This class' API (including this method) is fully thread-safe: all methods
@@ -199,38 +215,40 @@ public class ReliableSocketConnection implements AutoCloseable
     @Override
     public synchronized void close()
     {
-        // TODO: implement
-
-        this.closed = true;
-        this.closedByThisSide = true;
-
-        // try to inform remote of close
-
-        final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
-
-        for (int i = 0; i < Config.MAX_DISCONNECT_ATTEMPTS; ++i)
+        if (!this.disconnected)
         {
-            // send DISC packet
+            // try to inform remote of close
 
-            try
+            final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
+
+            for (int i = 0; i < Config.MAX_DISCONNECT_ATTEMPTS; ++i)
             {
-                this.reliableSocket.sendPacketDisc(
-                    packetBuffer,
-                    this.remoteEndpoint,
-                    this.localConnectionId
-                );
+                // send DISC packet
+
+                try
+                {
+                    this.reliableSocket.sendPacketDisc(
+                        packetBuffer,
+                        this.remoteEndpoint,
+                        this.localConnectionId
+                    );
+                }
+                catch (IOException ignored)
+                {
+                    // error sending DISC packet, give up trying to inform remote
+                    break;
+                }
+
+                // TODO: wait for response or timeout
+
+                // TODO: if responded, return
+
+                // TODO: if didn't respond, try again
             }
-            catch (IOException ignored)
-            {
-                // error sending DISC packet, give up trying to inform remote
-                break;
-            }
 
-            // TODO: wait for response or timeout
+            // set disconnected flag
 
-            // TODO: if responded, return
-
-            // TODO: if didn't respond, try again
+            this.disconnected = true;
         }
 
         // remove connection from parent socket
@@ -244,6 +262,10 @@ public class ReliableSocketConnection implements AutoCloseable
                 )
             );
         }
+
+        // set closed flag
+
+        this.closed = true;
 
         // notify waiters in input and output streams
 
@@ -289,42 +311,103 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
+        // the buffer is circular
         private final byte[] receiveBuffer = new byte[
             Config.MAX_DATA_PACKET_PAYLOAD_SIZE
             ];
 
-        private int receiveStart = 0;
-        private int receiveBytes = 0;
+        private int receiveBufferStart = 0;
+        private int receiveBufferSize = 0;
 
         private long nextByteToBeRead = 0;
 
         private synchronized void onDataReceived(
             long dataOffset,
-            DataInputStream payloadInput,
-            int payloadSize
+            DataInputStream dataInput,
+            int dataSize
         )
         {
-            // ignore data if unexpected offset
+            try
+            {
+                // ignore data if empty
 
-            if (dataOffset != this.nextByteToBeRead)
-                return;
+                if (dataSize == 0)
+                    return;
 
-            // ignore data if not enough space in receive buffer
+                // ignore data if offset is higher than expected (hole)
 
-            if (this.receiveBuffer.length - this.receiveBytes < payloadSize)
-                return;
+                if (dataOffset > this.nextByteToBeRead)
+                    return;
 
-            // copy data to receive buffer
+                // simply send acknowledgment if data was already received
 
-            // TODO: implement
+                if (dataOffset < this.nextByteToBeRead)
+                {
+                    ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
+                        new byte[Config.MAX_PACKET_SIZE],
+                        ReliableSocketConnection.this.remoteEndpoint,
+                        ReliableSocketConnection.this.localConnectionId,
+                        this.nextByteToBeRead
+                    );
 
-            this.receiveBytes += payloadSize;
-            this.nextByteToBeRead += payloadSize;
+                    return;
+                }
 
-            // if buffer was previously empty, notify waiters
+                // ignore data if not enough space in receive buffer
 
-            if (receiveBytes == payloadSize)
-                this.notifyAll();
+                if (this.receiveBuffer.length - this.receiveBufferSize < dataSize)
+                    return;
+
+                // copy data to receive buffer
+
+                final var firstSize = Math.min(
+                    dataSize,
+                    this.receiveBuffer.length - this.receiveBufferStart
+                );
+
+                final var secondSize = dataSize - firstSize;
+
+                if (firstSize > 0)
+                {
+                    dataInput.readFully(
+                        this.receiveBuffer,
+                        this.receiveBufferStart,
+                        firstSize
+                    );
+                }
+
+                if (secondSize > 0)
+                {
+                    dataInput.readFully(
+                        this.receiveBuffer,
+                        0,
+                        secondSize
+                    );
+                }
+
+                this.receiveBufferSize += dataSize;
+                this.nextByteToBeRead += dataSize;
+
+                // send acknowledgment
+
+                ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
+                    new byte[Config.MAX_PACKET_SIZE],
+                    ReliableSocketConnection.this.remoteEndpoint,
+                    ReliableSocketConnection.this.localConnectionId,
+                    this.nextByteToBeRead
+                );
+
+                // notify waiters if buffer was previously empty
+
+                if (this.receiveBufferSize == dataSize)
+                    this.notifyAll();
+            }
+            catch (IOException ignored)
+            {
+                // I/O error, close connection
+
+                ReliableSocketConnection.this.close();
+            }
         }
 
         @Override
@@ -358,17 +441,22 @@ public class ReliableSocketConnection implements AutoCloseable
             {
                 // wait until data is ready to be read or EOF was reached
 
-                Util.waitUntil(this, () -> this.receiveBytes > 0);
+                Util.waitUntil(this, () -> this.receiveBufferSize > 0);
+
+                // fail if this side of the connection is closed
+
+                if (ReliableSocketConnection.this.isClosed())
+                    throw new IOException();
 
                 // break if EOF was reached
 
-                if (ReliableSocketConnection.this.isClosed())
+                if (ReliableSocketConnection.this.isDisconnected())
                     break;
 
                 // compute number of bytes to be copied
 
                 final var bytesToBeCopied = Math.min(
-                    this.receiveBytes,
+                    this.receiveBufferSize,
                     end - off
                 );
 
@@ -376,7 +464,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 Util.circularCopy(
                     this.receiveBuffer,
-                    this.receiveStart,
+                    this.receiveBufferStart,
                     b,
                     off,
                     bytesToBeCopied
@@ -388,8 +476,8 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 // remove data from receive buffer
 
-                this.receiveStart =
-                    (this.receiveStart + bytesToBeCopied)
+                this.receiveBufferStart =
+                    (this.receiveBufferStart + bytesToBeCopied)
                         % this.receiveBuffer.length;
 
                 // update number of read bytes

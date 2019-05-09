@@ -34,6 +34,18 @@ public final class Util
             throw new RuntimeException(message);
     }
 
+    public static void circularCopy(
+        byte[] from,
+        int fromIndex,
+        byte[] to,
+        int toIndex,
+        int size
+    )
+    {
+        for (int i = 0; i < size; ++i)
+            to[(toIndex + i) % to.length] = from[(fromIndex + i) % from.length];
+    }
+
     /**
      * TODO: document
      *
