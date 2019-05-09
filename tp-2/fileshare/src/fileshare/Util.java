@@ -34,6 +34,15 @@ public final class Util
             throw new RuntimeException(message);
     }
 
+    /**
+     * TODO: document
+     *
+     * @param from TODO: document
+     * @param fromIndex TODO: document
+     * @param to TODO: document
+     * @param toIndex TODO: document
+     * @param size TODO: document
+     */
     public static void circularCopy(
         byte[] from,
         int fromIndex,
