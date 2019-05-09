@@ -496,6 +496,8 @@ public class ReliableSocketConnection implements AutoCloseable
                         (this.receiveBufferStart + bytesToBeCopied)
                             % this.receiveBuffer.length;
 
+                    this.receiveBufferLen -= bytesToBeCopied;
+
                     // update number of read bytes
 
                     readBytes += bytesToBeCopied;

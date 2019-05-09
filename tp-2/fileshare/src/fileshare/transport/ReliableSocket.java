@@ -4,6 +4,7 @@ package fileshare.transport;
 
 import fileshare.Util;
 
+import javax.rmi.ssl.SslRMIClientSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -736,6 +737,13 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
+        System.err.println(
+            String.format(
+                "Received CONN: remoteId = %d",
+                remoteConnectionId
+            )
+        );
+
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
             remoteConnectionId
@@ -763,6 +771,13 @@ public class ReliableSocket implements AutoCloseable
         final var localConnectionId = packetInput.readShort();
         final var remoteConnectionId = packetInput.readShort();
 
+        System.err.println(
+            String.format(
+                "Received CONN-ACCEPT: localId = %d, remoteId = %d",
+                localConnectionId, remoteConnectionId
+            )
+        );
+
         synchronized (this)
         {
             final var attempt = this.outgoingConnectionRequests.get(
@@ -779,6 +794,13 @@ public class ReliableSocket implements AutoCloseable
     ) throws IOException
     {
         final var localConnectionId = packetInput.readShort();
+
+        System.err.println(
+            String.format(
+                "Received CONN-REJECT: localId = %d",
+                localConnectionId
+            )
+        );
 
         synchronized (this)
         {
@@ -830,6 +852,13 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
+        System.err.println(
+            String.format(
+                "Received DISC: remoteId = %d",
+                remoteConnectionId
+            )
+        );
+
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
             remoteConnectionId
@@ -844,6 +873,13 @@ public class ReliableSocket implements AutoCloseable
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
+
+        System.err.println(
+            String.format(
+                "Received DISC-ACK: remoteId = %d",
+                remoteConnectionId
+            )
+        );
 
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
