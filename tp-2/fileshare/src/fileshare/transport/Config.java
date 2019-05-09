@@ -2,6 +2,7 @@
 
 package fileshare.transport;
 
+import java.lang.reflect.AnnotatedParameterizedType;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -72,6 +73,42 @@ class Config
     public static final int CONNECTION_RETRY_DELAY = 500;
 
     // data transfer
+
+    public interface RttEstimator
+    {
+        void update(long sampleRttNanos);
+        long computeTimeoutNanos();
+    }
+
+    public static final Supplier< RttEstimator > DATA_RTT_ESTIMATOR =
+        () -> new RttEstimator()
+        {
+            private static final double ALPHA = 0.125;
+            private static final double BETA = 0.25;
+
+            private double estimatedRtt = 0;
+            private double devRtt = 50_000_000; // 50 milliseconds
+
+            @Override
+            public void update(long sampleRttNanos)
+            {
+                final var sampleRtt = (double) sampleRttNanos;
+
+                this.estimatedRtt =
+                    (1 - ALPHA) * this.estimatedRtt
+                    + ALPHA * sampleRtt;
+
+                this.devRtt =
+                    (1 - BETA) * this.devRtt +
+                    + BETA * Math.abs(sampleRtt - this.estimatedRtt);
+            }
+
+            @Override
+            public long computeTimeoutNanos()
+            {
+                return (long) (this.estimatedRtt + 4 * this.devRtt);
+            }
+        };
 
     /**
      * In bytes.
