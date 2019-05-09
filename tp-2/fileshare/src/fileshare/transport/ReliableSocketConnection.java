@@ -539,7 +539,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 // copy data to unacknowledged data receiveBuffer
 
-                Util.copyCircular(
+                Util.circularCopy(
                     unsentBuffer,
                     0,
                     unackedBuffer,
@@ -574,15 +574,22 @@ public class ReliableSocketConnection implements AutoCloseable
                         Config.MAX_DATA_PACKET_PAYLOAD_SIZE
                     );
 
-                    ReliableSocketConnection.this.reliableSocket.sendPacketData(
-                        this.outgoingPacketBuffer,
-                        ReliableSocketConnection.this.remoteEndpoint,
-                        ReliableSocketConnection.this.localConnectionId,
-                        this.ackedBytes + off,
-                        this.unackedBuffer,
-                        this.unackedBufferStart + off,
-                        bytesToSend
-                    );
+                    try
+                    {
+                        ReliableSocketConnection.this.reliableSocket.sendPacketData(
+                            this.outgoingPacketBuffer,
+                            ReliableSocketConnection.this.remoteEndpoint,
+                            ReliableSocketConnection.this.localConnectionId,
+                            this.ackedBytes + off,
+                            this.unackedBuffer,
+                            this.unackedBufferStart + off,
+                            bytesToSend
+                        );
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
 
                     off += bytesToSend;
                 }

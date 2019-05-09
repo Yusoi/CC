@@ -12,7 +12,7 @@ import java.util.Objects;
 class ConnectionIdentifier
 {
     private final Endpoint remoteEndpoint;
-    private final int connectionSeqnum;
+    private final short connectionId;
 
     /**
      * TODO: document
@@ -22,11 +22,11 @@ class ConnectionIdentifier
      */
     public ConnectionIdentifier(
         Endpoint remoteEndpoint,
-        int connectionSeqnum
+        short connectionSeqnum
     )
     {
         this.remoteEndpoint = Objects.requireNonNull(remoteEndpoint);
-        this.connectionSeqnum = connectionSeqnum;
+        this.connectionId = connectionSeqnum;
     }
 
     /**
@@ -44,9 +44,9 @@ class ConnectionIdentifier
      *
      * @return TODO: document
      */
-    public int getConnectionSeqnum()
+    public short getConnectionId()
     {
-        return this.connectionSeqnum;
+        return this.connectionId;
     }
 
     @Override
@@ -59,13 +59,13 @@ class ConnectionIdentifier
 
         return
             this.remoteEndpoint.equals(other.remoteEndpoint) &&
-                this.connectionSeqnum == other.connectionSeqnum;
+                this.connectionId == other.connectionId;
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(this.remoteEndpoint, this.connectionSeqnum);
+        return Objects.hash(this.remoteEndpoint, this.connectionId);
     }
 }
 

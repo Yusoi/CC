@@ -2,6 +2,7 @@
 
 package fileshare.transport;
 
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 
@@ -12,7 +13,7 @@ import java.util.concurrent.TimeoutException;
  */
 class OutgoingConnectionRequest
 {
-    private OptionalInt remoteConnectionSeqnum;
+    private Optional< Short > remoteConnectionSeqnum;
     private boolean interrupted;
 
     /**
@@ -38,7 +39,7 @@ class OutgoingConnectionRequest
      * @throws TimeoutException if the timeout duration elapsed and no
      *         response was received
      */
-    public OptionalInt waitForResponse(
+    public Optional< Short > waitForResponse(
         long timeoutMilliseconds
     ) throws InterruptedException, TimeoutException
     {
@@ -78,7 +79,7 @@ class OutgoingConnectionRequest
      */
     public synchronized void rejected()
     {
-        this.remoteConnectionSeqnum = OptionalInt.empty();
+        this.remoteConnectionSeqnum = Optional.empty();
 
         this.notifyAll();
     }
@@ -86,9 +87,9 @@ class OutgoingConnectionRequest
     /**
      * TODO: document
      */
-    public synchronized void accepted(int remoteConnectionSeqnum)
+    public synchronized void accepted(short remoteConnectionSeqnum)
     {
-        this.remoteConnectionSeqnum = OptionalInt.of(remoteConnectionSeqnum);
+        this.remoteConnectionSeqnum = Optional.of(remoteConnectionSeqnum);
 
         this.notifyAll();
     }
