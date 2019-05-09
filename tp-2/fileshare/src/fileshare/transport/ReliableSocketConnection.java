@@ -502,7 +502,7 @@ public class ReliableSocketConnection implements AutoCloseable
         private final byte[] unsentBuffer = new byte[Config.MAX_DATA_PACKET_PAYLOAD_SIZE];
         private int unsentBytes = 0;
 
-        private final byte[] unackedBuffer = new byte[Config.MAX_UNACKNOWLEDGED_DATA_BYTES];
+        private final byte[] unackedBuffer = new byte[Config.MAX_UNACKNOWLEDGED_DATA];
         private int unackedBufferStart = 0;
         private int unackedBytes = 0;
 
