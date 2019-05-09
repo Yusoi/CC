@@ -9,7 +9,6 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
-import java.util.function.Supplier;
 
 /* -------------------------------------------------------------------------- */
 

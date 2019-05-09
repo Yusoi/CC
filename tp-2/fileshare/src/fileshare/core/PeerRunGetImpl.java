@@ -150,8 +150,8 @@ class PeerRunGetImpl
 
         for (final var connection : connections)
         {
-            final var input = connection.getInput();
-            final var output = connection.getOutput();
+            final var input = connection.getDataInputStream();
+            final var output = connection.getDataOutputStream();
 
             // send job type and remote file path
 
@@ -189,8 +189,8 @@ class PeerRunGetImpl
     {
         try
         {
-            final var input = connection.getInput();
-            final var output = connection.getOutput();
+            final var input = connection.getDataInputStream();
+            final var output = connection.getDataOutputStream();
 
             // send segment position and size
 

@@ -9,6 +9,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /* -------------------------------------------------------------------------- */
 
@@ -25,8 +28,11 @@ public class ReliableSocketConnection implements AutoCloseable
     private final Endpoint remoteEndpoint;
     private final short localConnectionId;
 
-    private final DataInputStream input;
-    private final DataOutputStream output;
+    private final Input input;
+    private final Output output;
+
+    private final DataInputStream dataInputStream;
+    private final DataOutputStream dataOutputStream;
 
     private boolean closed;
 
@@ -41,8 +47,11 @@ public class ReliableSocketConnection implements AutoCloseable
         this.remoteEndpoint = remoteEndpoint;
         this.localConnectionId = localConnectionId;
 
-        this.input = new DataInputStream(this.new Input());
-        this.output = new DataOutputStream(this.new Output());
+        this.input = this.new Input();
+        this.output = this.new Output();
+
+        this.dataInputStream = new DataInputStream(this.input);
+        this.dataOutputStream = new DataOutputStream(this.output);
 
         this.closed = false;
     }
@@ -79,7 +88,7 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the unique input stream for this side of this connection.
+     * Returns the unique dataInputStream stream for this side of this connection.
      *
      * This method always succeeds, even if this connection is closed.
      *
@@ -102,15 +111,15 @@ public class ReliableSocketConnection implements AutoCloseable
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method.
      *
-     * @return the input stream for this side of this connection
+     * @return the dataInputStream stream for this side of this connection
      */
-    public DataInputStream getInput()
+    public DataInputStream getDataInputStream()
     {
-        return this.input;
+        return this.dataInputStream;
     }
 
     /**
-     * Returns the unique output stream for this side of this connection.
+     * Returns the unique dataOutputStream stream for this side of this connection.
      *
      * The returned stream's data is buffered (to a certain unspecified size).
      * In order to force-send buffered data, use the returned stream's
@@ -135,11 +144,11 @@ public class ReliableSocketConnection implements AutoCloseable
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method.
      *
-     * @return the output stream for this side of this connection
+     * @return the dataOutputStream stream for this side of this connection
      */
-    public DataOutputStream getOutput()
+    public DataOutputStream getDataOutputStream()
     {
-        return this.output;
+        return this.dataOutputStream;
     }
 
     /**
@@ -158,19 +167,19 @@ public class ReliableSocketConnection implements AutoCloseable
     /**
      * Closes this end/side of the connection.
      *
-     * Any unread data in the input stream is lost.
+     * Any unread data in the dataInputStream stream is lost.
      *
-     * Any unsent data in the output stream is lost. Use {@code
-     * getOutput().flush()} before invoking this method to ensure that all
+     * Any unsent data in the dataOutputStream stream is lost. Use {@code
+     * getDataOutputStream().flush()} before invoking this method to ensure that all
      * unsent data is sent.
      *
-     * Any active calls on this side's input or output streams will throw an
+     * Any active calls on this side's dataInputStream or dataOutputStream streams will throw an
      * {@link InterruptedException} when this method is called.
      *
-     * Reading from {@link #getInput()} and writing to {@link #getOutput()}
+     * Reading from {@link #getDataInputStream()} and writing to {@link #getDataOutputStream()}
      * after invoking this method will throw {@link IllegalStateException}.
      *
-     * See {@link #getInput()} and {@link #getOutput()} for more information on
+     * See {@link #getDataInputStream()} and {@link #getDataOutputStream()} for more information on
      * the effects of this method on this side's streams.
      *
      * If this end of the connection is already closed, this method has no
@@ -197,7 +206,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
     void processPacketDataAck(DataInputStream packetInput) throws IOException
     {
-        // TODO: implement
+        final var ackUpTo = packetInput.readLong();
+
+        this.output.onAcknowledgmentReceived(ackUpTo);
     }
 
     void processPacketDisc(DataInputStream packetInput) throws IOException
@@ -212,30 +223,16 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
-        private long receivedBytes = 0;
-
-        // the buffer is cyclic
-        private final byte[] buffer = new byte[
-            Config.MAX_DATA_PAYLOAD_BYTES_IN_TRANSIT
-            ];
-
-        private int bufferPosition = 0;
-        private int bufferLength = 0;
-
         @Override
         public int read() throws IOException
         {
             // TODO: implement
-
-            return -1;
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException
         {
             // TODO: implement
-
-            return 0;
         }
     }
 
@@ -244,18 +241,25 @@ public class ReliableSocketConnection implements AutoCloseable
         // to avoid recreating the buffer for holding packets to be sent
         private final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
 
-        private long totalAckedBytes = 0;
+        private final Config.RttEstimator rttEstimator =
+            Config.RTT_ESTIMATOR.get();
 
         private final byte[] unsentBuffer = new byte[Config.MAX_DATA_PACKET_PAYLOAD_SIZE];
         private int unsentBytes = 0;
 
         private final byte[] unackedBuffer = new byte[Config.MAX_UNACKNOWLEDGED_DATA_BYTES];
-        private Long unackedNanos = null;
         private int unackedOffset = 0;
         private int unackedBytes = 0;
 
-        private synchronized void sendUnsentData()
+        private long ackedBytes = 0;
+
+        private final ScheduledExecutorService ackTimeoutExecutor =
+            Executors.newSingleThreadScheduledExecutor();
+
+        private synchronized void sendUnsentData() throws IOException
         {
+            // TODO: close connection on error
+
             if (unsentBytes > 0)
             {
                 // wait until there is enough space in unacked buffer
@@ -271,7 +275,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     packetBuffer,
                     ReliableSocketConnection.this.remoteEndpoint,
                     ReliableSocketConnection.this.localConnectionId,
-                    totalAckedBytes,
+                    ackedBytes,
                     unsentBuffer,
                     unsentBytes
                 );
@@ -290,10 +294,56 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 unsentBytes = 0;
 
-                // set timestamp if previously unset
+                // start acknowledgement timeout timer if not already running
 
-                if (unackedNanos == null)
-                    unackedNanos = System.nanoTime();
+                ackTimeoutExecutor.schedule(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos(),
+                    TimeUnit.NANOSECONDS
+                );
+            }
+        }
+
+        private synchronized void onAcknowledgmentTimeout()
+        {
+            if (this.unackedBytes > 0)
+            {
+                // TODO: resend
+
+                this.retransmitted = true;
+            }
+        }
+
+        private synchronized void onAcknowledgmentReceived(long ackUpTo)
+            throws IOException
+        {
+            if (ackUpTo <= this.ackedBytes)
+                return; // already acknowledged
+
+            final var ackedDelta = ackUpTo - this.ackedBytes;
+
+            if (ackedDelta > this.unackedBytes)
+            {
+                // received acknowledgement for unsent data, close connection
+
+                // TODO: implement
+            }
+
+            this.ackedBytes += ackedDelta;
+            this.unackedOffset += ackedDelta;
+            this.unackedBytes -= ackedDelta;
+
+            this.notifyAll();
+
+            // check if there still
+
+            if (this.unackedBytes > 0)
+            {
+                ackTimeoutExecutor.schedule(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos(),
+                    TimeUnit.NANOSECONDS
+                );
             }
         }
 
@@ -312,28 +362,35 @@ public class ReliableSocketConnection implements AutoCloseable
             if (ReliableSocketConnection.this.isClosed())
                 throw new IllegalStateException();
 
-            // copy bytes to buffer
+            // while not all data in b has been written
 
             final var end = off + len;
 
             while (off < end)
             {
-                final var lenToCopy = Math.min(
-                    this.buffer.length - this.bufferPosition,
-                    end - off
+                // compute number of bytes to be written
+                // = min(bytes left in b, space left in unsent buffer)
+
+                final var lenToWrite = Math.min(
+                    end - off,
+                    this.unsentBuffer.length - this.unsentBytes
                 );
+
+                // write bytes to unsent buffer
 
                 System.arraycopy(
-                    b, off, this.buffer, this.bufferPosition, lenToCopy
+                    b, off, this.unsentBuffer, this.unsentBytes, lenToWrite
                 );
 
-                this.bufferPosition += lenToCopy;
-                off += lenToCopy;
+                // update number of unsent bytes and offset
 
-                // flush if buffer is full
+                this.unsentBytes += lenToWrite;
+                off += lenToWrite;
 
-                if (this.bufferPosition == this.buffer.length)
-                    this.flush();
+                // send unsent data if unsent buffer is full
+
+                if (this.unsentBytes == this.unsentBuffer.length)
+                    this.sendUnsentData();
             }
         }
 

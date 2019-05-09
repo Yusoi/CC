@@ -30,8 +30,8 @@ class PeerServeGetImpl
         ExportedDirectory exportedDirectory
     ) throws Exception
     {
-        final var input = connection.getInput();
-        final var output = connection.getOutput();
+        final var input = connection.getDataInputStream();
+        final var output = connection.getDataOutputStream();
 
         // get local file path
 

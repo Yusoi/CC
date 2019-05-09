@@ -107,8 +107,8 @@ class PeerRunPutImpl
     {
         try
         {
-            final var input = connection.getInput();
-            final var output = connection.getOutput();
+            final var input = connection.getDataInputStream();
+            final var output = connection.getDataOutputStream();
 
             // send job type and remote file path and size
 
