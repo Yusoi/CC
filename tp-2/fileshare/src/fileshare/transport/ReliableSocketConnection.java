@@ -199,9 +199,13 @@ public class ReliableSocketConnection implements AutoCloseable
         this.closed = true;
     }
 
-    void processPacketData(DataInputStream packetInput) throws IOException
+    void processPacketData(
+        DataInputStream packetInput,
+        int remainingBytes
+    ) throws IOException
     {
-        // TODO: implement
+        final var dataOffset = packetInput.readLong();
+
     }
 
     void processPacketDataAck(DataInputStream packetInput) throws IOException
@@ -223,28 +227,117 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
-        private final byte[] buffer = new byte[
+        private final byte[] receiveBuffer = new byte[
             Config.MAX_DATA_PACKET_PAYLOAD_SIZE
             ];
 
-        private
+        private int receiveStart = 0;
+        private int receiveBytes = 0;
+
+        private long nextByteToBeRead = 0;
+
+        private synchronized void onDataReceived(
+            long dataOffset,
+            DataInputStream payloadInput,
+            int payloadSize
+        )
+        {
+            // ignore data if unexpected offset
+
+            if (dataOffset != this.nextByteToBeRead)
+                return;
+
+            // ignore data if not enough space in receive buffer
+
+            if (this.receiveBuffer.length - this.receiveBytes < payloadSize)
+                return;
+
+            // copy data to receive buffer
+
+            // TODO: implement
+
+            this.receiveBytes += payloadSize;
+            this.nextByteToBeRead += payloadSize;
+
+            // if buffer was previously empty, notify waiters
+
+            if (receiveBytes == payloadSize)
+                this.notifyAll();
+        }
 
         @Override
         public int read() throws IOException
         {
-            // TODO: implement
+            final byte[] b = new byte[1];
+
+            if (this.read(b, 0, 1) == -1)
+                return -1;
+            else
+                return Byte.toUnsignedInt(b[0]);
         }
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException
+        public synchronized int read(byte[] b, int off, int len)
+            throws IOException
         {
-            // TODO: implement
+            // validate state
+
+            // read data
+
+            final var end = off + len;
+
+            int readBytes = 0;
+
+            while (off < end)
+            {
+                // wait until data is ready to be read or EOF was reached
+
+                Util.waitUntil(this, () -> this.receiveBytes > 0);
+
+                // break if EOF was reached
+
+                if (ReliableSocketConnection.this.isClosed())
+                    break;
+
+                // compute number of bytes to be copied
+
+                final var bytesToBeCopied = Math.min(
+                    this.receiveBytes,
+                    end - off
+                );
+
+                // copy data to user receiveBuffer
+
+                Util.circularCopy(
+                    this.receiveBuffer,
+                    this.receiveStart,
+                    b,
+                    off,
+                    bytesToBeCopied
+                );
+
+                // update offset into user buffer
+
+                off += bytesToBeCopied;
+
+                // remove data from receive buffer
+
+                this.receiveStart =
+                    (this.receiveStart + bytesToBeCopied)
+                        % this.receiveBuffer.length;
+
+                // update number of read bytes
+
+                readBytes += bytesToBeCopied;
+            }
+
+            return (readBytes > 0) ? readBytes : -1;
         }
     }
 
     private class Output extends OutputStream
     {
-        // to avoid continuously recreating the buffer for outgoing packets
+        // to avoid continuously recreating the receiveBuffer for outgoing packets
         private final byte[] outgoingPacketBuffer = new byte[
             Config.MAX_PACKET_SIZE
             ];
@@ -271,7 +364,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
             if (unsentBytes > 0)
             {
-                // wait until there is enough space in unacked buffer
+                // wait until there is enough space in unacked receiveBuffer
 
                 Util.waitUntil(
                     this,
@@ -290,7 +383,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     unsentBytes
                 );
 
-                // copy data to unacknowledged data buffer
+                // copy data to unacknowledged data receiveBuffer
 
                 Util.copyCircular(
                     unsentBuffer,
@@ -425,14 +518,14 @@ public class ReliableSocketConnection implements AutoCloseable
             while (off < end)
             {
                 // compute number of bytes to be written
-                // = min(bytes left in b, space left in unsent buffer)
+                // = min(bytes left in b, space left in unsent receiveBuffer)
 
                 final var lenToWrite = Math.min(
                     end - off,
                     this.unsentBuffer.length - this.unsentBytes
                 );
 
-                // write bytes to unsent buffer
+                // write bytes to unsent receiveBuffer
 
                 System.arraycopy(
                     b, off, this.unsentBuffer, this.unsentBytes, lenToWrite
@@ -443,7 +536,7 @@ public class ReliableSocketConnection implements AutoCloseable
                 this.unsentBytes += lenToWrite;
                 off += lenToWrite;
 
-                // send unsent data if unsent buffer is full
+                // send unsent data if unsent receiveBuffer is full
 
                 if (this.unsentBytes == this.unsentBuffer.length)
                     this.sendUnsentData();

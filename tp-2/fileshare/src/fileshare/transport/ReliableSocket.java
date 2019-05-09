@@ -690,34 +690,36 @@ public class ReliableSocket implements AutoCloseable
 
             // delegate further processing
 
+            final var rem = packetData.length - 5;
+
             switch (packetType)
             {
                 case Config.TYPE_ID_CONN:
-                    processPacketConn(remoteEndpoint, packetInput);
+                    processPacketConn(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_CONN_ACCEPT:
-                    processPacketConnAccept(remoteEndpoint, packetInput);
+                    processPacketConnAccept(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_CONN_REJECT:
-                    processPacketConnReject(remoteEndpoint, packetInput);
+                    processPacketConnReject(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_DATA:
-                    processPacketData(remoteEndpoint, packetInput);
+                    processPacketData(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_DATA_ACK:
-                    processPacketDataAck(remoteEndpoint, packetInput);
+                    processPacketDataAck(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_DISC:
-                    processPacketDisc(remoteEndpoint, packetInput);
+                    processPacketDisc(remoteEndpoint, packetInput, rem);
                     break;
 
                 case Config.TYPE_ID_DISC_ACK:
-                    processPacketDiscAck(remoteEndpoint, packetInput);
+                    processPacketDiscAck(remoteEndpoint, packetInput, rem);
                     break;
             }
         }
