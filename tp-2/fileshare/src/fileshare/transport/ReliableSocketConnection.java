@@ -223,6 +223,12 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Input extends InputStream
     {
+        private final byte[] buffer = new byte[
+            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+            ];
+
+        private
+
         @Override
         public int read() throws IOException
         {
@@ -238,8 +244,10 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Output extends OutputStream
     {
-        // to avoid recreating the buffer for holding packets to be sent
-        private final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
+        // to avoid continuously recreating the buffer for outgoing packets
+        private final byte[] outgoingPacketBuffer = new byte[
+            Config.MAX_PACKET_SIZE
+            ];
 
         private final Config.RttEstimator rttEstimator =
             Config.RTT_ESTIMATOR.get();
@@ -248,10 +256,11 @@ public class ReliableSocketConnection implements AutoCloseable
         private int unsentBytes = 0;
 
         private final byte[] unackedBuffer = new byte[Config.MAX_UNACKNOWLEDGED_DATA_BYTES];
-        private int unackedOffset = 0;
+        private int unackedBufferStart = 0;
         private int unackedBytes = 0;
 
         private long ackedBytes = 0;
+        private long lastRetransmittedBytePlusOne = 0;
 
         private final ScheduledExecutorService ackTimeoutExecutor =
             Executors.newSingleThreadScheduledExecutor();
@@ -272,21 +281,22 @@ public class ReliableSocketConnection implements AutoCloseable
                 // send packet
 
                 ReliableSocketConnection.this.reliableSocket.sendPacketData(
-                    packetBuffer,
+                    outgoingPacketBuffer,
                     ReliableSocketConnection.this.remoteEndpoint,
                     ReliableSocketConnection.this.localConnectionId,
                     ackedBytes,
                     unsentBuffer,
+                    0,
                     unsentBytes
                 );
 
-                // copy data to unacked buffer
+                // copy data to unacknowledged data buffer
 
                 Util.copyCircular(
                     unsentBuffer,
                     0,
                     unackedBuffer,
-                    (unackedOffset + unackedBytes) % unackedBuffer.length,
+                    (unackedBufferStart + unackedBytes) % unackedBuffer.length,
                     unsentBytes
                 );
 
@@ -308,17 +318,52 @@ public class ReliableSocketConnection implements AutoCloseable
         {
             if (this.unackedBytes > 0)
             {
-                // TODO: resend
+                // resend unacknowledged data
 
-                this.retransmitted = true;
+                for (int off = 0; off < this.unackedBytes; )
+                {
+                    final var bytesToSend = Math.min(
+                        this.unackedBytes - off,
+                        Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+                    );
+
+                    ReliableSocketConnection.this.reliableSocket.sendPacketData(
+                        this.outgoingPacketBuffer,
+                        ReliableSocketConnection.this.remoteEndpoint,
+                        ReliableSocketConnection.this.localConnectionId,
+                        this.ackedBytes + off,
+                        this.unackedBuffer,
+                        this.unackedBufferStart + off,
+                        bytesToSend
+                    );
+
+                    off += bytesToSend;
+                }
+
+                // update last retransmitted byte
+
+                this.lastRetransmittedBytePlusOne =
+                    this.ackedBytes + this.unackedBytes;
+
+                // reset acknowledgement timeout timer
+
+                this.ackTimeoutExecutor.schedule(
+                    this::onAcknowledgmentTimeout,
+                    this.rttEstimator.computeTimeoutNanos(),
+                    TimeUnit.NANOSECONDS
+                );
             }
         }
 
         private synchronized void onAcknowledgmentReceived(long ackUpTo)
             throws IOException
         {
+            // ignore if data is already acknowledged
+
             if (ackUpTo <= this.ackedBytes)
-                return; // already acknowledged
+                return;
+
+            // update acked and unacked byte counters
 
             final var ackedDelta = ackUpTo - this.ackedBytes;
 
@@ -326,16 +371,27 @@ public class ReliableSocketConnection implements AutoCloseable
             {
                 // received acknowledgement for unsent data, close connection
 
-                // TODO: implement
+                ReliableSocketConnection.this.close();
+
+                throw new IOException(
+                    "received acknowledgement for unsent data"
+                );
             }
 
             this.ackedBytes += ackedDelta;
-            this.unackedOffset += ackedDelta;
+            this.unackedBufferStart += ackedDelta;
             this.unackedBytes -= ackedDelta;
+
+            // notify waiters
 
             this.notifyAll();
 
-            // check if there still
+            // update RTT estimation
+
+            // TODO: implement
+
+            // schedule acknowledgement timeout if there still are
+            // unacknowledged bytes
 
             if (this.unackedBytes > 0)
             {
@@ -406,7 +462,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
             this.sendUnsentData();
 
-            // wait until there is no more unacked data
+            // wait until there is no more unacknowledged data
 
             Util.waitUntil(this, () -> unackedBytes == 0);
         }

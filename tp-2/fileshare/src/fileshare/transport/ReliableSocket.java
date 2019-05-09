@@ -925,13 +925,15 @@ public class ReliableSocket implements AutoCloseable
         this.sendPacket(b, remoteEndpoint);
     }
 
+    // payloadBuffer may be circular
     void sendPacketData(
         byte[] packetBuffer,
         Endpoint remoteEndpoint,
         short localConnectionId,
         long payloadPosition,
         byte[] payloadBuffer,
-        int payloadLength
+        int payloadBufferOffset,
+        int payloadBufferLength
     ) throws IOException
     {
         final var b = this.createByteBufferForSending(packetBuffer);
@@ -939,7 +941,18 @@ public class ReliableSocket implements AutoCloseable
         b.put(Config.TYPE_ID_DATA);
         b.putShort(localConnectionId);
         b.putLong(payloadPosition);
-        b.put(payloadBuffer, 0, payloadLength);
+
+        final var firstLength = Math.min(
+            payloadBufferLength,
+            payloadBuffer.length - payloadBufferOffset
+        );
+
+        final var secondLength = payloadBufferLength - firstLength;
+
+        b.put(payloadBuffer, payloadBufferOffset, firstLength);
+
+        if (secondLength > 0)
+            b.put(payloadBuffer, 0, secondLength);
 
         this.sendPacket(b, remoteEndpoint);
     }
