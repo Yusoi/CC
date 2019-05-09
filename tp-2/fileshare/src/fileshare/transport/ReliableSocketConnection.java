@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -280,6 +281,10 @@ public class ReliableSocketConnection implements AutoCloseable
         public synchronized int read(byte[] b, int off, int len)
             throws IOException
         {
+            // validate arguments
+
+            Objects.checkFromIndexSize(off, len, b.length);
+
             // validate state
 
             // read data
@@ -506,6 +511,10 @@ public class ReliableSocketConnection implements AutoCloseable
         public synchronized void write(byte[] b, int off, int len)
             throws IOException
         {
+            // validate arguments
+
+            Objects.checkFromIndexSize(off, len, b.length);
+
             // validate state
 
             if (ReliableSocketConnection.this.isClosed())
