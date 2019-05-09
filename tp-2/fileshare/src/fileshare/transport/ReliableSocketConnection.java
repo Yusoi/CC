@@ -2,6 +2,8 @@
 
 package fileshare.transport;
 
+import fileshare.Util;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -21,8 +23,7 @@ public class ReliableSocketConnection implements AutoCloseable
     private final ReliableSocket reliableSocket;
 
     private final Endpoint remoteEndpoint;
-    private final int localConnectionId;
-    private final int remoteConnectionId;
+    private final short localConnectionId;
 
     private final DataInputStream input;
     private final DataOutputStream output;
@@ -32,15 +33,13 @@ public class ReliableSocketConnection implements AutoCloseable
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
         Endpoint remoteEndpoint,
-        int localConnectionId,
-        int remoteConnectionId
+        short localConnectionId
     )
     {
         this.reliableSocket = reliableSocket;
 
         this.remoteEndpoint = remoteEndpoint;
         this.localConnectionId = localConnectionId;
-        this.remoteConnectionId = remoteConnectionId;
 
         this.input = new DataInputStream(this.new Input());
         this.output = new DataOutputStream(this.new Output());
@@ -116,6 +115,9 @@ public class ReliableSocketConnection implements AutoCloseable
      * The returned stream's data is buffered (to a certain unspecified size).
      * In order to force-send buffered data, use the returned stream's
      * {@link OutputStream#flush()} method.
+     *
+     * The returned stream's {@link OutputStream#flush()} method blocks until
+     * data is acknowledged by the receiver.
      *
      * This method always succeeds, even if this connection is closed.
      *
@@ -239,34 +241,71 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private class Output extends OutputStream
     {
-        private long sentBytes = 0;
+        // to avoid recreating the buffer for holding packets to be sent
+        private final byte[] packetBuffer = new byte[Config.MAX_PACKET_SIZE];
 
-        private final byte[] buffer = new byte[
-            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
-            ];
+        private long totalAckedBytes = 0;
 
-        private int bufferPosition = 0;
+        private final byte[] unsentBuffer = new byte[Config.MAX_DATA_PACKET_PAYLOAD_SIZE];
+        private int unsentBytes = 0;
+
+        private final byte[] unackedBuffer = new byte[Config.MAX_UNACKNOWLEDGED_DATA_BYTES];
+        private Long unackedNanos = null;
+        private int unackedOffset = 0;
+        private int unackedBytes = 0;
+
+        private synchronized void sendUnsentData()
+        {
+            if (unsentBytes > 0)
+            {
+                // wait until there is enough space in unacked buffer
+
+                Util.waitUntil(
+                    this,
+                    () -> unackedBuffer.length - unackedBytes >= unsentBytes
+                );
+
+                // send packet
+
+                ReliableSocketConnection.this.reliableSocket.sendPacketData(
+                    packetBuffer,
+                    ReliableSocketConnection.this.remoteEndpoint,
+                    ReliableSocketConnection.this.localConnectionId,
+                    totalAckedBytes,
+                    unsentBuffer,
+                    unsentBytes
+                );
+
+                // copy data to unacked buffer
+
+                Util.copyCircular(
+                    unsentBuffer,
+                    0,
+                    unackedBuffer,
+                    (unackedOffset + unackedBytes) % unackedBuffer.length,
+                    unsentBytes
+                );
+
+                unackedBytes += unsentBytes;
+
+                unsentBytes = 0;
+
+                // set timestamp if previously unset
+
+                if (unackedNanos == null)
+                    unackedNanos = System.nanoTime();
+            }
+        }
 
         @Override
         public void write(int b) throws IOException
         {
-            // validate state
-
-            if (ReliableSocketConnection.this.isClosed())
-                throw new IllegalStateException();
-
-            // copy byte to buffer
-
-            this.buffer[this.bufferPosition++] = (byte)b;
-
-            // flush if buffer is full
-
-            if (this.bufferPosition == this.buffer.length)
-                this.flush();
+            this.write(new byte[] { (byte) b }, 0, 1);
         }
 
         @Override
-        public void write(byte[] b, int off, int len) throws IOException
+        public synchronized void write(byte[] b, int off, int len)
+            throws IOException
         {
             // validate state
 
@@ -299,21 +338,20 @@ public class ReliableSocketConnection implements AutoCloseable
         }
 
         @Override
-        public void flush() throws IOException
+        public synchronized void flush() throws IOException
         {
             // validate state
 
             if (ReliableSocketConnection.this.isClosed())
                 throw new IllegalStateException();
 
-            // check if there is data to flush
+            // send unsent data
 
-            if (this.bufferPosition == 0)
-                return;
+            this.sendUnsentData();
 
-            // send DATA packet
+            // wait until there is no more unacked data
 
-            dataSender.send(this.buffer, 0, this.bufferPosition);
+            Util.waitUntil(this, () -> unackedBytes == 0);
         }
     }
 }

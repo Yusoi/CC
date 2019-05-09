@@ -2,7 +2,6 @@
 
 package fileshare.transport;
 
-import java.lang.reflect.AnnotatedParameterizedType;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -64,15 +63,17 @@ class Config
      * How many times a CONN packet should be sent before failing if no response
      * is received.
      */
-    public static final int MAX_CONNECTION_ATTEMPTS = 5;
+    public static final int MAX_CONNECT_ATTEMPTS = 5;
 
     /**
      * How many milliseconds to wait before resending a CONN packet if no
      * response is received.
      */
-    public static final int CONNECTION_RETRY_DELAY = 500;
+    public static final int CONNECT_RESPONSE_TIMEOUT = 500;
 
     // data transfer
+
+    public static final int MAX_UNACKNOWLEDGED_DATA_BYTES = 1 << 20;
 
     public interface RttEstimator
     {
@@ -80,7 +81,7 @@ class Config
         long computeTimeoutNanos();
     }
 
-    public static final Supplier< RttEstimator > DATA_RTT_ESTIMATOR =
+    public static final Supplier< RttEstimator > RTT_ESTIMATOR =
         () -> new RttEstimator()
         {
             private static final double ALPHA = 0.125;
@@ -121,13 +122,13 @@ class Config
      * How many times a DISC packet should be sent if no corresponding DISC-ACK
      * packet is received.
      */
-    public static final int MAX_DISCONNECTION_ATTEMPTS = 3;
+    public static final int MAX_DISCONNECT_ATTEMPTS = 3;
 
     /**
      * How many milliseconds to wait before resending a DISC packet if no
      * corresponding DISC-ACK packet is received.
      */
-    public static final int DISCONNECTION_RETRY_DELAY = 200;
+    public static final int DISCONNECT_RESPONSE_TIMEOUT = 200;
 
     // No point in ever instantiating this class.
     private Config()

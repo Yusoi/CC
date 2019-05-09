@@ -7,7 +7,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
+import java.util.function.Supplier;
 
 /* -------------------------------------------------------------------------- */
 
@@ -34,6 +36,51 @@ public final class Util
     }
 
     /**
+     * TODO: document
+     *
+     * @param monitor TODO: document
+     * @param condition TODO: document
+     */
+    public static void waitUntil(
+        Object monitor,
+        BooleanSupplier condition
+    )
+    {
+        synchronized (monitor)
+        {
+            while (!condition.getAsBoolean())
+            {
+                try
+                {
+                    monitor.wait();
+                }
+                catch (InterruptedException ignored)
+                {
+                }
+            }
+        }
+    }
+
+    /**
+     * Invokes {@code Thread.sleep(milliseconds)}, returning immediately if
+     * {@code InterruptedException} is thrown.
+     *
+     * @param milliseconds the length of time to sleep in milliseconds
+     *
+     * @throws IllegalArgumentException if {@code milliseconds} is negative
+     */
+    public static void sleepUntilElapsedOrInterrupted(long milliseconds)
+    {
+        try
+        {
+            Thread.sleep(milliseconds);
+        }
+        catch (InterruptedException ignored)
+        {
+        }
+    }
+
+    /**
      * Repeatedly invokes {@code thread.join()} until it succeeds without
      * raising {@link InterruptedException}.
      *
@@ -55,25 +102,6 @@ public final class Util
             catch (InterruptedException ignored)
             {
             }
-        }
-    }
-
-    /**
-     * Invokes {@code Thread.sleep(milliseconds)}, returning immediately if
-     * {@code InterruptedException} is thrown.
-     *
-     * @param milliseconds the length of time to sleep in milliseconds
-     *
-     * @throws IllegalArgumentException if {@code milliseconds} is negative
-     */
-    public static void sleepUntilElapsedOrInterrupted(long milliseconds)
-    {
-        try
-        {
-            Thread.sleep(milliseconds);
-        }
-        catch (InterruptedException ignored)
-        {
         }
     }
 
