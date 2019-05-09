@@ -36,6 +36,7 @@ public class ReliableSocketConnection implements AutoCloseable
     private final DataOutputStream dataOutputStream;
 
     private boolean closed;
+    private boolean closedByThisSide;
 
     ReliableSocketConnection(
         ReliableSocket reliableSocket,
@@ -198,6 +199,7 @@ public class ReliableSocketConnection implements AutoCloseable
         // TODO: implement
 
         this.closed = true;
+        this.closedByThisSide = true;
     }
 
     void processPacketData(
