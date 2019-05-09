@@ -66,17 +66,14 @@ public final class Util
         BooleanSupplier condition
     )
     {
-        synchronized (monitor)
+        while (!condition.getAsBoolean())
         {
-            while (!condition.getAsBoolean())
+            try
             {
-                try
-                {
-                    monitor.wait();
-                }
-                catch (InterruptedException ignored)
-                {
-                }
+                monitor.wait();
+            }
+            catch (InterruptedException ignored)
+            {
             }
         }
     }

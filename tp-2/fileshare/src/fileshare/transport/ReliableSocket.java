@@ -835,7 +835,7 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionId
         );
 
-        this.openConnections.get(connectionId).processPacketDisc(packetInput);
+        this.openConnections.get(connectionId).processPacketDisc();
     }
 
     private void processPacketDiscAck(
@@ -850,7 +850,7 @@ public class ReliableSocket implements AutoCloseable
             remoteConnectionId
         );
 
-        this.openConnections.get(connectionId).processPacketDiscAck(packetInput);
+        this.openConnections.get(connectionId).processPacketDiscAck();
     }
 
     private ByteBuffer createByteBufferForSending(byte[] packetBuffer)
