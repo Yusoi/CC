@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -178,7 +177,7 @@ public class ReliableSocket implements AutoCloseable
      *
      * This class' API (including this method) is fully thread-safe: all methods
      * may be called concurrently with any method (with the exception that
-     * invoking {@link #listen(Predicate)} while another invocation is active on
+     * invoking {@code #listen(Predicate)} while another invocation is active on
      * the same instance will result in an exception).
      *
      * @param accept predicate that determines whether a connection should be
@@ -691,36 +690,36 @@ public class ReliableSocket implements AutoCloseable
 
             // delegate further processing
 
-            final var rem = packetData.length - 5;
-
             switch (packetType)
             {
                 case Config.TYPE_ID_CONN:
-                    processPacketConn(remoteEndpoint, packetInput, rem);
+                    processPacketConn(remoteEndpoint, packetInput);
                     break;
 
                 case Config.TYPE_ID_CONN_ACCEPT:
-                    processPacketConnAccept(remoteEndpoint, packetInput, rem);
+                    processPacketConnAccept(remoteEndpoint, packetInput);
                     break;
 
                 case Config.TYPE_ID_CONN_REJECT:
-                    processPacketConnReject(remoteEndpoint, packetInput, rem);
+                    processPacketConnReject(remoteEndpoint, packetInput);
                     break;
 
                 case Config.TYPE_ID_DATA:
-                    processPacketData(remoteEndpoint, packetInput, rem);
+                    processPacketData(
+                        remoteEndpoint, packetInput, packetData.length - 5
+                    );
                     break;
 
                 case Config.TYPE_ID_DATA_ACK:
-                    processPacketDataAck(remoteEndpoint, packetInput, rem);
+                    processPacketDataAck(remoteEndpoint, packetInput);
                     break;
 
                 case Config.TYPE_ID_DISC:
-                    processPacketDisc(remoteEndpoint, packetInput, rem);
+                    processPacketDisc(remoteEndpoint, packetInput);
                     break;
 
                 case Config.TYPE_ID_DISC_ACK:
-                    processPacketDiscAck(remoteEndpoint, packetInput, rem);
+                    processPacketDiscAck(remoteEndpoint, packetInput);
                     break;
             }
         }
@@ -732,8 +731,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketConn(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
@@ -759,8 +757,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketConnAccept(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var localConnectionId = packetInput.readShort();
@@ -778,8 +775,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketConnReject(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var localConnectionId = packetInput.readShort();
@@ -814,8 +810,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketDataAck(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
@@ -830,8 +825,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketDisc(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
@@ -846,8 +840,7 @@ public class ReliableSocket implements AutoCloseable
 
     private void processPacketDiscAck(
         Endpoint remoteEndpoint,
-        DataInputStream packetInput,
-        int remainingBytes
+        DataInputStream packetInput
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
