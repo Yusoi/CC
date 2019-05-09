@@ -1019,12 +1019,12 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        // System.err.println(
-        //     String.format(
-        //         "Sent DATA: offset = %d, length = %d",
-        //        payloadPosition, payloadBufferLength
-        //     )
-        // );
+        System.err.println(
+            String.format(
+                "Sent DATA: offset = %d, length = %d",
+               payloadPosition, payloadBufferLength
+            )
+        );
     }
 
     void sendPacketDataAck(
@@ -1042,12 +1042,12 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        // System.err.println(
-        //     String.format(
-        //         "Sent DATA-ACK: ack-up-to = %d",
-        //         ackUpTo
-        //     )
-        // );
+        System.err.println(
+            String.format(
+                "Sent DATA-ACK: ack-up-to = %d",
+                ackUpTo
+            )
+        );
     }
 
     void sendPacketDisc(

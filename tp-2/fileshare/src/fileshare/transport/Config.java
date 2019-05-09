@@ -76,7 +76,9 @@ class Config
     /**
      * In bytes.
      */
-    static final int MAX_UNACKNOWLEDGED_DATA = 1 << 12;
+    static final int MAX_UNACKNOWLEDGED_DATA = 1 << 14;
+
+    static final int RECEIVE_BUFFER_SIZE = 1 << 22;
 
     static final int MAX_RETRANSMISSIONS = 20;
 

@@ -51,6 +51,12 @@ public final class Util
         int size
     )
     {
+        if (size > from.length)
+            throw new IllegalArgumentException();
+
+        if (size > to.length)
+            throw new IllegalArgumentException();
+
         for (int i = 0; i < size; ++i)
             to[(toIndex + i) % to.length] = from[(fromIndex + i) % from.length];
     }

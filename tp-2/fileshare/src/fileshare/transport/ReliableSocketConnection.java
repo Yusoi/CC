@@ -345,7 +345,7 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         // circular buffer
         private final byte[] receiveBuffer = new byte[
-            Config.MAX_DATA_PACKET_PAYLOAD_SIZE
+            Config.RECEIVE_BUFFER_SIZE
             ];
 
         private int receiveBufferStart = 0;
@@ -761,7 +761,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     this.unsentBuffer.length - this.unsentBytes
                 );
 
-                // write bytes to unsent receiveBuffer
+                // write bytes to unsent buffer
 
                 System.arraycopy(
                     b, off, this.unsentBuffer, this.unsentBytes, lenToWrite
