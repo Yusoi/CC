@@ -432,7 +432,7 @@ public class ReliableSocketConnection implements AutoCloseable
                 // validate state
 
                 if (ReliableSocketConnection.this.isClosed())
-                    throw new IOException();
+                    throw new IllegalStateException();
 
                 // read data
 
@@ -452,7 +452,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     // fail if this side of the connection is closed
 
                     if (ReliableSocketConnection.this.isClosed())
-                        throw new IOException();
+                        throw new IllegalStateException();
 
                     // break if EOF was reached
 
@@ -529,8 +529,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
         // ack timeout
 
-        private final ScheduledExecutorService ackTimeoutExecutor =
-            Executors.newSingleThreadScheduledExecutor();
+        private final Timeout ackTimeout = new Timeout();
 
         private void sendUnsentData() throws IOException
         {
@@ -575,10 +574,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
                     // start acknowledgement timeout timer if not already running
 
-                    ackTimeoutExecutor.schedule(
+                    ackTimeout.scheduleIfNotScheduled(
                         this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos(),
-                        TimeUnit.NANOSECONDS
+                        this.rttEstimator.computeTimeoutNanos()
                     );
                 }
             }
@@ -588,6 +586,8 @@ public class ReliableSocketConnection implements AutoCloseable
         {
             synchronized (ReliableSocketConnection.this)
             {
+                // if there is still unacknowledged data
+
                 if (this.unackedBufferLen > 0)
                 {
                     // resend unacknowledged data
@@ -621,10 +621,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
                     // reset acknowledgement timeout timer
 
-                    this.ackTimeoutExecutor.schedule(
+                    this.ackTimeout.scheduleReplace(
                         this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos(),
-                        TimeUnit.NANOSECONDS
+                        this.rttEstimator.computeTimeoutNanos()
                     );
                 }
             }
@@ -667,10 +666,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 if (this.unackedBufferLen > 0)
                 {
-                    ackTimeoutExecutor.schedule(
+                    this.ackTimeout.scheduleReplace(
                         this::onAcknowledgmentTimeout,
-                        this.rttEstimator.computeTimeoutNanos(),
-                        TimeUnit.NANOSECONDS
+                        this.rttEstimator.computeTimeoutNanos()
                     );
                 }
             }
