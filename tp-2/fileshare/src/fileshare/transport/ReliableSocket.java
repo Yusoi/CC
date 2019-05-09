@@ -4,7 +4,6 @@ package fileshare.transport;
 
 import fileshare.Util;
 
-import javax.rmi.ssl.SslRMIClientSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
