@@ -960,6 +960,13 @@ public class ReliableSocket implements AutoCloseable
             b.put(payloadBuffer, 0, secondLength);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent DATA: offset = %d, length = %d",
+                payloadPosition, payloadBufferLength
+            )
+        );
     }
 
     void sendPacketDataAck(
@@ -976,6 +983,13 @@ public class ReliableSocket implements AutoCloseable
         b.putLong(ackUpTo);
 
         this.sendPacket(b, remoteEndpoint);
+
+        System.err.println(
+            String.format(
+                "Sent DATA-ACK: ack-up-to = %d",
+                ackUpTo
+            )
+        );
     }
 
     void sendPacketDisc(

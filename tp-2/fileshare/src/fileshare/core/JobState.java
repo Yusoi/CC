@@ -322,8 +322,10 @@ public class JobState
      * @throws IllegalStateException if the job's current phase is {@link
      *         Phase#SUCCEEDED}
      */
-    public synchronized void fail(Endpoint peerEndpoint, String errorMessage)
+    public synchronized void fail(Endpoint peerEndpoint, Throwable error)
     {
+        error.printStackTrace();
+
         if (this.phase == Phase.SUCCEEDED)
             throw new IllegalStateException("job has succeeded");
 
@@ -334,7 +336,7 @@ public class JobState
                     "" :
                     peerEndpoint.toString() + ": ";
 
-            final String message = (errorMessage == null) ? "" : errorMessage;
+            final String message = (error == null) ? "" : error.getMessage();
 
             this.errorMessage = prefix + message;
 

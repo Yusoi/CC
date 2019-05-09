@@ -77,7 +77,7 @@ class PeerRunPutImpl
         {
             // update job state (if not previously failed)
 
-            state.fail(null, e.getMessage());
+            state.fail(null, e);
 
             // close connections to peers
 
@@ -141,7 +141,7 @@ class PeerRunPutImpl
         {
             // update job state (if not previously failed)
 
-            state.fail(connection.getRemoteEndpoint(), e.getMessage());
+            state.fail(connection.getRemoteEndpoint(), e);
         }
     }
 }

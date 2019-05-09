@@ -276,6 +276,13 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         final var dataOffset = packetInput.readLong();
 
+        System.err.println(
+            String.format(
+                "Received DATA: offset = %d, length = %d",
+                dataOffset, remainingBytes - 8
+            )
+        );
+
         this.input.onDataReceived(dataOffset, packetInput, remainingBytes - 8);
     }
 
@@ -283,12 +290,19 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         final var ackUpTo = packetInput.readLong();
 
+        System.err.println(
+            String.format(
+                "Received DATA-ACK: ack-up-to = %d",
+                ackUpTo
+            )
+        );
+
         this.output.onAcknowledgmentReceived(ackUpTo);
     }
 
     synchronized void processPacketDisc() throws IOException
     {
-        this.disconnected = true;
+        // this.disconnected = true;
     }
 
     void processPacketDiscAck() throws IOException
@@ -428,7 +442,7 @@ public class ReliableSocketConnection implements AutoCloseable
                 // validate state
 
                 if (ReliableSocketConnection.this.isClosed())
-                    throw new IllegalStateException();
+                    throw new IllegalStateException("closed");
 
                 // read data
 
@@ -448,7 +462,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     // fail if this side of the connection is closed
 
                     if (ReliableSocketConnection.this.isClosed())
-                        throw new IllegalStateException();
+                        throw new IllegalStateException("closed");
 
                     // break if EOF was reached
 
@@ -527,6 +541,8 @@ public class ReliableSocketConnection implements AutoCloseable
 
         private final Timeout ackTimeout = new Timeout();
 
+        private int ackTimeoutCounter = 0;
+
         private void sendUnsentData() throws IOException
         {
             synchronized (ReliableSocketConnection.this)
@@ -540,7 +556,13 @@ public class ReliableSocketConnection implements AutoCloseable
                     Util.waitUntil(ReliableSocketConnection.this, () ->
                         this.unackedBuffer.length - this.unackedBufferLen
                             >= this.unsentBytes
+                                   || ReliableSocketConnection.this.isDisconnected()
                     );
+
+                    // fail if the connection disconnected
+
+                    if (ReliableSocketConnection.this.isDisconnected())
+                        throw new IllegalStateException("disconnected");
 
                     // send packet
 
@@ -586,6 +608,12 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 if (this.unackedBufferLen > 0)
                 {
+                    if (this.ackTimeoutCounter >= Config.MAX_RETRANSMISSIONS)
+                    {
+                        ReliableSocketConnection.this.close();
+                        return;
+                    }
+
                     // resend unacknowledged data
 
                     for (int off = 0; off < this.unackedBufferLen; )
@@ -607,13 +635,16 @@ public class ReliableSocketConnection implements AutoCloseable
                                 bytesToSend
                             );
                         }
-                        catch (IOException e)
+                        catch (IOException ignored)
                         {
-                            e.printStackTrace();
                         }
 
                         off += bytesToSend;
                     }
+
+                    // increment ack timout counter
+
+                    this.ackTimeoutCounter += 1;
 
                     // reset acknowledgement timeout timer
 
@@ -654,9 +685,13 @@ public class ReliableSocketConnection implements AutoCloseable
                 this.unackedBufferStart += ackedDelta;
                 this.unackedBufferLen -= ackedDelta;
 
+                // reset ack timeout counter
+
+                this.ackTimeoutCounter = 0;
+
                 // notify waiters
 
-                this.notifyAll();
+                ReliableSocketConnection.this.notifyAll();
 
                 // schedule acknowledgement timeout if data is still unacknowledged
 
@@ -692,8 +727,8 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 // validate state
 
-                if (ReliableSocketConnection.this.isClosed())
-                    throw new IllegalStateException();
+                if (ReliableSocketConnection.this.isDisconnected())
+                    throw new IllegalStateException("disconnected");
 
                 // while not all data in b has been written
 
@@ -735,8 +770,8 @@ public class ReliableSocketConnection implements AutoCloseable
             {
                 // validate state
 
-                if (ReliableSocketConnection.this.isClosed())
-                    throw new IllegalStateException();
+                if (ReliableSocketConnection.this.isDisconnected())
+                    throw new IllegalStateException("disconnected");
 
                 // send unsent data
 
@@ -746,8 +781,14 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 Util.waitUntil(
                     ReliableSocketConnection.this,
-                    () -> this.unackedBufferLen == 0
+                    () -> this.unackedBufferLen == 0 ||
+                              ReliableSocketConnection.this.isDisconnected()
                 );
+
+                // fail if the connection disconnected
+
+                if (ReliableSocketConnection.this.isDisconnected())
+                    throw new IllegalStateException("disconnected");
             }
         }
     }

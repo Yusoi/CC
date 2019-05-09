@@ -78,6 +78,8 @@ class Config
      */
     static final int MAX_UNACKNOWLEDGED_DATA = 1 << 20;
 
+    static final int MAX_RETRANSMISSIONS = 20;
+
     interface RttEstimator
     {
         void update(long sampleRttNanos);
