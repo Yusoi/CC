@@ -233,7 +233,7 @@ public class ReliableSocketConnection implements AutoCloseable
                 }
                 catch (IOException ignored)
                 {
-                    // error sending DISC packet, give up on trying to inform
+                    // error sending DISC packet, give up on trying to notify
                     // remote
 
                     break;
