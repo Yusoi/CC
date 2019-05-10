@@ -728,9 +728,9 @@ public class ReliableSocketConnection implements AutoCloseable
 
             if (this.unackedByteSendTimestamp != null)
             {
-                this.rttEstimator.update(
-                    System.nanoTime() - this.unackedByteSendTimestamp
-                );
+//                this.rttEstimator.update(
+//                    System.nanoTime() - this.unackedByteSendTimestamp
+//                );
 
                 this.unackedByteSendTimestamp = null;
             }
