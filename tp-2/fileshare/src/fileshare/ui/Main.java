@@ -8,6 +8,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.BindException;
 
 /* -------------------------------------------------------------------------- */
 
@@ -48,10 +49,22 @@ public final class Main
 
         // create peer
 
-        final var peer = new Peer(
-            arguments.getLocalPort(),
-            arguments.getExportedDirectoryPath()
+        final Peer peer;
+
+        try
+        {
+            peer = new Peer(
+                arguments.getLocalPort(),
+                arguments.getExportedDirectoryPath()
             );
+        }
+        catch (BindException e)
+        {
+            System.err.println(Color.RED.apply(e.getMessage()));
+
+            System.exit(1);
+            return;
+        }
 
         try (peer)
         {

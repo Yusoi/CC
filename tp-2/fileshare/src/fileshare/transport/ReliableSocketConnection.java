@@ -378,7 +378,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 // send acknowledgment and ignore data if already received
 
-                if (dataOffset < this.nextByteToBeRead)
+                if (dataOffset + dataSize <= this.nextByteToBeRead)
                 {
                     ReliableSocketConnection.this.reliableSocket.sendPacketDataAck(
                         new byte[Config.MAX_PACKET_SIZE],
@@ -390,9 +390,14 @@ public class ReliableSocketConnection implements AutoCloseable
                     return;
                 }
 
+                // compute useful data offset and size
+
+                final var usefulDataOffset = (int) (this.nextByteToBeRead - dataOffset);
+                final var usefulDataSize = dataSize - usefulDataOffset;
+
                 // ignore data if not enough space in receive buffer
 
-                if (this.receiveBuffer.length - this.receiveBufferLen < dataSize)
+                if (this.receiveBuffer.length - this.receiveBufferLen < usefulDataSize)
                     return;
 
                 // copy data to receive buffer
@@ -402,14 +407,14 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 Util.circularCopy(
                     data,
-                    0,
+                    usefulDataOffset,
                     this.receiveBuffer,
                     this.receiveBufferStart + this.receiveBufferLen,
-                    dataSize
+                    usefulDataSize
                 );
 
-                this.receiveBufferLen += dataSize;
-                this.nextByteToBeRead += dataSize;
+                this.receiveBufferLen += usefulDataSize;
+                this.nextByteToBeRead += usefulDataSize;
 
                 // send acknowledgment
 
@@ -422,7 +427,7 @@ public class ReliableSocketConnection implements AutoCloseable
 
                 // notify waiters if buffer was previously empty
 
-                if (this.receiveBufferLen == dataSize)
+                if (this.receiveBufferLen == usefulDataSize)
                     this.notifyAll();
             }
             catch (IOException ignored)
@@ -581,7 +586,7 @@ public class ReliableSocketConnection implements AutoCloseable
                     this.outgoingPacketBuffer,
                     ReliableSocketConnection.this.remoteEndpoint,
                     ReliableSocketConnection.this.localConnectionId,
-                    this.ackedBytes,
+                    this.ackedBytes + this.unackedBufferLen,
                     this.unsentBuffer,
                     0,
                     this.unsentBytes

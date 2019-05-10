@@ -1021,8 +1021,11 @@ public class ReliableSocket implements AutoCloseable
 
         System.err.println(
             String.format(
-                "Sent DATA: offset = %d, length = %d",
-               payloadPosition, payloadBufferLength
+                "Sent DATA: offset = %d, length = %d (end = %d, firstByte = %c)",
+                payloadPosition,
+                payloadBufferLength,
+                payloadPosition + payloadBufferLength,
+                (char) payloadBuffer[payloadBufferOffset]
             )
         );
     }
