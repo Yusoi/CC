@@ -1097,7 +1097,6 @@ public class ReliableSocket implements AutoCloseable
 
     private static void doNothing(Object... objs)
     {
-        // TODO: remove
     }
 }
 
