@@ -37,6 +37,15 @@ class Timeout
         if (executor != null)
         {
             executor.shutdownNow();
+
+            try
+            {
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            }
+            catch (InterruptedException ignored)
+            {
+            }
+
             executor = null;
         }
     }
