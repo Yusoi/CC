@@ -526,9 +526,6 @@ public class ReliableSocketConnection implements AutoCloseable
             Config.MAX_PACKET_SIZE
             ];
 
-        private final Config.RttEstimator rttEstimator =
-            Config.RTT_ESTIMATOR.get();
-
         // unsent
 
         private final byte[] unsentBuffer = new byte[
@@ -549,6 +546,14 @@ public class ReliableSocketConnection implements AutoCloseable
         // acked
 
         private long ackedBytes = 0;
+
+        // rtt estimation
+
+        private final Config.RttEstimator rttEstimator =
+            Config.RTT_ESTIMATOR.get();
+
+        // null if not useful (e.g., retransmitted, thus can't estimate RTT)
+        private Long unackedByteSendTimestamp = null;
 
         // ack timeout
 
@@ -584,6 +589,14 @@ public class ReliableSocketConnection implements AutoCloseable
                     0,
                     this.unsentBytes
                 );
+
+                // rtt estimation
+
+                if (this.unackedBufferLen == 0 &&
+                    this.unackedByteSendTimestamp == null)
+                {
+                    this.unackedByteSendTimestamp = System.nanoTime();
+                }
 
                 // copy data to unacknowledged data buffer
 
@@ -659,6 +672,10 @@ public class ReliableSocketConnection implements AutoCloseable
                     off += bytesToSend;
                 }
 
+                // rtt estimation
+
+                this.unackedByteSendTimestamp = null;
+
                 // increment ack timout counter
 
                 this.ackTimeoutCounter += 1;
@@ -706,6 +723,17 @@ public class ReliableSocketConnection implements AutoCloseable
             // reset ack timeout counter
 
             this.ackTimeoutCounter = 0;
+
+            // rtt estimation
+
+            if (this.unackedByteSendTimestamp != null)
+            {
+                this.rttEstimator.update(
+                    System.nanoTime() - this.unackedByteSendTimestamp
+                );
+
+                this.unackedByteSendTimestamp = null;
+            }
 
             // notify waiters
 
