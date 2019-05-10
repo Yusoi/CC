@@ -698,7 +698,7 @@ public class ReliableSocketConnection implements AutoCloseable
             this.ackedBytes += ackedDelta;
 
             this.unackedBufferStart =
-                (unackedBufferStart + ackedDelta)
+                (this.unackedBufferStart + ackedDelta)
                     % this.unackedBuffer.length;
 
             this.unackedBufferLen -= ackedDelta;
