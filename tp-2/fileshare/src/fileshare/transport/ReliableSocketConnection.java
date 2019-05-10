@@ -233,15 +233,11 @@ public class ReliableSocketConnection implements AutoCloseable
                 }
                 catch (IOException ignored)
                 {
-                    // error sending DISC packet, give up trying to inform remote
+                    // error sending DISC packet, give up on trying to inform
+                    // remote
+
                     break;
                 }
-
-                // TODO: wait for response or timeout
-
-                // TODO: if responded, return
-
-                // TODO: if didn't respond, try again
             }
 
             // set disconnected flag
@@ -338,7 +334,6 @@ public class ReliableSocketConnection implements AutoCloseable
 
     void processPacketDiscAck() throws IOException
     {
-        // TODO: implement
     }
 
     private class Input extends InputStream
@@ -563,8 +558,6 @@ public class ReliableSocketConnection implements AutoCloseable
 
         private synchronized void sendUnsentData() throws IOException
         {
-            // TODO: close connection on error
-
             if (this.unsentBytes > 0)
             {
                 // wait until there is enough space in unacked buffer
@@ -812,7 +805,6 @@ public class ReliableSocketConnection implements AutoCloseable
 
     private static void doNothing(Object... objs)
     {
-        // TODO: remove
     }
 }
 
