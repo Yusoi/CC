@@ -285,7 +285,7 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         final var dataOffset = packetInput.readLong();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received DATA: offset = %d, length = %d",
                 dataOffset, remainingBytes - 8
@@ -299,7 +299,7 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         final var ackUpTo = packetInput.readLong();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received DATA-ACK: ack-up-to = %d",
                 ackUpTo
@@ -808,6 +808,11 @@ public class ReliableSocketConnection implements AutoCloseable
             if (ReliableSocketConnection.this.isDisconnected())
                 throw new IllegalStateException("disconnected");
         }
+    }
+
+    private static void doNothing(Object... objs)
+    {
+        // TODO: remove
     }
 }
 

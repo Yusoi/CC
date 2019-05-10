@@ -737,7 +737,7 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received CONN: remoteId = %d",
                 remoteConnectionId
@@ -771,7 +771,7 @@ public class ReliableSocket implements AutoCloseable
         final var localConnectionId = packetInput.readShort();
         final var remoteConnectionId = packetInput.readShort();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received CONN-ACCEPT: localId = %d, remoteId = %d",
                 localConnectionId, remoteConnectionId
@@ -795,7 +795,7 @@ public class ReliableSocket implements AutoCloseable
     {
         final var localConnectionId = packetInput.readShort();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received CONN-REJECT: localId = %d",
                 localConnectionId
@@ -852,7 +852,7 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received DISC: remoteId = %d",
                 remoteConnectionId
@@ -874,7 +874,7 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Received DISC-ACK: remoteId = %d",
                 remoteConnectionId
@@ -935,7 +935,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent CONN: localId = %d",
                 localConnectionId
@@ -958,7 +958,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent CONN-ACCEPT: remoteId = %d, localId = %d",
                 remoteConnectionId,
@@ -980,7 +980,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent CONN-REJECT: remoteId = %d",
                 remoteConnectionId
@@ -1019,7 +1019,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent DATA: offset = %d, length = %d (end = %d, firstByte = %c)",
                 payloadPosition,
@@ -1045,7 +1045,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent DATA-ACK: ack-up-to = %d",
                 ackUpTo
@@ -1066,7 +1066,7 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent DISC: localId = %d",
                 localConnectionId
@@ -1087,12 +1087,17 @@ public class ReliableSocket implements AutoCloseable
 
         this.sendPacket(b, remoteEndpoint);
 
-        System.err.println(
+        doNothing(
             String.format(
                 "Sent DISC: localId = %d",
                 localConnectionId
             )
         );
+    }
+
+    private static void doNothing(Object... objs)
+    {
+        // TODO: remove
     }
 }
 

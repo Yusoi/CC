@@ -76,9 +76,9 @@ class Config
     /**
      * In bytes.
      */
-    static final int MAX_UNACKNOWLEDGED_DATA = 1 << 14;
+    static final int MAX_UNACKNOWLEDGED_DATA = 1 << 12;
 
-    static final int RECEIVE_BUFFER_SIZE = 1 << 22;
+    static final int RECEIVE_BUFFER_SIZE = 1 << 20;
 
     static final int MAX_RETRANSMISSIONS = 20;
 
@@ -95,7 +95,7 @@ class Config
             private static final double BETA = 0.25;
 
             private double estimatedRtt = 0;
-            private double devRtt = 50_000_000; // 50 milliseconds
+            private double devRtt = 15_000_000; // 15 milliseconds
 
             @Override
             public void update(long sampleRttNanos)
