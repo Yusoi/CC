@@ -121,6 +121,8 @@ public class ReliableSocket implements AutoCloseable
     /**
      * Returns the socket's local UDP port.
      *
+     * This method always succeeds, even if this socket is closed.
+     *
      * @return the socket's local UDP port
      */
     public int getLocalPort()

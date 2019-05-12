@@ -66,9 +66,6 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * This method always succeeds, even if this connection is closed.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
      * @return the {@link ReliableSocket} from which this connection was created
      */
     public ReliableSocket getSocket()
@@ -77,14 +74,11 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the endpoint of the host on the other side of this connection.
+     * Returns the endpoint of the host on the remote end of this connection.
      *
      * This method always succeeds, even if this connection is closed.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
-     * @return the endpoint of the host on the other side of this connection
+     * @return the endpoint of the host on the remote end of this connection
      */
     public Endpoint getRemoteEndpoint()
     {
