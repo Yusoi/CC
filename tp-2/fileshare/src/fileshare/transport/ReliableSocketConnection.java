@@ -61,12 +61,11 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the {@link ReliableSocket} from which this connection was
-     * created.
+     * Returns the {@link ReliableSocket} from which the connection was created.
      *
-     * This method always succeeds, even if this connection is closed.
+     * This method always succeeds, even if the connection is closed.
      *
-     * @return the {@link ReliableSocket} from which this connection was created
+     * @return the {@link ReliableSocket} from which the connection was created
      */
     public ReliableSocket getSocket()
     {
@@ -74,11 +73,11 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the endpoint of the host on the remote end of this connection.
+     * Returns the endpoint of the host on the remote end of the connection.
      *
-     * This method always succeeds, even if this connection is closed.
+     * This method always succeeds, even if the connection is closed.
      *
-     * @return the endpoint of the host on the remote end of this connection
+     * @return the endpoint of the host on the remote end of the connection
      */
     public Endpoint getRemoteEndpoint()
     {
@@ -86,30 +85,26 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the unique dataInputStream stream for this side of this connection.
+     * Returns the unique input stream for the local end of the connection.
      *
-     * This method always succeeds, even if this connection is closed.
+     * This method always succeeds, even if the connection is closed.
      *
-     * If this side of this connection is open but the other side has been
-     * closed, the returned stream is still readable (no data sent by the remote
-     * is lost) and will indicate end-of-file when all data sent by the remote
-     * has been read.
+     * If this end of the connection is open but the other side has been closed,
+     * the returned stream is still readable (no data sent by the remote is
+     * lost) and will reach end-of-file when all data sent by the remote has
+     * been read.
      *
-     * If this side of this connection has been closed, reading from the
-     * returned stream will result in {@link IllegalStateException} being
-     * thrown.
+     * If this end of the connection has been closed, reading from the returned
+     * stream will result in an {@link IllegalStateException} being thrown.
      *
      * Any active calls on the returned stream will throw an exception when
      * {@link #close()} is invoked on this instance.
      *
      * The returned stream's {@link InputStream#close()} method has no effect.
      *
-     * Note that the returned stream is NOT thread-safe.
+     * Note that the returned stream is <i>not</i> thread-safe.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
-     * @return the dataInputStream stream for this side of this connection
+     * @return the unique input stream for the local end of the connection
      */
     public DataInputStream getDataInputStream()
     {
@@ -117,19 +112,17 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Returns the unique dataOutputStream stream for this side of this connection.
+     * Returns the unique output stream for the local end of the connection.
      *
-     * The returned stream's data is buffered (to a certain unspecified size).
-     * In order to force-send buffered data, use the returned stream's
-     * {@link OutputStream#flush()} method.
+     * This method always succeeds, even if the connection is closed.
      *
-     * The returned stream's {@link OutputStream#flush()} method blocks until
-     * data is acknowledged by the receiver.
-     *
-     * This method always succeeds, even if this connection is closed.
+     * The returned stream's data is buffered (to a certain unspecified size),
+     * In order to ensure that written data is sent, use the returned stream's
+     * {@link OutputStream#flush()} method, which also blocks until data is
+     * acknowledged by the receiver.
      *
      * If either side of this connection has been closed, writing to the
-     * returned stream will result in {@link IllegalStateException} being
+     * returned stream will result in an {@link IllegalStateException} being
      * thrown.
      *
      * Any active calls on the returned stream will throw an exception when
@@ -137,12 +130,9 @@ public class ReliableSocketConnection implements AutoCloseable
      *
      * The returned stream's {@link OutputStream#close()} method has no effect.
      *
-     * Note that the returned stream is NOT thread-safe.
+     * Note that the returned stream is <i>not</i> thread-safe.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
-     * @return the dataOutputStream stream for this side of this connection
+     * @return the unique output stream for the local end of the connection
      */
     public DataOutputStream getDataOutputStream()
     {
@@ -151,13 +141,10 @@ public class ReliableSocketConnection implements AutoCloseable
 
     /**
      * Checks whether the connection is no longer established, either because
-     * this side of the connection was closed, or because the remote side of
-     * this connection was closed.
+     * the local end of the connection was closed, or because the remote end of
+     * the connection was closed.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
-     * @return whether this side of the connection has been closed
+     * @return whether the connection is no longer established
      */
     public boolean isDisconnected()
     {
@@ -165,12 +152,9 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Checks whether this side of the connection has been closed.
+     * Checks whether this end of the connection has been closed.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
-     *
-     * @return whether this side of the connection has been closed
+     * @return whether this end of the connection has been closed
      */
     public boolean isClosed()
     {
@@ -178,31 +162,23 @@ public class ReliableSocketConnection implements AutoCloseable
     }
 
     /**
-     * Closes this end/side of the connection.
+     * Closes this end of the connection.
      *
-     * Any unread data in the dataInputStream stream is lost.
+     * Any unread data in this end's input stream is lost.
      *
-     * Any unsent data in the dataOutputStream stream is lost. Use {@code
-     * getDataOutputStream().flush()} before invoking this method to ensure that all
-     * unsent data is sent.
+     * Any unsent data in this end's output stream is lost. Use {@code
+     * getDataOutputStream().flush()} before invoking this method to ensure that
+     * all unsent data is sent.
      *
-     * Any active calls on this side's dataInputStream or dataOutputStream streams will throw an
-     * {@link InterruptedException} when this method is called.
+     * Reading from this end's input stream or writing to this end's output
+     * stream after invoking this method will result in an {@link
+     * IllegalStateException} being thrown.
      *
-     * Reading from {@link #getDataInputStream()} and writing to {@link #getDataOutputStream()}
-     * after invoking this method will throw {@link IllegalStateException}.
-     *
-     * See {@link #getDataInputStream()} and {@link #getDataOutputStream()} for more information on
-     * the effects of this method on this side's streams.
+     * See {@link #getDataInputStream()} and {@link #getDataOutputStream()} for
+     * more information on the effects of this method on this end's streams.
      *
      * If this end of the connection is already closed, this method has no
      * effect.
-     *
-     * If this method fails, this end of the connection will nevertheless be
-     * left in a closed state.
-     *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method.
      */
     @Override
     public synchronized void close()
@@ -275,26 +251,12 @@ public class ReliableSocketConnection implements AutoCloseable
     {
         final var dataOffset = packetInput.readLong();
 
-        doNothing(
-            String.format(
-                "Received DATA: offset = %d, length = %d",
-                dataOffset, remainingBytes - 8
-            )
-        );
-
         this.input.onDataReceived(dataOffset, packetInput, remainingBytes - 8);
     }
 
     void processPacketDataAck(DataInputStream packetInput) throws IOException
     {
         final var ackUpTo = packetInput.readLong();
-
-        doNothing(
-            String.format(
-                "Received DATA-ACK: ack-up-to = %d",
-                ackUpTo
-            )
-        );
 
         this.output.onAcknowledgmentReceived(ackUpTo);
     }
@@ -326,7 +288,7 @@ public class ReliableSocketConnection implements AutoCloseable
         }
     }
 
-    void processPacketDiscAck() throws IOException
+    void processPacketDiscAck()
     {
     }
 
@@ -428,7 +390,7 @@ public class ReliableSocketConnection implements AutoCloseable
         }
 
         @Override
-        public int read() throws IOException
+        public int read()
         {
             final byte[] b = new byte[1];
 
@@ -439,7 +401,7 @@ public class ReliableSocketConnection implements AutoCloseable
         }
 
         @Override
-        public synchronized int read(byte[] b, int off, int len) throws IOException
+        public synchronized int read(byte[] b, int off, int len)
         {
             // validate arguments
 
@@ -823,10 +785,6 @@ public class ReliableSocketConnection implements AutoCloseable
             if (ReliableSocketConnection.this.isDisconnected())
                 throw new IllegalStateException("disconnected");
         }
-    }
-
-    private static void doNothing(Object... objs)
-    {
     }
 }
 
