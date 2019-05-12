@@ -35,13 +35,13 @@ public final class Util
     }
 
     /**
-     * TODO: document
+     * Copies bytes between two possibly circular arrays.
      *
-     * @param from TODO: document
-     * @param fromIndex TODO: document
-     * @param to TODO: document
-     * @param toIndex TODO: document
-     * @param size TODO: document
+     * @param from the source array
+     * @param fromIndex the starting index in the source array
+     * @param to the destination array
+     * @param toIndex the starting index in the destination array
+     * @param size the number of bytes to be copied
      */
     public static void circularCopy(
         byte[] from,
@@ -62,10 +62,12 @@ public final class Util
     }
 
     /**
-     * TODO: document
+     * Waits until a certain condition becomes true, relying on the {@link
+     * Object#wait()} method of the specified object.
      *
-     * @param monitor TODO: document
-     * @param condition TODO: document
+     * @param monitor the object on which to invoke the {@link Object#wait()}
+     *        method
+     * @param condition the condition to wait to become true
      */
     public static void waitUntil(
         Object monitor,
@@ -162,7 +164,7 @@ public final class Util
         {
             final long transferred = input.transferTo(
                 inputPosition + transferredTotal,
-                Math.min(inputSize - transferredTotal, 1 * (1L << 16)),
+                Math.min(inputSize - transferredTotal, 1L << 16),
                 output
             );
 
@@ -218,7 +220,7 @@ public final class Util
             final long transferred = output.transferFrom(
                 input,
                 outputPosition + transferredTotal,
-                Math.min(outputSize - transferredTotal, 1 * (1L << 16))
+                Math.min(outputSize - transferredTotal, 1L << 16)
             );
 
             if (transferred <= 0)
