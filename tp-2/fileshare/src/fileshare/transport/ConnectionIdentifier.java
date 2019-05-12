@@ -7,7 +7,9 @@ import java.util.Objects;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Identifies a connection.
+ *
+ * Note that this class is package-private.
  */
 class ConnectionIdentifier
 {

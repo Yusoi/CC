@@ -9,7 +9,9 @@ import java.util.zip.Checksum;
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Configuration of the reliable data transfer protocol.
+ *
+ * Note that this class is package-private.
  */
 class Config
 {
@@ -52,7 +54,7 @@ class Config
     // packet integrity
 
     /**
-     * Factory of checksum computing objects to be used to verify packet
+     * Factory of checksum computation objects to be used to verify packet
      * integrity.
      */
     static final Supplier< Checksum > CHECKSUM = CRC32::new;
@@ -74,12 +76,19 @@ class Config
     // data transfer
 
     /**
-     * In bytes.
+     * The maximum amount of sent but unacknowledged data, in bytes.
      */
     static final int MAX_UNACKNOWLEDGED_DATA = 1 << 12;
 
+    /**
+     * The size of the receive buffer, in bytes.
+     */
     static final int RECEIVE_BUFFER_SIZE = 1 << 20;
 
+    /**
+     * The maximum number of DATA packet retransmissions, after which the
+     * connection should be closed.
+     */
     static final int MAX_RETRANSMISSIONS = 20;
 
     interface RttEstimator
@@ -88,6 +97,10 @@ class Config
         long computeTimeoutNanos();
     }
 
+    /**
+     * Factory of round-trip time estimator objects, used to compute the delay
+     * for unacknowledged data retransmission.
+     */
     static final Supplier< RttEstimator > RTT_ESTIMATOR =
         () -> new RttEstimator()
         {
