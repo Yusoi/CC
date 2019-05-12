@@ -24,7 +24,7 @@ class PeerServePutImpl
      * @param connection the connection to the remote peer
      * @param exportedDirectory the local peer's exported directory
      */
-    public static void serve(
+    static void serve(
         ReliableSocketConnection connection,
         ExportedDirectory exportedDirectory
     ) throws Exception

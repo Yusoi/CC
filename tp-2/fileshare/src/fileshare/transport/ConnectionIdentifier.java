@@ -17,36 +17,38 @@ class ConnectionIdentifier
     private final short connectionId;
 
     /**
-     * TODO: document
+     * Creates a {@code ConnectionIdentifier}.
      *
-     * @param remoteEndpoint TODO: document
-     * @param connectionSeqnum TODO: document
+     * @param remoteEndpoint the endpoint of the connection's remote end
+     * @param connectionId the identifier of one of the connection's ends
+     *
+     * @throws NullPointerException if {@code remoteEndpoint} is {@code null}
      */
-    public ConnectionIdentifier(
+    ConnectionIdentifier(
         Endpoint remoteEndpoint,
-        short connectionSeqnum
+        short connectionId
     )
     {
         this.remoteEndpoint = Objects.requireNonNull(remoteEndpoint);
-        this.connectionId = connectionSeqnum;
+        this.connectionId = connectionId;
     }
 
     /**
-     * TODO: document
+     * Returns the endpoint of the connection's remote end.
      *
-     * @return TODO: document
+     * @return the endpoint of the connection's remote end
      */
-    public Endpoint getRemoteEndpoint()
+    Endpoint getRemoteEndpoint()
     {
         return this.remoteEndpoint;
     }
 
     /**
-     * TODO: document
+     * Returns the identifier of one of the connection's ends.
      *
-     * @return TODO: document
+     * @return the identifier of one of the connection's ends
      */
-    public short getConnectionId()
+    short getConnectionId()
     {
         return this.connectionId;
     }

@@ -30,7 +30,7 @@ class PeerRunGetImpl
      * @param socket the local peer's socket
      * @param exportedDirectory the local peer's exported directory
      */
-    public static void run(
+    static void run(
         JobState state,
         ReliableSocket socket,
         ExportedDirectory exportedDirectory

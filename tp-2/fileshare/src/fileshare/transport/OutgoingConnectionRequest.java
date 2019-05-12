@@ -3,13 +3,14 @@
 package fileshare.transport;
 
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 
 /* -------------------------------------------------------------------------- */
 
 /**
- * TODO: document
+ * Manages an outgoing connection request.
+ *
+ * Note that this class is package-private.
  */
 class OutgoingConnectionRequest
 {
@@ -17,31 +18,27 @@ class OutgoingConnectionRequest
     private boolean interrupted;
 
     /**
-     * TODO: document
+     * Creates an {@code OutgoingConnectionRequest}.
      */
-    public OutgoingConnectionRequest()
+    OutgoingConnectionRequest()
     {
         remoteConnectionSeqnum = null;
         interrupted = false;
     }
 
     /**
-     * TODO: document
-     *
-     * Waits for a response from the remote regarding the connection
-     * attempt.
+     * Waits for a response from the remote regarding the connection request.
      *
      * @param timeoutMilliseconds the timeout duration in milliseconds
      * @return an empty optional if the connection was rejected, otherwise
-     *         an optional whose value is the remote connection seqnum
+     *         an optional whose value is the remote connection identifier
      *
      * @throws InterruptedException if {@link #interrupt()} is or was invoked
      * @throws TimeoutException if the timeout duration elapsed and no
      *         response was received
      */
-    public Optional< Short > waitForResponse(
-        long timeoutMilliseconds
-    ) throws InterruptedException, TimeoutException
+    Optional< Short > waitForResponse(long timeoutMilliseconds)
+        throws InterruptedException, TimeoutException
     {
         final var nanosStart = System.nanoTime();
         var nanosNow = nanosStart;
@@ -75,19 +72,11 @@ class OutgoingConnectionRequest
     }
 
     /**
-     * TODO: document
+     * Signals that the connection request was accepted.
+     *
+     * @param remoteConnectionSeqnum the remote connection identifier
      */
-    public synchronized void rejected()
-    {
-        this.remoteConnectionSeqnum = Optional.empty();
-
-        this.notifyAll();
-    }
-
-    /**
-     * TODO: document
-     */
-    public synchronized void accepted(short remoteConnectionSeqnum)
+    synchronized void accepted(short remoteConnectionSeqnum)
     {
         this.remoteConnectionSeqnum = Optional.of(remoteConnectionSeqnum);
 
@@ -95,9 +84,19 @@ class OutgoingConnectionRequest
     }
 
     /**
-     * TODO: document
+     * Signals that the connection request was rejected.
      */
-    public synchronized void interrupt()
+    synchronized void rejected()
+    {
+        this.remoteConnectionSeqnum = Optional.empty();
+
+        this.notifyAll();
+    }
+
+    /**
+     * Interrupts the connection attempt.
+     */
+    synchronized void interrupt()
     {
         this.interrupted = true;
 
