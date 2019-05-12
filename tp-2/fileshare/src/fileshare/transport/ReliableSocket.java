@@ -30,7 +30,7 @@ import java.util.function.Predicate;
 
 /**
  * A UDP-backed socket from which reliable data transfer channels (termed
- * *connections*) between this and other similar sockets can be obtained.
+ * <i>connections</i>) between this and other similar sockets can be obtained.
  *
  * This class is thread-safe.
  */
@@ -119,14 +119,9 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Returns this socket's local UDP port.
+     * Returns the socket's local UDP port.
      *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that
-     * invoking {@link #listen(Predicate)} while another invocation is active on
-     * the same instance will result in an exception).
-     *
-     * @return this socket's local UDP port
+     * @return the socket's local UDP port
      */
     public int getLocalPort()
     {
@@ -158,7 +153,7 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Listen for incoming connection requests.
+     * Listens for incoming connection requests.
      *
      * This method blocks until a connection request is received and accepted,
      * in which case the created {@link ReliableSocketConnection} is returned,
@@ -173,17 +168,13 @@ public class ReliableSocket implements AutoCloseable
      * This method will also return {@code null} if invoked when this socket is
      * already closed.
      *
-     * This method will throw {@link IllegalStateException} if invoked
+     * This method will throw an {@link IllegalStateException} if invoked
      * concurrently with other invocations of itself on the same socket.
-     *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that
-     * invoking {@code #listen(Predicate)} while another invocation is active on
-     * the same instance will result in an exception).
      *
      * @param accept predicate that determines whether a connection should be
      *        accepted
-     * @return the established connection, or null if this socket was closed
+     * @return the established connection, or {@code null} if this socket
+     *         closed
      *
      * @throws IllegalStateException if another invocation of this method is in
      *         progress
@@ -315,7 +306,7 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Attempts to connect to the specified remote endpoint.
+     * Attempts to establish a connection with the specified remote endpoint.
      *
      * An {@link IOException} is thrown if the remote explicitly declines the
      * connection attempt.
@@ -324,17 +315,12 @@ public class ReliableSocket implements AutoCloseable
      * IllegalStateException} being thrown.
      *
      * Any active calls of this method will throw an {@link
-     * InterruptedException} when {@link #close()} is invoked on this instance.
-     *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that
-     * invoking {@link #listen(Predicate)} while another invocation is active on
-     * the same instance will result in an exception).
+     * InterruptedException} when {@link #close()} is invoked on this socket.
      *
      * @param remoteEndpoint the remote's endpoint
      * @return the established connection
      *
-     * @throws NullPointerException if remoteEndpoint is null
+     * @throws NullPointerException if {@code remoteEndpoint} is {@code null}
      * @throws IOException if the connection is rejected by the remote
      * @throws IOException if an I/O error occurs
      */
@@ -493,27 +479,11 @@ public class ReliableSocket implements AutoCloseable
     }
 
     /**
-     * Closes this socket and any open connection previously obtained from it
+     * Closes this socket and any open connections previously obtained from it
      * (as if by invoking {@link ReliableSocketConnection#close()} on each of
      * them).
      *
-     * Any active calls of {@link #listen(Predicate)} or {@link
-     * #connect(Endpoint)} on this socket will throw an exception when this
-     * method is called.
-     *
-     * Invoking {@link #listen(Predicate)} or {@link #connect(Endpoint)} on this
-     * socket after it is closed will result in {@link IOException} being
-     * thrown.
-     *
      * If this socket is already closed, this method has no effect.
-     *
-     * If this method fails, this socket and its associated connections will
-     * nevertheless be left in a closed state.
-     *
-     * This class' API (including this method) is fully thread-safe: all methods
-     * may be called concurrently with any method (with the exception that
-     * invoking {@link #listen(Predicate)} while another invocation is active on
-     * the same instance will result in an exception).
      */
     @Override
     public void close()
@@ -737,13 +707,6 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
-        doNothing(
-            String.format(
-                "Received CONN: remoteId = %d",
-                remoteConnectionId
-            )
-        );
-
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
             remoteConnectionId
@@ -771,13 +734,6 @@ public class ReliableSocket implements AutoCloseable
         final var localConnectionId = packetInput.readShort();
         final var remoteConnectionId = packetInput.readShort();
 
-        doNothing(
-            String.format(
-                "Received CONN-ACCEPT: localId = %d, remoteId = %d",
-                localConnectionId, remoteConnectionId
-            )
-        );
-
         synchronized (this)
         {
             final var attempt = this.outgoingConnectionRequests.get(
@@ -794,13 +750,6 @@ public class ReliableSocket implements AutoCloseable
     ) throws IOException
     {
         final var localConnectionId = packetInput.readShort();
-
-        doNothing(
-            String.format(
-                "Received CONN-REJECT: localId = %d",
-                localConnectionId
-            )
-        );
 
         synchronized (this)
         {
@@ -852,13 +801,6 @@ public class ReliableSocket implements AutoCloseable
     {
         final var remoteConnectionId = packetInput.readShort();
 
-        doNothing(
-            String.format(
-                "Received DISC: remoteId = %d",
-                remoteConnectionId
-            )
-        );
-
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
             remoteConnectionId
@@ -873,13 +815,6 @@ public class ReliableSocket implements AutoCloseable
     ) throws IOException
     {
         final var remoteConnectionId = packetInput.readShort();
-
-        doNothing(
-            String.format(
-                "Received DISC-ACK: remoteId = %d",
-                remoteConnectionId
-            )
-        );
 
         final var connectionId = new ConnectionIdentifier(
             remoteEndpoint,
@@ -934,13 +869,6 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent CONN: localId = %d",
-                localConnectionId
-            )
-        );
     }
 
     private void sendPacketConnAccept(
@@ -957,14 +885,6 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent CONN-ACCEPT: remoteId = %d, localId = %d",
-                remoteConnectionId,
-                localConnectionId
-            )
-        );
     }
 
     private void sendPacketConnReject(
@@ -979,13 +899,6 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(remoteConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent CONN-REJECT: remoteId = %d",
-                remoteConnectionId
-            )
-        );
     }
 
     // payloadBuffer may be circular
@@ -1018,16 +931,6 @@ public class ReliableSocket implements AutoCloseable
             b.put(payloadBuffer, 0, secondLength);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent DATA: offset = %d, length = %d (end = %d, firstByte = %c)",
-                payloadPosition,
-                payloadBufferLength,
-                payloadPosition + payloadBufferLength,
-                (char) payloadBuffer[payloadBufferOffset]
-            )
-        );
     }
 
     void sendPacketDataAck(
@@ -1044,13 +947,6 @@ public class ReliableSocket implements AutoCloseable
         b.putLong(ackUpTo);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent DATA-ACK: ack-up-to = %d",
-                ackUpTo
-            )
-        );
     }
 
     void sendPacketDisc(
@@ -1065,13 +961,6 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent DISC: localId = %d",
-                localConnectionId
-            )
-        );
     }
 
     void sendPacketDiscAck(
@@ -1086,17 +975,6 @@ public class ReliableSocket implements AutoCloseable
         b.putShort(localConnectionId);
 
         this.sendPacket(b, remoteEndpoint);
-
-        doNothing(
-            String.format(
-                "Sent DISC: localId = %d",
-                localConnectionId
-            )
-        );
-    }
-
-    private static void doNothing(Object... objs)
-    {
     }
 }
 
