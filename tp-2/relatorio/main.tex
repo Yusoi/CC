@@ -1,0 +1,119 @@
+% ---------------------------------------------------------------------------- %
+
+\documentclass{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuges]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage{times}
+\usepackage{a4}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{xspace}
+\usepackage{xpatch}
+\usepackage{minted}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{tabularx}
+\usepackage{multirow}
+
+% ---------------------------------------------------------------------------- %
+% configuration
+
+\definecolor[named]{ACMDarkBlue}{cmyk}{1,0.58,0,0.21}
+
+\hypersetup{
+    hidelinks,
+    colorlinks,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=ACMDarkBlue,
+    filecolor=ACMDarkBlue
+    }
+
+\makeatletter
+\AtBeginEnvironment{minted}{\dontdofcolorbox}
+\def\dontdofcolorbox{\renewcommand\fcolorbox[4][]{##4}}
+\xpatchcmd{\inputminted}{\minted@fvset}{\minted@fvset\dontdofcolorbox}{}{}
+\makeatother
+
+\setminted{
+    autogobble,
+    breaklines,
+    frame=leftline,
+    framesep=8pt,
+    xleftmargin=11pt
+    }
+
+\setlength{\intextsep}{12pt plus 2pt minus 2pt}
+
+\setlist{itemsep=.3\baselineskip}
+
+% ---------------------------------------------------------------------------- %
+% utilities
+
+\newcommand{\itemizedpar}[1]{%
+    \vspace*{-.5\baselineskip}%
+    \paragraph{{\textbf{#1}}}%
+    }
+
+\newcommand{\inlineenum}[1]{(#1)}
+\newcommand{\nonpt}[1]{\emph{#1}}
+
+\newcommand{\SYS}{\textsc{FileShare}\xspace}
+\newcommand{\ARQUIVO}{\path{CC-TP2-PL59-Codigo.zip}\xspace}
+
+% ---------------------------------------------------------------------------- %
+% notes
+
+\newcommand{\mynote}[3]{
+    \fbox{\bfseries\sffamily\scriptsize#1}
+    {\scriptsize$\blacktriangleright$\textsf{\emph{\color{#2}{#3}}}$\blacktriangleleft$}}
+
+\newcommand{\alberto}[1]{\mynote{alberto}{red}{#1}}
+\newcommand{\bernardo}[1]{\mynote{bernardo}{red}{#1}}
+\newcommand{\nuno}[1]{\mynote{nuno}{red}{#1}}
+
+% ---------------------------------------------------------------------------- %
+% document
+
+\begin{document}
+
+\mainmatter
+
+\title{TP2: Serviço de Transferência Rápida e Fiável de Dados sobre UDP}
+
+\author{
+    {\bfseries Grupo PL59} \\
+    Alberto Campinho Faria \\
+    Bernardo Manuel Ribeiro Marques Soares Silva \\
+    Nuno Filipe Maranhão dos Reis
+    }
+
+\institute{
+    University of Minho, Department of  Informatics, 4710-057 Braga, Portugal \\
+    e-mail: \{a79077,a77230,a77310\}@alunos.uminho.pt
+    }
+
+\date{}
+
+\maketitle
+
+\begin{abstract}
+\input{body/00-resumo.tex}
+\end{abstract}
+
+\input{body/01-introducao.tex}
+\input{body/02-funcionalidades.tex}
+\input{body/03-implementacao.tex}
+\input{body/04-conclusao.tex}
+
+\end{document}
+
+% ---------------------------------------------------------------------------- %

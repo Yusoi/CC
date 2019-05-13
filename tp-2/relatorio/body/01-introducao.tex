@@ -1,0 +1,21 @@
+% ---------------------------------------------------------------------------- %
+
+\section{Introdução}
+
+Este documento consiste no relatório correspondente ao segundo trabalho prático desenvolvido no âmbito da Unidade Curricular de Comunicações por Computador do curso de Mestrado Integrado em Engenharia Informática, no ano letivo de 2018/2019, da Universidade do Minho.
+
+Com o trabalho em questão, pretende-se que seja construído um sistema \nonpt{peer-to-peer} transferência fiável de ficheiros, cada \nonpt{peer} podendo iniciar transferências de \nonpt{download} e \nonpt{upload}. O protocolo base de transferência de dados deve garantir a entrega sem erros e ordenada de mensagens, no entanto devendo também utilizar somente conexões UDP.
+
+Neste sentido, foi desenvolvido o sistema \SYS, o qual cumpre todos os requisitos impostos pelo enunciado do trabalho. O sistema disponibiliza ainda várias funcionalidades adicionais, destacando-se \inlineenum{1} a possibilidade de realizar transferências em simultâneo entre qualquer par de \nonpt{peers} (multiplexando várias conecções no mesmo socket UDP) e \inlineenum{2} a paralelização do \nonpt{download} de ficheiros utilizando vários \nonpt{peers}.
+
+\itemizedpar{Material disponibilizado.}
+
+A implementação do sistema, na linguagem Java e sob a forma de um projeto do IDE \emph{IntelliJ IDEA}\footnote{\url{https://www.jetbrains.com/idea/}}, é incluída no arquivo \ARQUIVO, disponibilizado juntamente com este relatório. O arquivo contém ainda o programa \path{fileshare.jar}, resultado da compilação do projeto, através do qual se pode utilizar o sistema. Para executar este programa, recomenda-se a utilização do \nonpt{script} \path{fileshare.sh}, o qual adiciona funcionalidades de histórico de comandos ao \nonpt{prompt} interativo do programa.
+
+\itemizedpar{Estrutura do documento.}
+
+Na Secção~\ref{sec:func} são descritas todas as funcionalidades disponibilizadas pelo sistema e o modo de utilização da interface de linha de comandos do mesmo. Na Secção~\ref{sec:impl} é depois apresentada a arquitetura interna do sistema e detalhados vários aspetos relativos à sua implementação, incluindo o protocolo de comunicação fiável sobre UDP. A Secção~\ref{sec:conc} conclui o relatório.
+
+% Na Secção~\ref{sec:teste} é descrito o processo de teste do sistema e apresentados os respetivos resultados. 
+
+% ---------------------------------------------------------------------------- %
